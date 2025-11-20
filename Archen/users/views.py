@@ -14,7 +14,7 @@ from django.shortcuts import redirect
 
 from django.contrib.auth.views import LoginView
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseServerError
 from django.db.models import Q
 
 
@@ -83,6 +83,24 @@ def is_manager(user):
     return user.is_authenticated and getattr(user, 'role', None) == 'manager'
 
 
+def _build_xlsx_response(sheet_title, report_title, headers, rows, filename, column_widths=None):
+    """Shared XLSX generator for user exports."""
+    try:
+        from utils.xlsx import build_table_response
+    except ImportError:
+        return HttpResponseServerError("کتابخانه openpyxl نصب نشده است؛ لطفاً با مدیر سیستم تماس بگیرید.")
+
+    return build_table_response(
+        sheet_title=sheet_title,
+        report_title=report_title,
+        headers=headers,
+        rows=rows,
+        filename=filename,
+        column_widths=column_widths or [],
+        table_name="UsersExport",
+    )
+
+
 @login_required
 @user_passes_test(is_manager)
 def user_list_view(request):
@@ -99,8 +117,15 @@ def user_list_view(request):
     qs = CustomUser.objects.all().order_by('-id')
     # Retrieve the selected role from the query string.  Blank means all roles.
     selected_role = (request.GET.get('role') or '').strip()
+    search_query = (request.GET.get('search') or '').strip()
     if selected_role:
         qs = qs.filter(role=selected_role)
+    if search_query:
+        qs = qs.filter(
+            Q(full_name__icontains=search_query) |
+            Q(username__icontains=search_query) |
+            Q(role__icontains=search_query)
+        )
     active_users_count = qs.filter(is_active=True).count()
     # All possible role choices for the filter dropdown
     role_field = CustomUser._meta.get_field('role')
@@ -111,9 +136,45 @@ def user_list_view(request):
         'role_choices': role_choices,
         'current_role': selected_role,
         # Pass through the search query (if any) to preserve input value
-        'search_query': (request.GET.get('search') or '').strip(),
+        'search_query': search_query,
     }
     return render(request, 'users/user_list.html', context)
+
+
+@login_required
+@user_passes_test(is_manager)
+def users_export_xlsx(request):
+    qs = CustomUser.objects.all().order_by('-id')
+    role_filter = (request.GET.get('role') or '').strip()
+    search_query = (request.GET.get('search') or '').strip()
+
+    if role_filter:
+        qs = qs.filter(role=role_filter)
+    if search_query:
+        qs = qs.filter(
+            Q(full_name__icontains=search_query) |
+            Q(username__icontains=search_query) |
+            Q(role__icontains=search_query)
+        )
+
+    headers = ['نام و نام خانوادگی', 'نام کاربری', 'نقش', 'وضعیت']
+    rows = []
+    for user in qs:
+        rows.append([
+            user.full_name or user.username or '',
+            user.username,
+            getattr(user, 'get_role_display', lambda: user.role)(),
+            'فعال' if user.is_active else 'غیرفعال',
+        ])
+
+    return _build_xlsx_response(
+        sheet_title="لیست کاربران",
+        report_title="گزارش لیست کاربران",
+        headers=headers,
+        rows=rows,
+        filename="users_list.xlsx",
+        column_widths=[28, 22, 18, 14],
+    )
 
 
 @login_required

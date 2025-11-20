@@ -31,9 +31,16 @@
           <svg class="w-4 h-4 ms-0 me-1 text-red-700" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 3h6a1 1 0 0 1 1 1v1h3v2H5V5h3V4a1 1 0 0 1 1-1zm-2 6h10v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9zm2 2v8h2v-8H9zm4 0v8h2v-8h-2z"/></svg>
           حذف
         </button>
-      </form>
+    </form>
     {% endblock %}
     {% block list_toolbar_filters %}
+      <a id="materials_export_xlsx_btn"
+         href="{% url 'inventory:materials_export_xlsx' %}"
+         data-base="{% url 'inventory:materials_export_xlsx' %}"
+         title="خروجی XLSX"
+         class="flex-none inline-flex items-center h-8 px-3 text-xs whitespace-nowrap rounded border font-bold border-green-700 text-green-700 hover:bg-green-200 shrink-0">
+        خروجی XLSX
+      </a>
       <label for="searchInput" class="sr-only">جستجو</label>
       <input id="searchInput" name="search" value="{{ search_query }}" placeholder="جستجو..." class="flex-1 min-w-0 max-w-full border border-gray-300 px-2 py-1 rounded text-sm bg-white me-1" onkeydown="if(event.key==='Enter')this.form.submit()">
     {% endblock %}
@@ -111,6 +118,26 @@
       }
       #materialsTable thead th { border-bottom-width: 2px; }
   </style>
+
+  <script>
+    // Keep XLSX export link aligned with current search query
+    document.addEventListener('DOMContentLoaded', function(){
+      const exportBtn = document.getElementById('materials_export_xlsx_btn');
+      if (!exportBtn) return;
+      const baseHref = exportBtn.getAttribute('data-base') || exportBtn.getAttribute('href') || '';
+      function updateExportHref(){
+        if (!baseHref) return;
+        const params = new URLSearchParams();
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput && searchInput.value) params.set('search', (searchInput.value || '').trim());
+        const qs = params.toString();
+        exportBtn.href = qs ? (baseHref + '?' + qs) : baseHref;
+      }
+      updateExportHref();
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) searchInput.addEventListener('input', updateExportHref);
+    });
+  </script>
 
   <script>
     // Initialize server-side shortage counter immediately for consistency with backend logic

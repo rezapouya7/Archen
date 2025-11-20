@@ -7,6 +7,7 @@ app_name = 'inventory'
 urlpatterns = [
 
     path('products/', views.products_list, name='products_list'),
+    path('products/export/xlsx/', views.products_export_xlsx, name='products_export_xlsx'),
     path('products/add/', views.products_add, name='products_add'),
     path('products/<int:pk>/edit/', views.products_edit, name='products_edit'),
     path('products/<int:pk>/delete/', views.products_delete, name='products_delete'),
@@ -17,6 +18,7 @@ urlpatterns = [
 
     # Model management
     path('models/', views.models_list_view, name='models_list'),
+    path('models/export/xlsx/', views.models_export_xlsx, name='models_export_xlsx'),
     path('models/add/', views.model_create_view, name='model_create'),
     path('models/<int:pk>/edit/', views.model_edit_view, name='model_edit'),
     path('models/<int:pk>/delete/', views.model_delete_view, name='model_delete'),
@@ -27,6 +29,7 @@ urlpatterns = [
 
     # Parts
     path('parts/', views.parts_list_view, name='parts_list'),
+    path('parts/export/xlsx/', views.parts_export_xlsx, name='parts_export_xlsx'),
     path('parts/add/', views.parts_create_view, name='parts_add'),
     path('parts/edit/<int:pk>/', views.parts_edit_view, name='parts_edit'),
     path('parts/bulk_delete/', views.parts_bulk_delete_view, name='parts_bulk_delete'),
@@ -36,6 +39,7 @@ urlpatterns = [
 
     # Materials
     path('materials/', views.materials_list, name='materials_list'),
+    path('materials/export/xlsx/', views.materials_export_xlsx, name='materials_export_xlsx'),
     path('materials/add/', views.materials_add, name='materials_add'),
     path('materials/edit/<int:pk>/', views.materials_edit, name='materials_edit'),
     path(

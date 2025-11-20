@@ -12,13 +12,12 @@ inventory/views.py
 """
 
 from typing import List, Dict
-
 from django.contrib import messages
 from django.db.models.deletion import ProtectedError
 from django.db import IntegrityError
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse, HttpResponseServerError
 from django.views.decorators.http import require_POST
 from django.db.models import F, Q, Value, Count, FloatField
 from django.db.models.functions import Coalesce
@@ -62,6 +61,25 @@ def _explain_protect_error(e: ProtectedError) -> str:
 def is_manager(user):
     """Allow access only to authenticated users with role=='manager'."""
     return user.is_authenticated and getattr(user, 'role', '') == 'manager'
+
+
+def _build_xlsx_response(sheet_title: str, report_title: str, headers: List[str], rows: List[List[object]],
+                         filename: str, column_widths: List[int] | None = None):
+    """Build a styled XLSX response with RTL layout, shared across inventory exports."""
+    try:
+        from utils.xlsx import build_table_response
+    except Exception:
+        return HttpResponseServerError("کتابخانه openpyxl نصب نشده است؛ لطفاً با مدیر سیستم تماس بگیرید.")
+
+    return build_table_response(
+        sheet_title=sheet_title,
+        report_title=report_title,
+        headers=headers,
+        rows=rows,
+        filename=filename,
+        column_widths=column_widths or [],
+        table_name="InventoryExport",
+    )
 
 
 # ----------------------------------
@@ -130,6 +148,39 @@ def parts_list_view(request):
         'below_threshold_count': below_threshold_count,
     }
     return render(request, 'inventory/parts_list.html', ctx)
+
+
+@login_required
+@user_passes_test(is_manager)
+def parts_export_xlsx(request):
+    qs = Part.objects.all().order_by('name')
+    current_model = (request.GET.get('model') or '').strip()
+    search_query = (request.GET.get('search') or '').strip()
+
+    if current_model:
+        qs = qs.filter(product_model__name=current_model)
+    if search_query:
+        qs = qs.filter(name__icontains=search_query)
+
+    headers = ['نام قطعه', 'مدل', 'برش', 'سی‌ان‌سی و ابزار', 'آستانه']
+    rows: list[list[object]] = []
+    for p in qs:
+        rows.append([
+            p.name or '',
+            getattr(p.product_model, 'name', '') or '',
+            p.stock_cut or 0,
+            p.stock_cnc_tools or 0,
+            p.threshold or 0,
+        ])
+
+    return _build_xlsx_response(
+        sheet_title="لیست قطعات",
+        report_title="گزارش لیست قطعات",
+        headers=headers,
+        rows=rows,
+        filename="parts_list.xlsx",
+        column_widths=[32, 22, 16, 18, 16],
+    )
 
 
 @login_required
@@ -366,6 +417,43 @@ def materials_list(request):
 
 @login_required
 @user_passes_test(is_manager)
+def materials_export_xlsx(request):
+    qs = Material.objects.all().order_by('name')
+    current_material = (request.GET.get('material') or '').strip()
+    search_query = (request.GET.get('search') or '').strip()
+
+    if current_material:
+        qs = qs.filter(name=current_material)
+    if search_query:
+        qs = qs.filter(name__icontains=search_query)
+
+    headers = ['نام ماده', 'مقدار', 'آستانه', 'واحد', 'تأمین‌کننده', 'قیمت']
+    rows: list[list[object]] = []
+    for item in qs:
+        qty = item.quantity if item.quantity is not None else 0
+        thr = item.threshold if item.threshold is not None else 0
+        price = item.price if item.price not in (None, 0) else ''
+        rows.append([
+            item.name or '',
+            qty,
+            thr,
+            item.unit or '',
+            item.supplier or '',
+            price,
+        ])
+
+    return _build_xlsx_response(
+        sheet_title="لیست مواد اولیه",
+        report_title="گزارش لیست مواد اولیه",
+        headers=headers,
+        rows=rows,
+        filename="materials_list.xlsx",
+        column_widths=[30, 14, 14, 14, 24, 14],
+    )
+
+
+@login_required
+@user_passes_test(is_manager)
 def materials_add(request):
     if request.method == 'POST':
         form = MaterialForm(request.POST)
@@ -488,6 +576,57 @@ def products_list(request):
         'search_query': search_query,
         'below_threshold_count': below_threshold_count,
     })
+
+
+@login_required
+@user_passes_test(is_manager)
+def products_export_xlsx(request):
+    qs = (Product.objects
+          .all()
+          .select_related('stock')
+          .annotate(
+              assembly=Coalesce('stock__stock_assembly', Value(0)),
+              paneling=Coalesce('stock__stock_workpage', Value(0)),
+              undercoat_color=Coalesce('stock__stock_undercoating', Value(0)),
+              color=Coalesce('stock__stock_painting', Value(0)),
+              sewing=Coalesce('stock__stock_sewing', Value(0)),
+              upholstery=Coalesce('stock__stock_upholstery', Value(0)),
+              packing=Coalesce('stock__stock_packaging', Value(0)),
+              thr=Coalesce('stock__threshold', Value(0)),
+          )
+          .order_by('id'))
+    search_query = (request.GET.get('search') or '').strip()
+    model_filter = (request.GET.get('model') or '').strip()
+
+    if model_filter:
+        qs = qs.filter(product_model__name=model_filter)
+    if search_query:
+        qs = qs.filter(name__icontains=search_query)
+
+    headers = ['نام محصول', 'مدل', 'مونتاژ', 'صفحه‌کاری', 'رنگ زیرکار', 'رنگ', 'خیاطی', 'رویه‌کوبی', 'بسته‌بندی', 'آستانه']
+    rows: list[list[object]] = []
+    for p in qs:
+        rows.append([
+            p.name or '',
+            getattr(p.product_model, 'name', '') or '',
+            p.assembly or 0,
+            p.paneling or 0,
+            p.undercoat_color or 0,
+            p.color or 0,
+            p.sewing or 0,
+            p.upholstery or 0,
+            p.packing or 0,
+            p.thr or 0,
+        ])
+
+    return _build_xlsx_response(
+        sheet_title="لیست محصولات",
+        report_title="گزارش لیست محصولات",
+        headers=headers,
+        rows=rows,
+        filename="products_list.xlsx",
+        column_widths=[32, 22, 14, 14, 16, 14, 14, 14, 14, 14],
+    )
 
 
 @login_required
@@ -979,6 +1118,33 @@ def models_list_view(request):
         'current_model': current_model,
         'search_query': search_query,
     })
+
+
+@login_required
+@user_passes_test(is_manager)
+def models_export_xlsx(request):
+    qs = ProductModel.objects.all().order_by('name')
+    current_model = (request.GET.get('model') or '').strip()
+    search_query = (request.GET.get('search') or '').strip()
+
+    if current_model:
+        qs = qs.filter(name=current_model)
+    if search_query:
+        qs = qs.filter(name__icontains=search_query) | qs.filter(description__icontains=search_query)
+
+    headers = ['نام مدل', 'توضیحات']
+    rows: list[list[object]] = []
+    for m in qs:
+        rows.append([m.name or '', m.description or ''])
+
+    return _build_xlsx_response(
+        sheet_title="لیست مدل‌ها",
+        report_title="گزارش لیست مدل‌ها",
+        headers=headers,
+        rows=rows,
+        filename="models_list.xlsx",
+        column_widths=[28, 48],
+    )
 
 
 @login_required

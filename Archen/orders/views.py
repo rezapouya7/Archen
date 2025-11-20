@@ -3,7 +3,6 @@
 # Archen/orders/views.py
 
 import json
-from io import BytesIO
 import jdatetime
 from django.views.generic import ListView, CreateView, UpdateView  # type: ignore # noqa: E501
 from django.urls import reverse_lazy, reverse  # type: ignore
@@ -14,7 +13,6 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib import messages
 from django.db import IntegrityError, transaction
 from django.db.models import F
-from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 
@@ -317,95 +315,20 @@ def orders_list_export_xlsx(request):
         'شماره کارها',
     ]
 
-    # Build XLSX using openpyxl (same approach as jobs list export)
     try:
-        from openpyxl import Workbook
-        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
-        from openpyxl.utils import get_column_letter
-        from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
+        from utils.xlsx import build_table_response
     except ImportError:
         return HttpResponse("کتابخانه openpyxl نصب نشده است؛ لطفاً با مدیر سیستم تماس بگیرید.", status=500)
 
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "لیست سفارش‌ها"
-    try:
-        ws.sheet_view.rightToLeft = True
-    except Exception:
-        pass
-
-    title_font = Font(name="Tahoma", bold=True, size=14)
-    header_font = Font(name="Tahoma", bold=True, size=11)
-    cell_font = Font(name="Tahoma", size=11)
-    center_header = Alignment(horizontal="center", vertical="center")
-    right_cell = Alignment(horizontal="right", vertical="center", wrap_text=True)
-    header_fill = PatternFill("solid", fgColor="FFF9FAFB")
-
-    row_idx = 1
-
-    # Title
-    title_text = "گزارش لیست سفارش‌ها"
-    ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=len(headers))
-    c = ws.cell(row=row_idx, column=1, value=title_text)
-    c.font = title_font
-    c.alignment = center_header
-    row_idx += 1
-
-    # Subtitle with Jalali timestamp (same logic as before)
-    try:
-        gnow = timezone.localtime(timezone.now())
-        print_dt = jdatetime.datetime.fromgregorian(datetime=gnow).strftime('%Y/%m/%d %H:%M')
-    except Exception:
-        print_dt = ''
-    subtitle = f"تاریخ تهیه: {print_dt}" if print_dt else ''
-    if subtitle:
-        ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=len(headers))
-        c = ws.cell(row=row_idx, column=1, value=subtitle)
-        c.font = cell_font
-        c.alignment = right_cell
-        row_idx += 1
-
-    # Header row
-    for col_idx, label in enumerate(headers, start=1):
-        c = ws.cell(row=row_idx, column=col_idx, value=label)
-        c.font = header_font
-        c.alignment = center_header
-        c.fill = header_fill
-    header_row_idx = row_idx
-    row_idx += 1
-
-    # Data rows
-    for data_row in rows:
-        for col_idx, raw_value in enumerate(data_row, start=1):
-            text = '' if raw_value is None else str(raw_value)
-            text = ILLEGAL_CHARACTERS_RE.sub('', text)
-            c = ws.cell(row=row_idx, column=col_idx, value=text)
-            c.font = cell_font
-            c.alignment = right_cell
-        row_idx += 1
-
-    # Column widths similar to previous export
-    for col_idx in range(1, len(headers) + 1):
-        col_letter = get_column_letter(col_idx)
-        ws.column_dimensions[col_letter].width = 24
-
-    # Thin borders for the whole data table
-    thin_side = Side(style="thin", color="FFE5E7EB")
-    border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
-    for row in ws.iter_rows(min_row=header_row_idx, max_row=row_idx - 1, min_col=1, max_col=len(headers)):
-        for cell in row:
-            if cell.border is None or cell.border == Border():
-                cell.border = border
-
-    bio = BytesIO()
-    wb.save(bio)
-
-    resp = HttpResponse(
-        bio.getvalue(),
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    return build_table_response(
+        sheet_title="لیست سفارش‌ها",
+        report_title="گزارش لیست سفارش‌ها",
+        headers=headers,
+        rows=rows,
+        filename="orders_list.xlsx",
+        column_widths=[24] * len(headers),
+        table_name="OrdersList",
     )
-    resp['Content-Disposition'] = "attachment; filename=orders_list.xlsx"
-    return resp
 
 
 @login_required(login_url="/users/login/")

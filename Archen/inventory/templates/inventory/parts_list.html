@@ -29,6 +29,13 @@
     </form>
   {% endblock %}
   {% block list_toolbar_filters %}
+    <a id="parts_export_xlsx_btn"
+       href="{% url 'inventory:parts_export_xlsx' %}"
+       data-base="{% url 'inventory:parts_export_xlsx' %}"
+       title="خروجی XLSX"
+       class="flex-none inline-flex items-center h-8 px-3 text-xs whitespace-nowrap rounded border font-bold border-green-700 text-green-700 hover:bg-green-200 shrink-0">
+      خروجی XLSX
+    </a>
     <label for="modelFilter" class="sr-only">فیلتر مدل</label>
     <select id="modelFilter" name="model" class="flex-none w-52 border border-gray-300 p-2 rounded text-sm bg-white" onchange="this.form.submit()">
       <option value="">همه مدل‌ها</option>
@@ -113,6 +120,30 @@
     }
     #partsTable thead th { border-bottom-width: 2px; }
   </style>
+
+<script>
+  // Keep XLSX export link in sync with active filters
+  document.addEventListener('DOMContentLoaded', function(){
+    const exportBtn = document.getElementById('parts_export_xlsx_btn');
+    if (!exportBtn) return;
+    const baseHref = exportBtn.getAttribute('data-base') || exportBtn.getAttribute('href') || '';
+    function updateExportHref(){
+      if (!baseHref) return;
+      const params = new URLSearchParams();
+      const modelSel = document.getElementById('modelFilter');
+      const searchInput = document.getElementById('searchInput');
+      if (modelSel && modelSel.value) params.set('model', modelSel.value);
+      if (searchInput && searchInput.value) params.set('search', (searchInput.value || '').trim());
+      const qs = params.toString();
+      exportBtn.href = qs ? (baseHref + '?' + qs) : baseHref;
+    }
+    updateExportHref();
+    const modelSel = document.getElementById('modelFilter');
+    const searchInput = document.getElementById('searchInput');
+    if (modelSel) modelSel.addEventListener('change', updateExportHref);
+    if (searchInput) searchInput.addEventListener('input', updateExportHref);
+  });
+</script>
 
 <!-- Simple modal dialogs for confirm and numeric input (parts list) -->
 <div id="partsConfirmModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50">

@@ -34,6 +34,13 @@
       </form>
     {% endblock %}
     {% block list_toolbar_filters %}
+      <a id="models_export_xlsx_btn"
+         href="{% url 'inventory:models_export_xlsx' %}"
+         data-base="{% url 'inventory:models_export_xlsx' %}"
+         title="خروجی XLSX"
+         class="flex-none inline-flex items-center h-8 px-3 text-xs whitespace-nowrap rounded border font-bold border-green-700 text-green-700 hover:bg-green-200 shrink-0">
+        خروجی XLSX
+      </a>
       <label for="searchInput" class="sr-only">جستجو</label>
       <input id="searchInput" type="text" name="search" value="{{ search_query }}" placeholder="جستجو در مدل‌ها..." class="flex-1 min-w-24 max-w-full border border-gray-300 p-2 rounded text-sm me-1" onkeydown="if(event.key==='Enter')this.form.submit()">
     {% endblock %}
@@ -99,6 +106,26 @@
       #modelTable thead th { border-bottom-width: 2px; }
     </style>
 {# Keep only table/list content in this block. #}
+
+<script>
+  // Sync XLSX export link with current search text
+  document.addEventListener('DOMContentLoaded', function(){
+    const exportBtn = document.getElementById('models_export_xlsx_btn');
+    if (!exportBtn) return;
+    const baseHref = exportBtn.getAttribute('data-base') || exportBtn.getAttribute('href') || '';
+    function updateExportHref(){
+      if (!baseHref) return;
+      const params = new URLSearchParams();
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput && searchInput.value) params.set('search', (searchInput.value || '').trim());
+      const qs = params.toString();
+      exportBtn.href = qs ? (baseHref + '?' + qs) : baseHref;
+    }
+    updateExportHref();
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.addEventListener('input', updateExportHref);
+  });
+</script>
 
 <script>
   // Local live filter

@@ -19,8 +19,6 @@ from django.contrib import messages
 from django.utils import timezone
 import re
 from typing import Iterable
-from io import BytesIO
-import zipfile
 import jdatetime
 
 from production_line.views import is_manager_or_accountant
@@ -247,104 +245,21 @@ def jobs_list_export_xlsx(request):
             fmt_dt(job.finished_at),
         ])
 
-    # Build XLSX via openpyxl to avoid low-level XML issues
     try:
-        from openpyxl import Workbook
-        from openpyxl.styles import Font, Alignment, PatternFill
-        from openpyxl.utils import get_column_letter
-        from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
+        from utils.xlsx import build_table_response
     except ImportError:
         from django.http import HttpResponseServerError
         return HttpResponseServerError("کتابخانه openpyxl نصب نشده است؛ لطفاً با مدیر سیستم تماس بگیرید.")
 
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "لیست کارها"
-    try:
-        ws.sheet_view.rightToLeft = True
-    except Exception:
-        pass
-
-    title_font = Font(name="Tahoma", bold=True, size=14)
-    header_font = Font(name="Tahoma", bold=True, size=11)
-    cell_font = Font(name="Tahoma", size=11)
-    center_header = Alignment(horizontal="center", vertical="center")
-    right_cell = Alignment(horizontal="right", vertical="center", wrap_text=True)
-    header_fill = PatternFill("solid", fgColor="FFF9FAFB")
-
-    row_idx = 1
-
-    # Title
-    title_text = "گزارش لیست کارها"
-    ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=len(headers))
-    c = ws.cell(row=row_idx, column=1, value=title_text)
-    c.font = title_font
-    c.alignment = center_header
-    row_idx += 1
-
-    # Subtitle with Jalali timestamp (like orders list)
-    try:
-        gnow = timezone.localtime(timezone.now())
-        generated = jdatetime.datetime.fromgregorian(datetime=gnow).strftime('%Y/%m/%d %H:%M')
-    except Exception:
-        generated = ''
-    subtitle = f"تاریخ تهیه: {generated}" if generated else ''
-    if subtitle:
-        ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=len(headers))
-        c = ws.cell(row=row_idx, column=1, value=subtitle)
-        c.font = cell_font
-        c.alignment = right_cell
-        row_idx += 1
-
-    # Header row
-    for col_idx, label in enumerate(headers, start=1):
-        c = ws.cell(row=row_idx, column=col_idx, value=label)
-        c.font = header_font
-        c.alignment = center_header
-        c.fill = header_fill
-    header_row_idx = row_idx
-    row_idx += 1
-
-    # Data rows
-    for data_row in rows:
-        for col_idx, raw_value in enumerate(data_row, start=1):
-            text = '' if raw_value is None else str(raw_value)
-            text = ILLEGAL_CHARACTERS_RE.sub('', text)
-            c = ws.cell(row=row_idx, column=col_idx, value=text)
-            c.font = cell_font
-            # Job number and dates: keep as LTR inside RTL sheet using right alignment
-            c.alignment = right_cell
-        row_idx += 1
-
-    # Basic column widths similar to manual export
-    for col_idx in range(1, len(headers) + 1):
-        col_letter = get_column_letter(col_idx)
-        ws.column_dimensions[col_letter].width = 24
-
-    # Thin borders for entire table (optional: keeps visual parity with orders export)
-    try:
-        from openpyxl.styles import Border, Side
-
-        thin_side = Side(style="thin", color="FFE5E7EB")
-        border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
-        for row in ws.iter_rows(min_row=header_row_idx, max_row=row_idx - 1, min_col=1, max_col=len(headers)):
-            for cell in row:
-                if cell.border is None or cell.border == Border():
-                    cell.border = border
-    except Exception:
-        pass
-
-    bio = BytesIO()
-    wb.save(bio)
-
-    from django.http import HttpResponse
-
-    resp = HttpResponse(
-        bio.getvalue(),
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    return build_table_response(
+        sheet_title="لیست کارها",
+        report_title="گزارش لیست کارها",
+        headers=headers,
+        rows=rows,
+        filename="jobs_list.xlsx",
+        column_widths=[24] * len(headers),
+        table_name="JobsList",
     )
-    resp['Content-Disposition'] = "attachment; filename=jobs_list.xlsx"
-    return resp
 
 
 @login_required

@@ -12,6 +12,53 @@ from orders.status_styles import get_status_badge_classes
 from production_line.models import ProductionLog
 from users.models import CustomUser
 from jobs.models import ProductionJob
+from utils.xlsx import base_styles, build_table_response, sanitize_value, write_table
+
+
+def _xlsx_response_from_workbook(wb, filename: str) -> HttpResponse:
+    """Save a workbook to an HTTP response."""
+    from io import BytesIO
+
+    bio = BytesIO()
+    wb.save(bio)
+    resp = HttpResponse(
+        bio.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    resp['Content-Disposition'] = f"attachment; filename={filename}"
+    return resp
+
+
+def _prepare_detail_sheet(sheet_title: str, max_cols: int):
+    """Create a RTL worksheet with shared styles and helpers."""
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = sheet_title
+    try:
+        ws.sheet_view.rightToLeft = True
+    except Exception:
+        pass
+    styles = base_styles()
+
+    def set_cell(row: int, col: int, value: object, *, is_label: bool = False, alignment=None):
+        c = ws.cell(row=row, column=col, value=sanitize_value(value))
+        c.font = styles['header_font'] if is_label else styles['cell_font']
+        c.alignment = alignment or styles['right_cell']
+        c.border = styles['border']
+        if is_label:
+            c.fill = styles['header_fill']
+        return c
+
+    def add_title(row: int, text: str):
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=max_cols)
+        c = ws.cell(row=row, column=1, value=text)
+        c.font = styles['title_font']
+        c.alignment = styles['center_header']
+        return c
+
+    return wb, ws, styles, set_cell, add_title
 
 def _pdf_response_from_html(html: str, filename: str, request=None) -> HttpResponse:
     """Render a PDF using ReportLab only (Persian-safe).
@@ -1127,236 +1174,41 @@ def job_details_export(request, job_number: str, fmt: str):
         return HttpResponse(html)
 
     if fmt == 'xlsx':
-        # Styled XLSX generation without external libraries
-        created_jdt = _to_jalali(getattr(job, 'created_at', None))
-        finished_jdt = _to_jalali(getattr(job, 'finished_at', None))
+        wb, ws, styles, set_cell, add_title = _prepare_detail_sheet("گزارش جزئیات سفارش", max_cols=6)
+        row_idx = 1
+        code = (order.subscription_code or str(order.id)).replace('/', '_')
+        add_title(row_idx, f"گزارش جزئیات سفارش - {code}")
+        row_idx += 2
 
-        def esc(text: str) -> str:
-            return (text or '').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-
-        # Style indices
-        S_NORMAL = 0
-        S_TITLE  = 1
-        S_HEADER = 2
-        S_CELL   = 3
-        S_LABEL  = 4
-        S_LABEL  = 4
-        S_LABEL  = 4
-        S_LABEL  = 4
-        S_LABEL  = 4
-        S_LABEL  = 4
-
-        # Helper to add rows with style per cell
-        sheet_cells = []  # list of tuples (r_idx, c_idx, value, style)
-        merges = []
-        current_row = 1
-
-        def col_letter(n: int) -> str:
-            s = ''
-            while n:
-                n, r = divmod(n-1, 26)
-                s = chr(65+r) + s
-            return s
-
-        def add_cell(r, c, v, s=S_NORMAL):
-            sheet_cells.append((r, c, '' if v is None else str(v), s))
-
-        def add_row(values, style=S_CELL, row=None, start_col=1):
-            nonlocal current_row
-            r = row or current_row
-            c = start_col
-            for v in values:
-                add_cell(r, c, v, style)
-                c += 1
-            if row is None:
-                current_row += 1
-            return r
-
-        # Helper for key/value pairs to mimic PDF info grid (label shaded, value bordered)
         def add_kv_row(pairs):
-            nonlocal current_row
-            c = 1
-            for (k, v) in pairs:
-                if k is None and v is None:
-                    # skip placeholder
-                    continue
-                add_cell(current_row, c, k, S_LABEL); c += 1
-                add_cell(current_row, c, v, S_CELL);  c += 1
-            current_row += 1
+            nonlocal row_idx
+            col = 1
+            for k, v in pairs:
+                set_cell(row_idx, col, k, is_label=True); col += 1
+                set_cell(row_idx, col, v); col += 1
+            row_idx += 1
 
-        # Title merged across 7 columns
-        title = f"گزارش جزئیات شماره کار - {job.job_number}"
-        add_cell(current_row, 1, title, S_TITLE)
-        merges.append(f"A{current_row}:G{current_row}")
-        current_row += 2
+        add_kv_row([("نام مشتری", order.customer_name or '-'), ("شهر", order.city or '-')])
+        add_kv_row([("مدل", order.model or '-'), ("وضعیت", order.get_status_display())])
+        add_kv_row([("کد اشتراک", order.subscription_code or '-'), ("نمایشگاه/فروشگاه", order.exhibition_name or '-')])
+        add_kv_row([("تاریخ سفارش", ctx['order_jdt'] or '-'), ("ورود پارچه", ctx['fabric_entry_jdt'] or '-')])
+        add_kv_row([("تاریخ تحویل", ctx['delivery_jdt'] or '-')])
+        row_idx += 1
 
-        # Info grid (labels shaded like PDF)
-        add_kv_row([("محصول", getattr(job.product, 'name', '') or '-'), ("مدل", getattr(getattr(job.product, 'product_model', None), 'name', '') or '-')])
-        add_kv_row([("برچسب", job.get_job_label_display()), ("وضعیت", job.get_status_display())])
-        add_kv_row([("تاریخ ایجاد", created_jdt), ("تاریخ بسته شدن", finished_jdt or '-')])
-        if getattr(job, 'deposit_account', None):
-            add_kv_row([("طرف حساب/مشتری", job.deposit_account)])
-        current_row += 1
-
-        # Parts section
-        add_cell(current_row, 1, "مصرف قطعات", S_HEADER)
-        merges.append(f"A{current_row}:B{current_row}")
-        current_row += 1
-        add_row(["نام قطعه", "تعداد مصرف"], S_HEADER)
-        for it in (consumption.get('parts', []) or []):
-            add_row([str(it.get('name') or ''), str(it.get('qty') or '')], S_CELL)
-        current_row += 1
-
-        # Materials section
-        add_cell(current_row, 1, "مصرف مواد اولیه", S_HEADER)
-        merges.append(f"A{current_row}:C{current_row}")
-        current_row += 1
-        add_row(["نام ماده", "مقدار", "واحد"], S_HEADER)
-        for it in (consumption.get('materials', []) or []):
-            add_row([str(it.get('name') or ''), str(it.get('qty') or ''), str(it.get('unit') or '')], S_CELL)
-        current_row += 1
-
-        # Logs section
-        add_cell(current_row, 1, "سوابق ثبت", S_HEADER)
-        merges.append(f"A{current_row}:G{current_row}")
-        current_row += 1
-        add_row(["تاریخ", "زمان", "بخش", "کاربر", "اسقاط", "کلاف بیرون", "توضیح"], S_HEADER)
-        for l in logs:
-            add_row([
-                str(getattr(l, 'jdate', '')),
-                (getattr(l.logged_at, 'strftime', lambda f: '-')('%H:%M') if getattr(l, 'logged_at', None) else '-'),
-                dict(SectionChoices.choices).get(l.section, l.section),
-                str(getattr(l.user, 'full_name', None) or getattr(l.user, 'username', '')),
-                'بله' if l.is_scrap else 'خیر',
-                'بله' if l.is_external else 'خیر',
-                str(l.note or ''),
-            ], S_CELL)
-
-        # Build sheet XML with styles and merges
-        cells_by_row = {}
-        for r, c, v, s in sheet_cells:
-            cells_by_row.setdefault(r, []).append((c, v, s))
-
-        sheet_rows_xml = []
-        for r in sorted(cells_by_row.keys()):
-            row_cells = []
-            for c, v, s in sorted(cells_by_row[r], key=lambda x: x[0]):
-                addr = f"{col_letter(c)}{r}"
-                row_cells.append(f"<c r=\"{addr}\" t=\"inlineStr\" s=\"{s}\"><is><t>{esc(v)}</t></is></c>")
-            sheet_rows_xml.append(f"<row r=\"{r}\">{''.join(row_cells)}</row>")
-
-        merges_xml = ''.join([f"<mergeCell ref=\"{m}\"/>" for m in merges])
-        cols_xml = "<cols><col min=\"1\" max=\"1\" width=\"24\" customWidth=\"1\"/><col min=\"2\" max=\"7\" width=\"18\" customWidth=\"1\"/></cols>"
-        sheet_xml = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" "
-            "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">"
-            "<sheetViews><sheetView workbookViewId=\"0\" rightToLeft=\"1\"/></sheetViews>"
-            f"{cols_xml}"
-            f"<sheetData>{''.join(sheet_rows_xml)}</sheetData>"
-            f"<mergeCells count=\"{len(merges)}\">{merges_xml}</mergeCells>"
-            "</worksheet>"
+        ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=2)
+        set_cell(row_idx, 1, "اقلام سفارش", is_label=True, alignment=styles['center_header'])
+        row_idx += 1
+        item_rows = [[it.get('name') or '', it.get('qty') or ''] for it in items]
+        write_table(
+            ws,
+            headers=["نام آیتم", "تعداد"],
+            rows=item_rows,
+            start_row=row_idx,
+            column_widths=[32, 14],
+            table_name="OrderItems",
         )
 
-        # Styles: unify with PDF look (light borders, gray header, larger title)
-        styles_xml = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
-            # fonts: 0=normal 11, 1=bold 11, 2=bold 14 (title)
-            "<fonts count=\"3\">"
-            "<font><name val=\"Tahoma\"/><sz val=\"11\"/></font>"
-            "<font><b/><name val=\"Tahoma\"/><sz val=\"11\"/></font>"
-            "<font><b/><name val=\"Tahoma\"/><sz val=\"14\"/></font>"
-            "</fonts>"
-            # fills: 0=none, 1=header bg (#F9FAFB)
-            "<fills count=\"2\">"
-            "<fill><patternFill patternType=\"none\"/></fill>"
-            "<fill><patternFill patternType=\"solid\"><fgColor rgb=\"FFF9FAFB\"/></patternFill></fill>"
-            "</fills>"
-            # borders: 0=none, 1=thin light gray (#E5E7EB)
-            "<borders count=\"2\">"
-            "<border/>"
-            "<border>"
-              "<left style=\"thin\"><color rgb=\"FFE5E7EB\"/></left>"
-              "<right style=\"thin\"><color rgb=\"FFE5E7EB\"/></right>"
-              "<top style=\"thin\"><color rgb=\"FFE5E7EB\"/></top>"
-              "<bottom style=\"thin\"><color rgb=\"FFE5E7EB\"/></bottom>"
-            "</border>"
-            "</borders>"
-            "<cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs>"
-            "<cellXfs count=\"5\">"
-              # 0 normal text (right, wrap)
-              "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyAlignment=\"1\">"
-                "<alignment horizontal=\"right\" vertical=\"center\" wrapText=\"1\" readingOrder=\"2\"/>"
-              "</xf>"
-              # 1 title (bold 14, center)
-              "<xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyAlignment=\"1\">"
-                "<alignment horizontal=\"center\" vertical=\"center\" readingOrder=\"2\"/>"
-              "</xf>"
-              # 2 header (bold, gray fill, center, thin border)
-              "<xf numFmtId=\"0\" fontId=\"1\" fillId=\"1\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\">"
-                "<alignment horizontal=\"center\" vertical=\"center\" readingOrder=\"2\"/>"
-              "</xf>"
-              # 3 cell (thin light border, right)
-              "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"1\" applyBorder=\"1\" applyAlignment=\"1\">"
-                "<alignment horizontal=\"right\" vertical=\"center\" wrapText=\"1\" readingOrder=\"2\"/>"
-              "</xf>"
-              # 4 label cell (bold, gray fill, thin border, right)
-              "<xf numFmtId=\"0\" fontId=\"1\" fillId=\"1\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\">"
-                "<alignment horizontal=\"right\" vertical=\"center\" readingOrder=\"2\"/>"
-              "</xf>"
-            "</cellXfs>"
-            "</styleSheet>"
-        )
-
-        workbook_xml = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" "
-            "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">"
-            "<sheets><sheet name=\"جزئیات شماره کار\" sheetId=\"1\" r:id=\"rId1\"/></sheets>"
-            "</workbook>"
-        )
-
-        rels_wb = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
-            "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>"
-            "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>"
-            "</Relationships>"
-        )
-
-        rels_pkg = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
-            "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>"
-            "</Relationships>"
-        )
-
-        content_types = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
-            "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>"
-            "<Default Extension=\"xml\" ContentType=\"application/xml\"/>"
-            "<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>"
-            "<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>"
-            "<Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>"
-            "</Types>"
-        )
-
-        from io import BytesIO
-        import zipfile
-        bio = BytesIO()
-        with zipfile.ZipFile(bio, 'w', zipfile.ZIP_DEFLATED) as z:
-            z.writestr('[Content_Types].xml', content_types)
-            z.writestr('_rels/.rels', rels_pkg)
-            z.writestr('xl/workbook.xml', workbook_xml)
-            z.writestr('xl/_rels/workbook.xml.rels', rels_wb)
-            z.writestr('xl/styles.xml', styles_xml)
-            z.writestr('xl/worksheets/sheet1.xml', sheet_xml)
-        data = bio.getvalue()
-        resp = HttpResponse(data, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        resp['Content-Disposition'] = f"attachment; filename=job_{job.job_number}.xlsx"
-        return resp
+        return _xlsx_response_from_workbook(wb, f"order_{code}.xlsx")
 
     # Print-friendly HTML for PDF (render to real PDF if engine is available)
     html = render_to_string('reports/job_details_export.html', {
@@ -1540,180 +1392,41 @@ def order_details_export(request, order_id: int, fmt: str):
         return HttpResponse(html)
 
     if fmt == 'xlsx':
-        # Styled XLSX generation (mirrors job XLSX export structure)
-        def esc(text: str) -> str:
-            return (text or '').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        wb, ws, styles, set_cell, add_title = _prepare_detail_sheet("گزارش جزئیات سفارش", max_cols=6)
+        row_idx = 1
+        code = (order.subscription_code or str(order.id)).replace('/', '_')
+        add_title(row_idx, f"گزارش جزئیات سفارش - {code}")
+        row_idx += 2
 
-        # Style indices
-        S_NORMAL = 0
-        S_TITLE  = 1
-        S_HEADER = 2
-        S_CELL   = 3
-
-        # Helper to add rows with style per cell
-        sheet_cells = []  # list of tuples (r_idx, c_idx, value, style)
-        merges = []
-        current_row = 1
-
-        def col_letter(n: int) -> str:
-            s = ''
-            while n:
-                n, r = divmod(n-1, 26)
-                s = chr(65+r) + s
-            return s
-
-        def add_cell(r, c, v, s=S_NORMAL):
-            sheet_cells.append((r, c, '' if v is None else str(v), s))
-
-        def add_row(values, style=S_CELL, row=None, start_col=1):
-            nonlocal current_row
-            r = row or current_row
-            c = start_col
-            for v in values:
-                sheet_cells.append((r, c, '' if v is None else str(v), style))
-                c += 1
-            if row is None:
-                current_row += 1
-            return r
-
-        # Ensure label style index exists (used by add_kv_row)
-        S_LABEL = 4
-        # Add key/value pairs row with shaded label cells
         def add_kv_row(pairs):
-            nonlocal current_row
-            c = 1
-            for (k, v) in pairs:
-                if k is None and v is None:
-                    continue
-                sheet_cells.append((current_row, c, '' if k is None else str(k), S_LABEL)); c += 1
-                sheet_cells.append((current_row, c, '' if v is None else str(v), S_CELL));  c += 1
-            current_row += 1
+            nonlocal row_idx
+            col = 1
+            for k, v in pairs:
+                set_cell(row_idx, col, k, is_label=True); col += 1
+                set_cell(row_idx, col, v); col += 1
+            row_idx += 1
 
-        # Title merged across 6 columns
-        title = f"گزارش جزئیات سفارش - {order.subscription_code or order.id}"
-        add_cell(current_row, 1, title, S_TITLE)
-        merges.append(f"A{current_row}:F{current_row}")
-        current_row += 2
-
-        # Info grid
         add_kv_row([("نام مشتری", order.customer_name or '-'), ("شهر", order.city or '-')])
         add_kv_row([("مدل", order.model or '-'), ("وضعیت", order.get_status_display())])
         add_kv_row([("کد اشتراک", order.subscription_code or '-'), ("نمایشگاه/فروشگاه", order.exhibition_name or '-')])
         add_kv_row([("تاریخ سفارش", ctx['order_jdt'] or '-'), ("ورود پارچه", ctx['fabric_entry_jdt'] or '-')])
         add_kv_row([("تاریخ تحویل", ctx['delivery_jdt'] or '-')])
-        current_row += 1
+        row_idx += 1
 
-        # Items section
-        add_cell(current_row, 1, "اقلام سفارش", S_HEADER)
-        merges.append(f"A{current_row}:B{current_row}")
-        current_row += 1
-        add_row(["نام آیتم", "تعداد"], S_HEADER)
-        for it in items:
-            add_row([str(it.get('name') or ''), str(it.get('qty') or '')], S_CELL)
-
-        # Build worksheet XML
-        cells_by_row = {}
-        for r, c, v, s in sheet_cells:
-            cells_by_row.setdefault(r, []).append((c, v, s))
-
-        sheet_rows_xml = []
-        for r in sorted(cells_by_row.keys()):
-            row_cells = []
-            for c, v, s in sorted(cells_by_row[r], key=lambda x: x[0]):
-                addr = f"{col_letter(c)}{r}"
-                row_cells.append(f"<c r=\"{addr}\" t=\"inlineStr\" s=\"{s}\"><is><t>{esc(v)}</t></is></c>")
-            sheet_rows_xml.append(f"<row r=\"{r}\">{''.join(row_cells)}</row>")
-
-        merges_xml = ''.join([f"<mergeCell ref=\"{m}\"/>" for m in merges])
-        cols_xml = "<cols><col min=\"1\" max=\"6\" width=\"22\" customWidth=\"1\"/></cols>"
-        sheet_xml = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" "
-            "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">"
-            "<sheetViews><sheetView workbookViewId=\"0\" rightToLeft=\"1\"/></sheetViews>"
-            f"{cols_xml}"
-            f"<sheetData>{''.join(sheet_rows_xml)}</sheetData>"
-            f"<mergeCells count=\"{len(merges)}\">{merges_xml}</mergeCells>"
-            "</worksheet>"
+        ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=2)
+        set_cell(row_idx, 1, "اقلام سفارش", is_label=True, alignment=styles['center_header'])
+        row_idx += 1
+        item_rows = [[it.get('name') or '', it.get('qty') or ''] for it in items]
+        write_table(
+            ws,
+            headers=["نام آیتم", "تعداد"],
+            rows=item_rows,
+            start_row=row_idx,
+            column_widths=[32, 14],
+            table_name="OrderItems",
         )
 
-        # Styles: unify with PDF look and add label style
-        styles_xml = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
-            "<fonts count=\"3\">"
-            "<font><name val=\"Tahoma\"/><sz val=\"11\"/></font>"
-            "<font><b/><name val=\"Tahoma\"/><sz val=\"11\"/></font>"
-            "<font><b/><name val=\"Tahoma\"/><sz val=\"14\"/></font>"
-            "</fonts>"
-            "<fills count=\"2\">"
-            "<fill><patternFill patternType=\"none\"/></fill>"
-            "<fill><patternFill patternType=\"solid\"><fgColor rgb=\"FFF9FAFB\"/></patternFill></fill>"
-            "</fills>"
-            "<borders count=\"2\">"
-            "<border/>"
-            "<border><left style=\"thin\"><color rgb=\"FFE5E7EB\"/></left><right style=\"thin\"><color rgb=\"FFE5E7EB\"/></right><top style=\"thin\"><color rgb=\"FFE5E7EB\"/></top><bottom style=\"thin\"><color rgb=\"FFE5E7EB\"/></bottom></border>"
-            "</borders>"
-            "<cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs>"
-            "<cellXfs count=\"5\">"
-            "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyAlignment=\"1\"><alignment horizontal=\"right\" vertical=\"center\" wrapText=\"1\" readingOrder=\"2\"/></xf>"
-            "<xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" readingOrder=\"2\"/></xf>"
-            "<xf numFmtId=\"0\" fontId=\"1\" fillId=\"1\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" readingOrder=\"2\"/></xf>"
-            "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"right\" vertical=\"center\" wrapText=\"1\" readingOrder=\"2\"/></xf>"
-            "<xf numFmtId=\"0\" fontId=\"1\" fillId=\"1\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"right\" vertical=\"center\" readingOrder=\"2\"/></xf>"
-            "</cellXfs>"
-            "</styleSheet>"
-        )
-
-        workbook_xml = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" "
-            "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">"
-            "<sheets><sheet name=\"گزارش جزئیات سفارش\" sheetId=\"1\" r:id=\"rId1\"/></sheets>"
-            "</workbook>"
-        )
-
-        rels_wb = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
-            "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>"
-            "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>"
-            "</Relationships>"
-        )
-
-        rels_pkg = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
-            "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>"
-            "</Relationships>"
-        )
-
-        content_types = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
-            "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>"
-            "<Default Extension=\"xml\" ContentType=\"application/xml\"/>"
-            "<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>"
-            "<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>"
-            "<Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>"
-            "</Types>"
-        )
-
-        from io import BytesIO
-        import zipfile
-        bio = BytesIO()
-        with zipfile.ZipFile(bio, 'w', zipfile.ZIP_DEFLATED) as z:
-            z.writestr('[Content_Types].xml', content_types)
-            z.writestr('_rels/.rels', rels_pkg)
-            z.writestr('xl/workbook.xml', workbook_xml)
-            z.writestr('xl/_rels/workbook.xml.rels', rels_wb)
-            z.writestr('xl/styles.xml', styles_xml)
-            z.writestr('xl/worksheets/sheet1.xml', sheet_xml)
-        data = bio.getvalue()
-        resp = HttpResponse(data, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        code = (order.subscription_code or str(order.id)).replace('/', '_')
-        resp['Content-Disposition'] = f"attachment; filename=order_{code}.xlsx"
-        return resp
+        return _xlsx_response_from_workbook(wb, f"order_{code}.xlsx")
 
     # Default: print-friendly HTML → render to PDF if possible
     html = render_to_string('reports/order_details_export.html', ctx)
@@ -1830,121 +1543,28 @@ def log_details_export(request, log_id: int, fmt: str):
         return HttpResponse(html)
 
     if fmt == 'xlsx':
-        def esc(text: str) -> str:
-            return (text or '').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        wb, ws, styles, set_cell, add_title = _prepare_detail_sheet("جزئیات ثبت کار", max_cols=6)
+        row_idx = 1
+        add_title(row_idx, f"جزئیات ثبت کار - {getattr(job, 'job_number', '-')}: {section_label}")
+        row_idx += 2
 
-        S_NORMAL, S_TITLE, S_HEADER, S_CELL, S_LABEL = 0, 1, 2, 3, 4
-        sheet_cells = []
-        merges = []
-        current_row = 1
-
-        def col_letter(n: int) -> str:
-            s = ''
-            while n:
-                n, r = divmod(n-1, 26)
-                s = chr(65+r) + s
-            return s
-
-        def add(r, c, v, s):
-            sheet_cells.append((r, c, '' if v is None else str(v), s))
-
-        def add_row(values, s=S_CELL):
-            nonlocal current_row
-            c = 1
-            for v in values:
-                add(current_row, c, v, s)
-                c += 1
-            current_row += 1
-        
-        # English: Add key/value row with shaded labels to emulate PDF info cards
         def add_kv_row(pairs):
-            nonlocal current_row
-            c = 1
-            for (k, v) in pairs:
-                add(current_row, c, k, S_LABEL); c += 1
-                add(current_row, c, v, S_CELL);  c += 1
-            current_row += 1
+            nonlocal row_idx
+            col = 1
+            for k, v in pairs:
+                set_cell(row_idx, col, k, is_label=True); col += 1
+                set_cell(row_idx, col, v); col += 1
+            row_idx += 1
 
-        title = f"جزئیات ثبت کار - {getattr(job, 'job_number', '-')}: {section_label}"
-        add(current_row, 1, title, S_TITLE)
-        merges.append(f"A{current_row}:F{current_row}")
-        current_row += 2
-
-        add_kv_row([("شماره کار", getattr(job, 'job_number', '-')) , ("بخش", section_label)])
+        add_kv_row([("شماره کار", getattr(job, 'job_number', '-')), ("بخش", section_label)])
         add_kv_row([("تاریخ", jdate), ("ساعت", time_str)])
-        add_kv_row([("کاربر", (getattr(user, 'full_name', None) or getattr(user, 'username', '-'))), ("ضایعات", ('بله' if getattr(log, 'is_scrap', False) else 'خیر'))])
-        add_kv_row([("خارج از مجموعه", ('بله' if getattr(log, 'is_external', False) else 'خیر')), ("توضیح", getattr(log, 'note', '') or '-')])
+        add_kv_row([("کاربر", (getattr(user, 'full_name', None) or getattr(user, 'username', '-'))), ("ضایعات", bool(getattr(log, 'is_scrap', False)))])
+        add_kv_row([("خارج از مجموعه", bool(getattr(log, 'is_external', False))), ("توضیح", getattr(log, 'note', '') or '-')])
+        if is_parts:
+            add_kv_row([("تعداد تولید", produced_qty), ("تعداد ضایعات/اسقاط", scrap_qty)])
+        row_idx += 1
 
-        rows_by = {}
-        for r, c, v, s in sheet_cells:
-            rows_by.setdefault(r, []).append((c, v, s))
-        rows_xml = []
-        for r in sorted(rows_by.keys()):
-            cells = []
-            for c, v, s in sorted(rows_by[r], key=lambda x: x[0]):
-                addr = f"{col_letter(c)}{r}"
-                cells.append(f"<c r=\"{addr}\" t=\"inlineStr\" s=\"{s}\"><is><t>{esc(v)}</t></is></c>")
-            rows_xml.append(f"<row r=\"{r}\">{''.join(cells)}</row>")
-        merges_xml = ''.join([f"<mergeCell ref=\"{m}\"/>" for m in merges])
-        cols_xml = "<cols><col min=\"1\" max=\"6\" width=\"22\" customWidth=\"1\"/></cols>"
-        sheet_xml = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">"
-            "<sheetViews><sheetView workbookViewId=\"0\" rightToLeft=\"1\"/></sheetViews>"
-            f"{cols_xml}<sheetData>{''.join(rows_xml)}</sheetData><mergeCells count=\"{len(merges)}\">{merges_xml}</mergeCells></worksheet>"
-        )
-        styles_xml = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
-            "<fonts count=\"3\"><font><name val=\"Tahoma\"/><sz val=\"11\"/></font><font><b/><name val=\"Tahoma\"/><sz val=\"11\"/></font><font><b/><name val=\"Tahoma\"/><sz val=\"14\"/></font></fonts>"
-            "<fills count=\"2\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"solid\"><fgColor rgb=\"FFF9FAFB\"/></patternFill></fill></fills>"
-            "<borders count=\"2\"><border/><border><left style=\"thin\"><color rgb=\"FFE5E7EB\"/></left><right style=\"thin\"><color rgb=\"FFE5E7EB\"/></right><top style=\"thin\"><color rgb=\"FFE5E7EB\"/></top><bottom style=\"thin\"><color rgb=\"FFE5E7EB\"/></bottom></border></borders>"
-            "<cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs>"
-            "<cellXfs count=\"5\">"
-            "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyAlignment=\"1\"><alignment horizontal=\"right\" vertical=\"center\" wrapText=\"1\" readingOrder=\"2\"/></xf>"
-            "<xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" readingOrder=\"2\"/></xf>"
-            "<xf numFmtId=\"0\" fontId=\"1\" fillId=\"1\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" readingOrder=\"2\"/></xf>"
-            "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"right\" vertical=\"center\" wrapText=\"1\" readingOrder=\"2\"/></xf>"
-            "<xf numFmtId=\"0\" fontId=\"1\" fillId=\"1\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"right\" vertical=\"center\" readingOrder=\"2\"/></xf>"
-            "</cellXfs></styleSheet>"
-        )
-        workbook_xml = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">"
-            "<sheets><sheet name=\"جزئیات ثبت کار\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>"
-        )
-        rels_wb = ("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-                   "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
-                   "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>"
-                   "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>"
-                   "</Relationships>")
-        rels_pkg = ("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-                    "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
-                    "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>"
-                    "</Relationships>")
-        content_types = ("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-                         "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
-                         "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>"
-                         "<Default Extension=\"xml\" ContentType=\"application/xml\"/>"
-                         "<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>"
-                         "<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>"
-                         "<Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>"
-                         "</Types>")
-
-        from io import BytesIO
-        import zipfile
-        bio = BytesIO()
-        with zipfile.ZipFile(bio, 'w', zipfile.ZIP_DEFLATED) as z:
-            z.writestr('[Content_Types].xml', content_types)
-            z.writestr('_rels/.rels', rels_pkg)
-            z.writestr('xl/workbook.xml', workbook_xml)
-            z.writestr('xl/_rels/workbook.xml.rels', rels_wb)
-            z.writestr('xl/styles.xml', styles_xml)
-            z.writestr('xl/worksheets/sheet1.xml', sheet_xml)
-        data = bio.getvalue()
-        resp = HttpResponse(data, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        resp['Content-Disposition'] = f"attachment; filename=log_{log.id}.xlsx"
-        return resp
+        return _xlsx_response_from_workbook(wb, f"log_{log.id}.xlsx")
 
     html = render_to_string('reports/log_details_export.html', ctx)
     return _pdf_response_from_html(html, f"log_{log.id}", request)
@@ -2103,122 +1723,15 @@ def logs_list_export(request, fmt: str):
             return HttpResponse(html)
 
         if fmt == 'xlsx':
-            # Build minimal XLSX for open jobs
-            def esc(text: str) -> str:
-                return (text or '').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-            S_NORMAL, S_TITLE, S_HEADER, S_CELL, S_NUM = 0, 1, 2, 3, 4
-            sheet_cells = []
-            current_row = 1
-            merges = []
-
-            def col_letter(n: int) -> str:
-                s = ''
-                while n:
-                    n, r = divmod(n - 1, 26)
-                    s = chr(65 + r) + s
-                return s
-
-            def add(r, c, v, s):
-                sheet_cells.append((r, c, '' if v is None else str(v), s))
-
-            def add_row(vals, s=S_CELL):
-                nonlocal current_row
-                c = 1
-                for v in vals:
-                    add(current_row, c, v, s)
-                    c += 1
-                current_row += 1
-
-            add(current_row, 1, 'گزارش لیست کارهای باز', S_TITLE)
-            merges.append(f"A{current_row}:F{current_row}")
-            current_row += 1
-            try:
-                gnow = timezone.localtime(timezone.now())
-                print_dt = jdatetime.datetime.fromgregorian(datetime=gnow).strftime('%Y/%m/%d %H:%M')
-            except Exception:
-                print_dt = ''
-            add(current_row, 1, f"تاریخ تهیه: {print_dt}", S_CELL)
-            merges.append(f"A{current_row}:F{current_row}")
-            current_row += 1
-            add_row(headers, S_HEADER)
-            for r in rows:
-                add(current_row, 1, r[0], S_NUM)
-                add(current_row, 2, r[1], S_CELL)
-                add(current_row, 3, r[2], S_CELL)
-                add(current_row, 4, r[3], S_CELL)
-                add(current_row, 5, r[4], S_CELL)
-                add(current_row, 6, r[5], S_CELL)
-                current_row += 1
-
-            rows_by = {}
-            for r, c, v, s in sheet_cells:
-                rows_by.setdefault(r, []).append((c, v, s))
-            rows_xml = []
-            for r in sorted(rows_by.keys()):
-                cells = []
-                for c, v, s in sorted(rows_by[r], key=lambda x: x[0]):
-                    addr = f"{col_letter(c)}{r}"
-                    cells.append(f"<c r=\"{addr}\" t=\"inlineStr\" s=\"{s}\"><is><t>{esc(v)}</t></is></c>")
-                rows_xml.append(f"<row r=\"{r}\">{''.join(cells)}</row>")
-            merges_xml = ''.join([f"<mergeCell ref=\"{m}\"/>" for m in merges])
-            cols_xml = "<cols><col min=\"1\" max=\"6\" width=\"20\" customWidth=\"1\"/></cols>"
-            sheet_xml = (
-                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-                "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">"
-                "<sheetViews><sheetView workbookViewId=\"0\" rightToLeft=\"1\"/></sheetViews>"
-                f"{cols_xml}<sheetData>{''.join(rows_xml)}</sheetData><mergeCells count=\"{len(merges)}\">{merges_xml}</mergeCells></worksheet>"
+            return build_table_response(
+                sheet_title="لیست کارهای باز",
+                report_title="گزارش لیست کارهای باز",
+                headers=headers,
+                rows=rows,
+                filename="open_jobs_list.xlsx",
+                column_widths=[20] * len(headers),
+                table_name="OpenJobsTable",
             )
-            styles_xml = (
-                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-                "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
-                "<fonts count=\"3\"><font><name val=\"Tahoma\"/><sz val=\"11\"/></font><font><b/><name val=\"Tahoma\"/><sz val=\"11\"/></font><font><b/><name val=\"Tahoma\"/><sz val=\"14\"/></font></fonts>"
-                "<fills count=\"2\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"solid\"><fgColor rgb=\"FFF9FAFB\"/></patternFill></fill></fills>"
-                "<borders count=\"2\"><border/><border><left style=\"thin\"/><right style=\"thin\"/><top style=\"thin\"/><bottom style=\"thin\"/></border></borders>"
-                "<cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs>"
-                "<cellXfs count=\"5\">"
-                "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyAlignment=\"1\"><alignment horizontal=\"right\" vertical=\"center\" wrapText=\"0\" readingOrder=\"2\"/></xf>"
-                "<xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" readingOrder=\"2\"/></xf>"
-                "<xf numFmtId=\"0\" fontId=\"1\" fillId=\"1\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" readingOrder=\"2\"/></xf>"
-                "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"right\" vertical=\"center\" wrapText=\"0\" readingOrder=\"2\"/></xf>"
-                "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"0\" readingOrder=\"2\"/></xf>"
-                "</cellXfs></styleSheet>"
-            )
-            workbook_xml = (
-                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-                "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">"
-                "<sheets><sheet name=\"لیست کارهای باز\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>"
-            )
-            rels_wb = ("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-                       "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
-                       "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>"
-                       "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>"
-                       "</Relationships>")
-            rels_pkg = ("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-                        "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
-                        "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>"
-                        "</Relationships>")
-            content_types = ("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-                             "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
-                             "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>"
-                             "<Default Extension=\"xml\" ContentType=\"application/xml\"/>"
-                             "<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>"
-                             "<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>"
-                             "<Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>"
-                             "</Types>")
-            from io import BytesIO
-            import zipfile
-            bio = BytesIO()
-            with zipfile.ZipFile(bio, 'w', zipfile.ZIP_DEFLATED) as z:
-                z.writestr('[Content_Types].xml', content_types)
-                z.writestr('_rels/.rels', rels_pkg)
-                z.writestr('xl/workbook.xml', workbook_xml)
-                z.writestr('xl/_rels/workbook.xml.rels', rels_wb)
-                z.writestr('xl/styles.xml', styles_xml)
-                z.writestr('xl/worksheets/sheet1.xml', sheet_xml)
-            data = bio.getvalue()
-            resp = HttpResponse(data, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            resp['Content-Disposition'] = "attachment; filename=open_jobs_list.xlsx"
-            return resp
 
         # Unsupported format for open-mode; fall back to registered mode handling
 
@@ -2337,122 +1850,14 @@ def logs_list_export(request, fmt: str):
         return HttpResponse(html)
 
     if fmt == 'xlsx':
-        # Build minimal XLSX
-        def esc(text: str) -> str:
-            return (text or '').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-        S_NORMAL, S_TITLE, S_HEADER, S_CELL, S_NUM = 0, 1, 2, 3, 4
-        sheet_cells = []
-        current_row = 1
-        merges = []
-        def col_letter(n: int) -> str:
-            s = ''
-            while n:
-                n, r = divmod(n-1, 26)
-                s = chr(65+r) + s
-            return s
-        def add(r, c, v, s):
-            sheet_cells.append((r, c, '' if v is None else str(v), s))
-        def add_row(vals, s=S_CELL):
-            nonlocal current_row
-            c = 1
-            for v in vals:
-                add(current_row, c, v, s)
-                c += 1
-            current_row += 1
-        add(current_row, 1, 'گزارش لیست کارهای ثبت‌شده', S_TITLE)
-        merges.append(f"A{current_row}:H{current_row}")
-        current_row += 1
-        # Print timestamp row (merged across all columns)
-        try:
-            gnow = timezone.localtime(timezone.now())
-            print_dt = jdatetime.datetime.fromgregorian(datetime=gnow).strftime('%Y/%m/%d %H:%M')
-        except Exception:
-            print_dt = ''
-        add(current_row, 1, f"تاریخ تهیه: {print_dt}", S_CELL)
-        merges.append(f"A{current_row}:H{current_row}")
-        current_row += 1
-        # Header row
-        add_row(headers, S_HEADER)
-        for r in rows:
-            # Center numeric columns: job number, produced, scrap
-            add(current_row, 1, r[0], S_NUM)
-            add(current_row, 2, r[1], S_CELL)
-            add(current_row, 3, r[2], S_CELL)
-            add(current_row, 4, r[3], S_CELL)
-            add(current_row, 5, r[4], S_CELL)
-            add(current_row, 6, r[5], S_NUM)
-            add(current_row, 7, r[6], S_NUM)
-            add(current_row, 8, r[7], S_CELL)
-            current_row += 1
-
-        rows_by = {}
-        for r, c, v, s in sheet_cells:
-            rows_by.setdefault(r, []).append((c, v, s))
-        rows_xml = []
-        for r in sorted(rows_by.keys()):
-            cells = []
-            for c, v, s in sorted(rows_by[r], key=lambda x: x[0]):
-                addr = f"{col_letter(c)}{r}"
-                cells.append(f"<c r=\"{addr}\" t=\"inlineStr\" s=\"{s}\"><is><t>{esc(v)}</t></is></c>")
-            rows_xml.append(f"<row r=\"{r}\">{''.join(cells)}</row>")
-        merges_xml = ''.join([f"<mergeCell ref=\"{m}\"/>" for m in merges])
-        cols_xml = "<cols><col min=\"1\" max=\"8\" width=\"20\" customWidth=\"1\"/></cols>"
-        sheet_xml = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">"
-            "<sheetViews><sheetView workbookViewId=\"0\" rightToLeft=\"1\"/></sheetViews>"
-            f"{cols_xml}<sheetData>{''.join(rows_xml)}</sheetData><mergeCells count=\"{len(merges)}\">{merges_xml}</mergeCells></worksheet>"
+        return build_table_response(
+            sheet_title="لیست کارهای ثبت‌شده",
+            report_title="گزارش لیست کارهای ثبت‌شده",
+            headers=headers,
+            rows=rows,
+            filename="logs_list.xlsx",
+            column_widths=[20] * len(headers),
+            table_name="LogsListTable",
         )
-        styles_xml = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
-            "<fonts count=\"3\"><font><name val=\"Tahoma\"/><sz val=\"11\"/></font><font><b/><name val=\"Tahoma\"/><sz val=\"11\"/></font><font><b/><name val=\"Tahoma\"/><sz val=\"14\"/></font></fonts>"
-            "<fills count=\"2\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"solid\"><fgColor rgb=\"FFF9FAFB\"/></patternFill></fill></fills>"
-            "<borders count=\"2\"><border/><border><left style=\"thin\"/><right style=\"thin\"/><top style=\"thin\"/><bottom style=\"thin\"/></border></borders>"
-            "<cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs>"
-            "<cellXfs count=\"5\">"
-            "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" applyAlignment=\"1\"><alignment horizontal=\"right\" vertical=\"center\" wrapText=\"0\" readingOrder=\"2\"/></xf>"
-            "<xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" readingOrder=\"2\"/></xf>"
-            "<xf numFmtId=\"0\" fontId=\"1\" fillId=\"1\" borderId=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" readingOrder=\"2\"/></xf>"
-            "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"right\" vertical=\"center\" wrapText=\"0\" readingOrder=\"2\"/></xf>"
-            "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"0\" readingOrder=\"2\"/></xf>"
-            "</cellXfs></styleSheet>"
-        )
-        workbook_xml = (
-            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-            "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">"
-            "<sheets><sheet name=\"لیست کارهای ثبت‌شده\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>"
-        )
-        rels_wb = ("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-                   "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
-                   "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>"
-                   "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>"
-                   "</Relationships>")
-        rels_pkg = ("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-                    "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
-                    "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>"
-                    "</Relationships>")
-        content_types = ("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-                         "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
-                         "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>"
-                         "<Default Extension=\"xml\" ContentType=\"application/xml\"/>"
-                         "<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>"
-                         "<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>"
-                         "<Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>"
-                         "</Types>")
-        from io import BytesIO
-        import zipfile
-        bio = BytesIO()
-        with zipfile.ZipFile(bio, 'w', zipfile.ZIP_DEFLATED) as z:
-            z.writestr('[Content_Types].xml', content_types)
-            z.writestr('_rels/.rels', rels_pkg)
-            z.writestr('xl/workbook.xml', workbook_xml)
-            z.writestr('xl/_rels/workbook.xml.rels', rels_wb)
-            z.writestr('xl/styles.xml', styles_xml)
-            z.writestr('xl/worksheets/sheet1.xml', sheet_xml)
-        data = bio.getvalue()
-        resp = HttpResponse(data, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        resp['Content-Disposition'] = "attachment; filename=logs_list.xlsx"
-        return resp
 
     return HttpResponseBadRequest('invalid format')

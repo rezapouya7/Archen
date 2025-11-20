@@ -13,12 +13,13 @@ from __future__ import annotations
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import transaction
 from django.db.models import Q
-from django.http import HttpResponseForbidden, Http404
+from django.http import HttpResponseForbidden, Http404, JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.utils import timezone
 import re
 from typing import Iterable
+import json
 from decimal import Decimal
 import jdatetime
 
@@ -82,15 +83,58 @@ PREV_STOCK_FIELD_MAP = {
     str(SectionChoices.PACKAGING): ('stock_upholstery', str(SectionChoices.UPHOLSTERY)),
 }
 
+SECTION_STOCK_FIELD_MAP = {
+    str(SectionChoices.ASSEMBLY): 'stock_assembly',
+    str(SectionChoices.WORKPAGE): 'stock_workpage',
+    str(SectionChoices.UNDERCOATING): 'stock_undercoating',
+    str(SectionChoices.PAINTING): 'stock_painting',
+    str(SectionChoices.SEWING): 'stock_sewing',
+    str(SectionChoices.UPHOLSTERY): 'stock_upholstery',
+    str(SectionChoices.PACKAGING): 'stock_packaging',
+}
+
+
+def _base_flow_for_product(product: Product | None) -> list[str]:
+    """Return canonical flow for a product respecting MDF/page presence."""
+    if not product:
+        return []
+    has_mdf = product_contains_mdf_page(product)
+    if has_mdf:
+        return [
+            str(SectionChoices.ASSEMBLY),
+            str(SectionChoices.WORKPAGE),
+            str(SectionChoices.UNDERCOATING),
+            str(SectionChoices.PAINTING),
+            str(SectionChoices.PACKAGING),
+        ]
+    return [
+        str(SectionChoices.ASSEMBLY),
+        str(SectionChoices.UNDERCOATING),
+        str(SectionChoices.PAINTING),
+        str(SectionChoices.SEWING),
+        str(SectionChoices.UPHOLSTERY),
+        str(SectionChoices.PACKAGING),
+    ]
+
 
 def _calculate_job_shortages(product: Product | None, allowed_sections: Iterable[str] | None) -> list[dict]:
     """Return a list of missing inventory items for creating an in-progress job."""
     if not product:
         return []
-    flow = _ordered_allowed_sections(allowed_sections)
-    if not flow:
+    base_flow = _base_flow_for_product(product)
+    if not base_flow:
         return []
-    first_section = str(flow[0]).lower()
+    allowed_norm = [str(sec).lower() for sec in (allowed_sections or []) if sec]
+
+    # Pick the first *selected* section that is actually part of the product's base flow.
+    first_selected = None
+    if allowed_norm:
+        for sec in base_flow:
+            if sec in allowed_norm:
+                first_selected = sec
+                break
+    # Fallback: first section of the product flow (even if user unticked everything)
+    first_section = (first_selected or base_flow[0]).lower()
     shortages: list[dict] = []
 
     # Assembly needs component parts (CNC stock) and materials
@@ -165,24 +209,31 @@ def _calculate_job_shortages(product: Product | None, allowed_sections: Iterable
                 })
         return shortages
 
-    # For later sections, ensure prior-stage product stock exists
-    stock_field, prev_section = PREV_STOCK_FIELD_MAP.get(first_section, (None, None))
-    if stock_field:
-        try:
-            stock_obj = getattr(product, 'stock', None)
-        except Exception:
-            stock_obj = None
-        available = int(getattr(stock_obj, stock_field, 0) or 0)
-        required = 1
-        missing = required - available
-        if missing > 0:
-            shortages.append({
-                'name': f"موجودی بخش {SECTION_LABEL_MAP.get(prev_section, prev_section)}",
-                'required': required,
-                'available': available,
-                'missing': missing,
-                'type': 'product',
-            })
+    # For later sections, ensure prior-stage product stock exists using base flow (not user-toggled)
+    try:
+        idx = base_flow.index(first_section)
+        prev_section = base_flow[idx - 1] if idx > 0 else None
+    except ValueError:
+        prev_section = None
+    if prev_section:
+        # Map previous section to its own stock column
+        stock_field = SECTION_STOCK_FIELD_MAP.get(prev_section)
+        if stock_field:
+            try:
+                stock_obj = getattr(product, 'stock', None)
+            except Exception:
+                stock_obj = None
+            available = int(getattr(stock_obj, stock_field, 0) or 0)
+            required = 1
+            missing = required - available
+            if missing > 0:
+                shortages.append({
+                    'name': f"موجودی بخش {SECTION_LABEL_MAP.get(prev_section, prev_section)}",
+                    'required': required,
+                    'available': available,
+                    'missing': missing,
+                    'type': 'product',
+                })
     return shortages
 
 
@@ -377,6 +428,77 @@ def jobs_list_export_xlsx(request):
 
 @login_required
 @user_passes_test(is_manager_or_accountant)
+def export_shortages_xlsx(request):
+    """Generate a real XLSX file for inventory shortages shown on the create-job form."""
+    if request.method != 'POST':
+        return HttpResponseForbidden("روش درخواست نامعتبر است.")
+    raw = request.POST.get('shortages_json') or ''
+    try:
+        items = json.loads(raw) if raw else []
+    except Exception:
+        items = []
+    if not isinstance(items, list) or not items:
+        messages.error(request, "داده‌ای برای خروجی کمبود موجودی یافت نشد.")
+        return redirect('jobs:job_add')
+
+    headers = ['نام', 'کمبود', 'موردنیاز', 'موجود', 'واحد']
+    rows = []
+    for itm in items:
+        name = (itm.get('name') or '').strip()
+        missing = itm.get('missing', itm.get('required', ''))
+        required = itm.get('required', '')
+        available = itm.get('available', '')
+        unit = itm.get('unit', '')
+        rows.append([
+            name,
+            missing,
+            required,
+            available,
+            unit,
+        ])
+    try:
+        from utils.xlsx import build_table_response
+    except ImportError:
+        messages.error(request, "کتابخانه خروجی اکسل نصب نشده است.")
+        return redirect('jobs:job_add')
+
+    return build_table_response(
+        sheet_title="کمبود موجودی",
+        report_title="گزارش کمبود موجودی برای ایجاد کار",
+        headers=headers,
+        rows=rows,
+        filename="inventory_shortages.xlsx",
+        column_widths=[24] * len(headers),
+        table_name="InventoryShortages",
+    )
+
+
+@login_required
+@user_passes_test(is_manager_or_accountant)
+def api_job_shortages(request):
+    """Return shortages JSON for a given product/allowed_sections."""
+    product_id = request.GET.get('product_id')
+    job_label = (request.GET.get('job_label') or '').strip() or 'in_progress'
+    allowed_sections = request.GET.getlist('allowed_sections')
+
+    if not product_id:
+        return JsonResponse({"ok": False, "error": "missing product_id", "shortages": []}, status=400)
+    if job_label != 'in_progress':
+        return JsonResponse({"ok": True, "shortages": []})
+    try:
+        product = Product.objects.get(pk=product_id)
+    except Product.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "not_found", "shortages": []}, status=404)
+
+    try:
+        shortages = _calculate_job_shortages(product, allowed_sections)
+    except Exception:
+        shortages = []
+    return JsonResponse({"ok": True, "shortages": shortages})
+
+
+@login_required
+@user_passes_test(is_manager_or_accountant)
 def job_add_view(request):
     """Create a new job using the generic CreateJobForm."""
     inventory_shortages: list[dict] = []
@@ -404,6 +526,7 @@ def job_add_view(request):
                     'section_progress_cursor': progress_payload['cursor'],
                     'section_progress_length': progress_payload['flow_length'],
                     'section_progress_highlight': progress_payload['highlight_slug'],
+                    'inventory_shortages': inventory_shortages,
                 })
 
             # For in-progress jobs, check inventory before creation and require explicit confirmation.
@@ -491,6 +614,7 @@ def job_edit_view(request, pk: int):
     If the job cannot be found a 404 is raised.  On successful
     submission the user is redirected back to the jobs list.
     """
+    inventory_shortages: list[dict] = []
     try:
         job = ProductionJob.objects.select_related('product', 'part').get(pk=pk)
     except ProductionJob.DoesNotExist:
@@ -509,6 +633,26 @@ def job_edit_view(request, pk: int):
             allowed_sections_slugs = [str(sec) for sec in allowed_sections]
             job_label = form.cleaned_data.get('job_label') or 'in_progress'
             deposit_account = (form.cleaned_data.get('deposit_account') or '').strip()
+            inventory_ack = (request.POST.get('inventory_ack') or '').strip() == '1'
+
+            if job_label == 'in_progress':
+                try:
+                    inventory_shortages = _calculate_job_shortages(product, allowed_sections_slugs)
+                except Exception:
+                    inventory_shortages = []
+                if inventory_shortages and not inventory_ack:
+                    progress_payload = _build_progress_state(job, allowed_sections_slugs)
+                    messages.warning(request, "موجودی کافی نیست. کمبودها را بررسی و در صورت تایید مجدداً ثبت کنید.")
+                    return render(request, 'jobs/job_form.html', {
+                        'form': form,
+                        'is_editing': True,
+                        'job': job,
+                        'section_progress_items': progress_payload['items'],
+                        'section_progress_cursor': progress_payload['cursor'],
+                        'section_progress_length': progress_payload['flow_length'],
+                        'section_progress_highlight': progress_payload['highlight_slug'],
+                        'inventory_shortages': inventory_shortages,
+                    })
 
             requested_cursor_raw = request.POST.get('progress_cursor', current_cursor)
             try:
@@ -613,6 +757,11 @@ def job_edit_view(request, pk: int):
             'deposit_account': job.deposit_account or '',
         }
         form = CreateJobForm(initial=initial)
+        if job.job_label == 'in_progress':
+            try:
+                inventory_shortages = _calculate_job_shortages(job.product, stored_sections)
+            except Exception:
+                inventory_shortages = []
     return render(request, 'jobs/job_form.html', {
         'form': form,
         'is_editing': True,
@@ -621,6 +770,7 @@ def job_edit_view(request, pk: int):
         'section_progress_cursor': progress_payload['cursor'],
         'section_progress_length': progress_payload['flow_length'],
         'section_progress_highlight': progress_payload['highlight_slug'],
+        'inventory_shortages': inventory_shortages,
     })
 
 

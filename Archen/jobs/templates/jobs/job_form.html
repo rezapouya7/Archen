@@ -45,7 +45,7 @@
     {% endif %}
     <form method="post" novalidate class="space-y-4">
       {% csrf_token %}
-      <input type="hidden" name="inventory_ack" id="inventoryAckFlag" value="0">
+      <input type="hidden" name="inventory_ack" id="inventoryAckFlag" value="{% if inventory_shortages %}1{% else %}0{% endif %}">
 
       <!-- Job number -->
       <div class="flex flex-col">
@@ -164,6 +164,30 @@
         {% endif %}
       </div>
 
+      {{ inventory_shortages|json_script:"inventoryShortagesData" }}
+      <div id="inventoryInlinePanel" class="bg-red-50 border border-red-200 rounded-lg p-4 rtl text-right space-y-2 {% if inventory_shortages %}{% else %}hidden{% endif %}">
+        <div class="flex items-center justify-between">
+          <h3 class="text-red-700 font-bold text-sm">کمبود موجودی</h3>
+          <span class="text-xs text-red-500">قبل از تایید بررسی کنید</span>
+        </div>
+        <ul id="inventoryShortageList" class="space-y-2 text-xs text-red-800">
+          {% for item in inventory_shortages %}
+            <li class="flex items-start gap-2">
+              <span class="mt-0.5 text-[10px] text-red-500">{{ forloop.counter }}.</span>
+              <div class="flex-1">
+                <div class="font-semibold text-sm">{{ item.name|default:"—" }}</div>
+                <div>کمبود: {{ item.missing|default:item.required }}{% if item.unit %} {{ item.unit }}{% endif %} | موردنیاز: {{ item.required|default:"—" }}{% if item.unit %} {{ item.unit }}{% endif %} | موجود: {{ item.available|default:0 }}{% if item.unit %} {{ item.unit }}{% endif %}</div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <button type="submit" form="inventoryXlsxExportForm" id="inventoryXlsxBtn" class="inline-flex items-center justify-center h-8 px-3 text-xs whitespace-nowrap rounded border font-bold border-green-700 text-green-700 hover:bg-green-200 shrink-0">
+            خروجی XLSX
+            </button>
+        </div>
+      </div>
+
       <!-- Buttons -->
       <div class="flex flex-col sm:flex-row gap-4 pt-6 justify-between">
         <a href="{% url 'jobs:job_list' %}"
@@ -172,32 +196,17 @@
         </a>
         <button type="submit"
                 class="w-full sm:w-1/2 px-4 py-2 rounded text-sm font-semibold text-center border border-green-700 text-green-700 hover:bg-green-200 transition">
-                      {% if is_editing %}ذخیره{% else %}ایجاد{% endif %}
+                      {% if is_editing %}ذخیره{% else %}تایید و ادامه{% endif %}
         </button>
       </div>
     </form>
   </div>
 </div>
 
-{% if inventory_shortages %}
-  {{ inventory_shortages|json_script:"inventoryShortagesData" }}
-{% endif %}
-<div id="inventoryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-  <div class="bg-white rounded-xl shadow-2xl max-w-xl w-full p-6 space-y-4 rtl text-right">
-    <div>
-      <h3 class="text-lg font-bold text-red-700 mb-1">کمبود موجودی</h3>
-      <p class="text-sm text-gray-700">برای ساخت این کار موجودی کافی نیست. جزئیات زیر را بررسی کنید و در صورت تایید می‌توانید ادامه دهید.</p>
-    </div>
-    <div class="max-h-56 overflow-auto border border-dashed border-red-200 rounded-lg p-3 bg-red-50">
-      <ul id="inventoryShortageList" class="space-y-2 text-sm text-red-800"></ul>
-    </div>
-    <div class="flex flex-col sm:flex-row gap-3">
-      <button type="button" id="inventoryDownloadBtn" class="flex-1 px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm">دانلود کمبودها (فایل متنی)</button>
-      <button type="button" id="inventoryCancelBtn" class="flex-1 px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm">انصراف</button>
-      <button type="button" id="inventoryConfirmBtn" class="flex-1 px-4 py-2 rounded border border-green-700 text-green-700 hover:bg-green-100 text-sm font-semibold">تایید و ادامه</button>
-    </div>
-  </div>
-</div>
+<form id="inventoryXlsxExportForm" method="post" action="{% url 'jobs:shortages_export_xlsx' %}" target="_blank" class="hidden">
+  {% csrf_token %}
+  <input type="hidden" name="shortages_json" id="inventoryXlsxData" value="">
+</form>
 
 <script>
 (function() {
@@ -418,111 +427,126 @@
   // Run once on load to ensure correct state when editing
   document.addEventListener('DOMContentLoaded', function() {
     // Only auto-apply defaults on initial render when creating a new job
-    if (isEditing) {
-      return;
-    }
+    if (isEditing) return;
     const pid = productSelect ? productSelect.value : null;
     const label = getSelectedJobLabel();
-    if (label === 'in_progress' && pid) {
-      setDefaultsForProduct(pid);
-    }
+    if (label === 'in_progress' && pid) setDefaultsForProduct(pid);
   });
 })();
 
-// Inventory shortage modal (shown when backend detects missing stock)
+// Inventory shortage inline helpers
 (function() {
-  const dataScript = document.getElementById('inventoryShortagesData');
-  const modal = document.getElementById('inventoryModal');
+  const productSelect = document.getElementById('create_job_product');
+  const allowedCheckboxes = Array.from(document.querySelectorAll('input[name="allowed_sections"]'));
+  const jobLabelRadios = Array.from(document.querySelectorAll('input[name="job_label"]'));
+  const panel = document.getElementById('inventoryInlinePanel');
   const list = document.getElementById('inventoryShortageList');
-  const confirmBtn = document.getElementById('inventoryConfirmBtn');
-  const cancelBtn = document.getElementById('inventoryCancelBtn');
-  const downloadBtn = document.getElementById('inventoryDownloadBtn');
+  const dataScript = document.getElementById('inventoryShortagesData');
   const ackField = document.getElementById('inventoryAckFlag');
+  const xlsxBtn = document.getElementById('inventoryXlsxBtn');
+  const xlsxDataInput = document.getElementById('inventoryXlsxData');
   const form = document.querySelector('form');
 
   function resetAck() {
     if (ackField) { ackField.value = '0'; }
   }
 
-  if (!dataScript || !modal || !list || !confirmBtn || !cancelBtn || !downloadBtn || !ackField || !form) {
-    return;
-  }
-
   let shortages = [];
-  try {
-    shortages = JSON.parse(dataScript.textContent) || [];
-  } catch (_) {
-    shortages = [];
+  if (dataScript) {
+    try { shortages = JSON.parse(dataScript.textContent) || []; }
+    catch (_) { shortages = []; }
   }
-  if (!Array.isArray(shortages) || shortages.length === 0) {
-    return;
+  if (!Array.isArray(shortages)) { shortages = []; }
+
+  function getSelectedJobLabel() {
+    let val = null;
+    jobLabelRadios.forEach(r => { if (r.checked) val = r.value; });
+    return val;
   }
 
-  function renderList(items) {
+  function prepareXlsxPayload() {
+    if (!xlsxDataInput) return;
+    try {
+      xlsxDataInput.value = JSON.stringify(shortages || []);
+    } catch (e) {
+      xlsxDataInput.value = '[]';
+    }
+  }
+
+  function renderShortages() {
+    if (!panel || !list) return;
+    const label = getSelectedJobLabel();
+    if (!shortages.length || label !== 'in_progress') {
+      panel.classList.add('hidden');
+      if (ackField) ackField.value = '0';
+      return;
+    }
+    panel.classList.remove('hidden');
     list.innerHTML = '';
-    items.forEach((item, idx) => {
-      const miss = (item.missing ?? item.required) || '';
+    shortages.forEach((item, idx) => {
+      const miss = (item.missing !== undefined && item.missing !== null) ? item.missing : item.required;
       const unit = item.unit ? ` ${item.unit}` : '';
       const li = document.createElement('li');
       li.className = 'flex items-start gap-2';
       li.innerHTML = `
-        <span class="mt-0.5 text-xs text-red-500">${idx + 1}.</span>
+        <span class="mt-0.5 text-[10px] text-red-500">${idx + 1}.</span>
         <div class="flex-1">
-          <div class="font-semibold">${item.name || '—'}</div>
-          <div class="text-xs text-red-700">کمبود: ${miss}${unit} | موردنیاز: ${item.required ?? '—'}${unit} | موجود: ${item.available ?? 0}${unit}</div>
+          <div class="font-semibold text-sm">${item.name || '—'}</div>
+          <div>کمبود: ${miss}${unit} | موردنیاز: ${(item.required !== undefined && item.required !== null) ? item.required : '—'}${unit} | موجود: ${(item.available !== undefined && item.available !== null) ? item.available : 0}${unit}</div>
         </div>
       `;
       list.appendChild(li);
     });
+    if (ackField) { ackField.value = '1'; }
+    if (xlsxDataInput) {
+      try { xlsxDataInput.value = JSON.stringify(shortages || []); }
+      catch (_) { xlsxDataInput.value = '[]'; }
+    }
   }
 
-  function showModal() {
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    resetAck();
+  async function refreshShortages() {
+    if (!productSelect) return;
+    const pid = productSelect.value;
+    const label = getSelectedJobLabel();
+    if (!pid || label !== 'in_progress') {
+      shortages = [];
+      renderShortages();
+      return;
+    }
+    const allowed = allowedCheckboxes.filter(cb => cb.checked).map(cb => cb.value);
+    const qs = new URLSearchParams();
+    qs.set('product_id', pid);
+    qs.set('job_label', label || '');
+    allowed.forEach(sec => qs.append('allowed_sections', sec));
+    try {
+      const resp = await fetch(`/jobs/api/shortages/?${qs.toString()}`);
+      const data = await resp.json();
+      shortages = Array.isArray(data.shortages) ? data.shortages : [];
+    } catch (e) {
+      shortages = [];
+    }
+    renderShortages();
   }
 
-  function hideModal() {
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-  }
-
-  function downloadText() {
-    const lines = shortages.map((item, idx) => {
-      const unit = item.unit ? ` ${item.unit}` : '';
-      return `${idx + 1}. ${item.name || ''} | کمبود: ${item.missing ?? item.required}${unit} | موردنیاز: ${item.required ?? ''}${unit} | موجود: ${item.available ?? 0}${unit}`;
+  // Always mark acknowledgement when فرم اصلی ارسال می‌شود (کلیک یا اینتر)
+  if (form) {
+    form.addEventListener('submit', () => {
+      if (ackField) ackField.value = '1';
+      prepareXlsxPayload();
     });
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'inventory_shortages.txt';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+  }
+  if (xlsxBtn) {
+    xlsxBtn.addEventListener('click', prepareXlsxPayload);
   }
 
-  renderList(shortages);
-  showModal();
+  // Reset + refresh when key fields change
+  const resetAndRefresh = () => { resetAck(); refreshShortages(); };
+  allowedCheckboxes.forEach(cb => cb.addEventListener('change', resetAndRefresh));
+  jobLabelRadios.forEach(r => r.addEventListener('change', resetAndRefresh));
+  if (productSelect) productSelect.addEventListener('change', resetAndRefresh);
 
-  confirmBtn.addEventListener('click', () => {
-    ackField.value = '1';
-    form.submit();
-  });
-  cancelBtn.addEventListener('click', () => {
-    hideModal();
-    resetAck();
-  });
-  downloadBtn.addEventListener('click', downloadText);
-
-  // Reset confirmation when key fields change
-  const resetSelectors = ['input[name="allowed_sections"]', '#create_job_product', 'input[name="job_label"]'];
-  resetSelectors.forEach(sel => {
-    document.querySelectorAll(sel).forEach(el => {
-      el.addEventListener('change', resetAck);
-    });
-  });
+  renderShortages();
+  refreshShortages();
 })();
 </script>
 {% endblock %}

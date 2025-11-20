@@ -18,4 +18,6 @@ urlpatterns = [
     path('edit/<int:pk>/', views.job_edit_view, name='job_edit'),
     path('bulk_delete/', views.job_bulk_delete_view, name='job_bulk_delete'),
     path('export/list/xlsx/', views.jobs_list_export_xlsx, name='export_xlsx'),
+    path('shortages/export/', views.export_shortages_xlsx, name='shortages_export_xlsx'),
+    path('api/shortages/', views.api_job_shortages, name='api_job_shortages'),
 ]

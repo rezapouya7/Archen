@@ -1,0 +1,1987 @@
+<!-- PATH: /Archen/reports/templates/reports/index.html -->
+{% extends "layout.html" %}
+
+{% load static %}
+{% load jalali_filters %}
+{% load status_badges %}
+{% block title %}گزارش‌ها | صنایع چوبی آرچن{% endblock %}
+{% block page_title %}گزارش‌ها{% endblock %}
+{% block back_button %}
+  <a href="{% url 'dashboard' %}"
+     class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-600 text-blue-700 hover:bg-blue-200">بازگشت</a>
+{% endblock %}
+{% block Breadcrumb %}
+<!-- Breadcrumb navigation -->
+<div class="mb-3 text-sm text-gray-600 rtl text-right">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">گزارش‌ها</span>
+</div>
+{% endblock %}
+{% block content %}
+<div class="py-4 font-sans rtl text-right">
+  <div class="max-w-7xl mx-auto px-2 sm:px-4 md:px-6">
+    {{ orders_status_class_map|json_script:"order-status-class-map" }}
+    <link rel="stylesheet" href="{% static 'orders/css/persian-datepicker.min.css' %}">
+    <style>
+      /* Mobile tightening to avoid overflow and tab/card spillover */
+      @media (max-width: 480px) {
+        .summary-card { padding: .5rem !important; }
+        .summary-card .text-2xl { font-size: 1rem; }
+        .summary-card .text-sm { font-size: .72rem; }
+        #dynamicChartContainer { padding: .75rem !important; }
+        #dynamicChartTitle { font-size: .9rem; }
+        #dynamicLegendContainer { width: 100% !important; }
+        #dynamicChart { height: 220px !important; }
+        #jobDetailsBlock .px-3 { padding-left: .5rem; padding-right: .5rem; }
+        #jobDetailsBlock .py-2 { padding-top: .25rem; padding-bottom: .25rem; }
+        #jobDetailsBlock table th, #jobDetailsBlock table td { padding: .35rem .35rem; font-size: .78rem; }
+        #job_search_input { width: 9rem !important; }
+      }
+    </style>
+    <!-- Summary cards: each card acts like an interactive button -->
+    <style>
+      /*
+       * Subtle brightness/glow for summary cards (match accounting tiles amount).
+       * Uses ::after radial gradient so text colors remain unchanged.
+       */
+      .summary-card {
+        position: relative;
+        overflow: hidden;
+        transition: background-color .15s ease, box-shadow .15s ease, transform .15s ease;
+        /* small inner highlight similar to accounting + base elevation */
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.06), 0 6px 16px rgba(0,0,0,0.06);
+      }
+      .summary-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        /* gentle highlight from top center fading down */
+        background: radial-gradient(120% 80% at 50% -20%, var(--glow-color, rgba(64,224,208,0.45)) 0%, transparent 60%);
+        opacity: 0.18; /* keep same perceived brightness as accounting */
+        pointer-events: none;
+      }
+      /* Optionally override per card using inline style --glow-color if needed */
+      .summary-card:hover,
+      .summary-card:focus-visible {
+        background-color: #40E0D0 !important;
+        box-shadow: 0 0 14px rgba(64,224,208,0.7), 0 12px 22px rgba(0,0,0,0.25);
+        transform: translateY(-2px);
+        filter: saturate(1.2);
+      }
+      .summary-card.is-active {
+        background-color: #40E0D0 !important;
+        box-shadow: 0 0 0 2px #0f766e inset, 0 0 16px rgba(64,224,208,0.8), 0 12px 24px rgba(64,224,208,0.45);
+        filter: saturate(1.25);
+      }
+    </style>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div data-chart-key="products" class="summary-card surface-pattern surface-elevated rounded-xl p-4 text-center cursor-pointer transition">
+        <div class="text-2xl font-bold text-gray-800" data-counter="products">{{ total_products }}</div>
+        <div class="text-sm font-bold text-gray-600 mt-1">محصولات</div>
+      </div>
+      <div data-chart-key="parts" class="summary-card surface-pattern surface-elevated rounded-xl p-4 text-center cursor-pointer transition">
+        <div class="text-2xl font-bold text-gray-800" data-counter="parts">{{ total_parts }}</div>
+        <div class="text-sm font-bold text-gray-600 mt-1">قطعات</div>
+      </div>
+      <div data-chart-key="orders" class="summary-card surface-pattern surface-elevated rounded-xl p-4 text-center cursor-pointer transition">
+        <div class="text-2xl font-bold text-gray-800" data-counter="orders">{{ total_orders }}</div>
+        <div class="text-sm font-bold text-gray-600 mt-1">سفارش‌ها</div>
+      </div>
+      <div data-chart-key="logs" class="summary-card surface-pattern surface-elevated rounded-xl p-4 text-center cursor-pointer transition">
+        <div class="text-2xl font-bold text-gray-800" data-counter="logs">{{ total_production_logs }}</div>
+        <div class="text-sm font-bold text-gray-600 mt-1">کارهای ثبت شده</div>
+      </div>
+      <!-- Extra summary cards (count only) -->
+      <div data-chart-key="models" class="summary-card surface-pattern surface-elevated rounded-xl p-4 text-center cursor-pointer transition">
+        <div class="text-2xl font-bold text-gray-800" data-counter="models">{{ total_models }}</div>
+        <div class="text-sm font-bold text-gray-600 mt-1">مدل‌ها</div>
+      </div>
+      <div data-chart-key="materials" class="summary-card surface-pattern surface-elevated rounded-xl p-4 text-center cursor-pointer transition">
+        <div class="text-2xl font-bold text-gray-800" data-counter="materials">{{ total_materials }}</div>
+        <div class="text-sm font-bold text-gray-600 mt-1">مواد اولیه</div>
+      </div>
+      <div data-chart-key="users" class="summary-card surface-pattern surface-elevated rounded-xl p-4 text-center cursor-pointer transition">
+        <div class="text-2xl font-bold text-gray-800" data-counter="users">{{ total_users }}</div>
+        <div class="text-sm font-bold text-gray-600 mt-1">کاربران</div>
+      </div>
+      <div data-chart-key="jobs" class="summary-card surface-pattern surface-elevated rounded-xl p-4 text-center cursor-pointer transition">
+        <div class="text-2xl font-bold text-gray-800" data-counter="jobs">{{ total_jobs }}</div>
+        <div class="text-sm font-bold text-gray-600 mt-1">شماره کار</div>
+      </div>
+      </div>
+
+    <!-- Dynamic report chart displayed upon clicking a summary card -->
+    <style>
+      .order-status-filter,
+      .job-status-filter {
+        position: relative;
+        border: 1px solid rgba(148,163,184,0.5);
+        background-color: rgba(255,255,255,0.9);
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.4rem;
+        width: 100%;
+        padding: 0.4rem 0.85rem 0.4rem 2.8rem;
+        transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+      }
+      .order-status-filter:hover,
+      .job-status-filter:hover {
+        border-color: rgba(59,130,246,0.6);
+      }
+      .order-status-filter.is-active,
+      .job-status-filter.is-active {
+        background-color: #f0f9ff;
+        box-shadow: inset 0 0 0 1px rgba(37,99,235,0.25);
+      }
+      .order-status-filter span[data-count],
+      .job-status-filter span[data-count] {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        min-width: 2rem;
+        text-align: left;
+        font-weight: 700;
+        color: #1f2937;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+      #dynamicLegend {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+      }
+      .order-status-label,
+      .job-status-label {
+        margin-left: auto;
+        text-align: right;
+        min-width: 6rem;
+        white-space: nowrap;
+      }
+    </style>
+    <div id="dynamicChartContainer" class="surface-pattern surface-elevated rounded-xl p-4 mt-8 hidden">
+      <h3 id="dynamicChartTitle" class="font-bold mb-4"></h3>
+      <!-- In RTL, first child appears at right; place legend first to keep it on right side -->
+      <div class="flex flex-col md:flex-row items-start gap-4">
+        <div id="dynamicLegendContainer" class="w-full md:w-64 space-y-2">
+          <div id="order_status_filters_panel" class="hidden space-y-2">
+            <button id="order_status_filter_all" type="button" class="order-status-filter rounded-full text-xs font-bold text-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500" data-status="">
+              <span class="order-status-label px-2 py-0.5 rounded-full bg-purple-500 text-gray-900 border border-purple-600 text-[11px] sm:text-xs">مجموع سفارش‌ها</span>
+              <span data-count>{{ total_orders }}</span>
+            </button>
+            <div id="order_status_filters" class="flex flex-col gap-2">
+              {% for item in orders_status_summary %}
+                <button type="button" class="order-status-filter rounded-full text-xs font-bold text-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500" data-status="{{ item.label }}">
+                  <span class="order-status-label px-2 py-0.5 rounded-full {{ item.classes }} text-[11px] sm:text-xs">{{ item.label }}</span>
+                  <span data-count>{{ item.count }}</span>
+                </button>
+              {% endfor %}
+            </div>
+          </div>
+          <div id="job_status_filters_panel" class="hidden space-y-2">
+            <button id="job_status_filter_all" type="button" class="job-status-filter rounded-full text-xs font-bold text-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 is-active" data-label="">
+              <span class="job-status-label px-2 py-0.5 rounded-full bg-purple-500 text-gray-900 border border-purple-600 text-[11px] sm:text-xs">مجموع کارها</span>
+              <span data-count>{{ total_jobs }}</span>
+            </button>
+            <div id="job_status_filters" class="flex flex-col gap-2">
+              {% for item in jobs_status_summary %}
+                <button type="button" class="job-status-filter rounded-full text-xs font-bold text-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500" data-label="{{ item.code }}">
+                  <span class="job-status-label px-2 py-0.5 rounded-full {{ item.classes }} text-[11px] sm:text-xs" {% if item.style %}style="{{ item.style }}"{% endif %}>{{ item.label }}</span>
+                  <span data-count>{{ item.count }}</span>
+                </button>
+              {% endfor %}
+            </div>
+          </div>
+          <ul id="dynamicLegend" class="text-sm"></ul>
+        </div>
+        <canvas id="dynamicChart" class="w-full md:flex-1 h-64"></canvas>
+      </div>
+
+      <!-- Job Details Section (inside the same card to match width) -->
+      <style>
+        #reportsJobTable,
+        #reportsJobTable th,
+        #reportsJobTable td {
+          border: 1px solid rgba(148,163,184,0.55);
+          white-space: nowrap;
+        }
+        #reportsJobTable thead th {
+          border-bottom-width: 2px;
+          background-color: rgba(241,245,249,0.95);
+          font-weight: 700;
+        }
+        #reportsJobTable tbody tr.job-row {
+          transition: background-color .15s ease, box-shadow .15s ease;
+          cursor: pointer;
+        }
+        #reportsJobTable tbody tr.job-row:hover,
+        #reportsJobTable tbody tr.job-row:focus-within {
+          background-color: rgba(191,219,254,0.45);
+          box-shadow: inset 0 0 0 1px rgba(59,130,246,0.35);
+        }
+        #jobDetailsBlock .job-layout {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+        @media (min-width: 1024px) {
+          #jobDetailsBlock .job-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: stretch;
+            gap: 1rem;
+          }
+        }
+        #jobDetailsBlock .job-details { order: 2; }
+        #jobDetailsBlock .job-list { order: 1; }
+        @media (min-width: 1024px) {
+          #jobDetailsBlock .job-details { order: 2; }
+          #jobDetailsBlock .job-list { order: 1; }
+        }
+        #job_list_frame {
+          height: 100%;
+          max-height: calc(20 * 2.6rem);
+        }
+        .num-ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+      </style>
+      <div id="jobDetailsBlock" class="mt-4 hidden">
+        <div class="job-layout min-h-[65vh]">
+          <!-- Job details panel -->
+          <div class="job-details rounded-lg border border-gray-200/70 bg-white flex flex-col">
+            <div id="job_details_container" class="min-h-[200px] text-gray-500 overflow-auto w-full flex-1 whitespace-nowrap">
+              <div class="text-center p-2">
+                <div class="text-sm">برای مشاهده جزئیات، از لیست یک شماره کار را انتخاب کنید یا مستقیماً جستجو کنید.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Job list with inline search -->
+          <div class="job-list overflow-hidden rounded-lg border border-gray-200/70 bg-white flex flex-col">
+            <div class="px-3 py-2 bg-gray-50 text-sm font-bold text-gray-700 flex items-center justify-between gap-2">
+              <span>لیست شماره کارها</span>
+              <input id="job_search_input" type="text" placeholder="جستجوی شماره کار"
+                     class="block w-40 lg:w-56 h-8 rounded-md border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div id="job_list_frame" class="overflow-x-auto overflow-y-auto flex-1 max-h-[calc(20*2.8rem)] whitespace-nowrap">
+              <table id="reportsJobTable" class="min-w-full text-xs sm:text-sm">
+                <thead class="bg-gray-50 sticky top-0 text-center">
+                  <tr>
+                    <th class="p-2 text-center">
+                      <button type="button"
+                              class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                              data-col="0" data-type="num" onclick="sortByCol(this, 'reportsJobTable')">
+                        شماره کار
+                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path d="M10 14l-5-7h10l-5 7z"/>
+                        </svg>
+                      </button>
+                    </th>
+                    <th class="p-2 text-center">
+                      <button type="button"
+                              class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                              data-col="2" onclick="sortByCol(this, 'reportsJobTable')">
+                        وضعیت
+                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path d="M10 14l-5-7h10l-5 7z"/>
+                        </svg>
+                      </button>
+                    </th>
+                    <th class="p-2 text-center">
+                      <button type="button"
+                              class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                              data-col="3" onclick="sortByCol(this, 'reportsJobTable')">
+                        مدل
+                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path d="M10 14l-5-7h10l-5 7z"/>
+                        </svg>
+                      </button>
+                    </th>
+                    <th class="p-2 text-center">
+                      <button type="button"
+                              class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                              data-col="4" onclick="sortByCol(this, 'reportsJobTable')">
+                        محصول
+                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path d="M10 14l-5-7h10l-5 7z"/>
+                        </svg>
+                      </button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for j in jobs_list %}
+                  <tr class="text-center border-b job-row cursor-pointer" data-job-number="{{ j.job_number }}" data-job-label="{{ j.job_label }}">
+                    <td class="p-2"><span class="font-bold num-ltr">{{ j.job_number }}</span></td>
+                    <td class="p-2">
+                      {% if j.job_label == 'in_progress' %}
+                        <span class="px-2 py-1 rounded text-white bg-gray-500 text-[11px] sm:text-xs">در حال ساخت</span>
+                      {% elif j.job_label == 'completed' %}
+                        <span class="px-2 py-1 rounded text-white bg-green-400 text-[11px] sm:text-xs">تولید شده</span>
+                      {% elif j.job_label == 'scrapped' %}
+                        <span class="px-2 py-1 rounded text-white bg-red-600 text-[11px] sm:text-xs">اسقاط</span>
+                      {% elif j.job_label == 'warranty' %}
+                        <span class="px-2 py-1 rounded text-black bg-yellow-300 text-[11px] sm:text-xs">گارانتی</span>
+                      {% elif j.job_label == 'repaired' %}
+                        <span class="px-2 py-1 rounded text-white bg-blue-600 text-[11px] sm:text-xs">تعمیرات</span>
+                      {% elif j.job_label == 'deposit' %}
+                        <span class="px-2 py-1 rounded text-white" style="background-color:#8B4513">امانی</span>
+                      {% else %}
+                        <span class="px-2 py-1 rounded text-white bg-gray-400 text-[11px] sm:text-xs">{{ j.get_job_label_display }}</span>
+                      {% endif %}
+                    </td>
+                    <td class="p-2">{{ j.product.product_model.name|default:"-" }}</td>
+                    <td class="p-2">{{ j.product.name|default:"-" }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="4" class="p-4 text-center text-gray-500">شماره کاری ثبت نشده است.</td>
+                  </tr>
+                  {% endfor %}
+                  <tr id="jobFilterEmptyRow" class="hidden">
+                    <td colspan="4" class="px-2 py-3 text-center text-gray-500 text-sm">شماره کاری با این وضعیت یافت نشد.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="px-3 py-2 border-t border-gray-200 bg-gray-50/70">
+              <div class="text-xs font-bold text-gray-700 mb-1">خلاصه وضعیت کارها</div>
+              <div class="flex flex-wrap gap-2 text-xs">
+                {% for item in jobs_status_summary %}
+                  <span class="px-2 py-1 rounded border border-gray-200 bg-white text-gray-700">{{ item.label }}: {{ item.count }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Details Section -->
+      <style>
+        #orderDetailsBlock .orders-layout {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+        @media (min-width: 1024px) {
+          #orderDetailsBlock .orders-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: stretch;
+            gap: 1rem;
+          }
+        }
+        #orderDetailsBlock .orders-details { order: 2; }
+        #orderDetailsBlock .orders-list { order: 1; }
+        @media (min-width: 1024px) {
+          #orderDetailsBlock .orders-details { order: 2; }
+          #orderDetailsBlock .orders-list { order: 1; }
+        }
+        #orders_list_frame {
+          height: 100%;
+          max-height: calc(20 * 2.6rem);
+        }
+        #orders_list_table {
+          border-collapse: separate;
+          border-spacing: 0;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          white-space: nowrap;
+        }
+        #orders_list_table th,
+        #orders_list_table td {
+          border: 1px solid rgba(148,163,184,0.55);
+          padding: 0.45rem 0.6rem;
+        }
+        #orders_list_table thead th {
+          background-color: rgba(241,245,249,0.95);
+          font-weight: 700;
+        }
+        #orders_list_table col.col-badge { width: 7.5rem; }
+        #orders_list_table col.col-customer { width: 9.5rem; }
+        #orders_list_table col.col-model { width: 8.5rem; }
+        #orders_list_table col.col-status { width: 7rem; }
+        #orders_list_table tbody tr {
+          transition: background-color .12s ease, box-shadow .12s ease;
+        }
+        #orders_list_table td.badge-cell {
+          direction: ltr;
+          text-align: center;
+          font-feature-settings: "tnum";
+          unicode-bidi: isolate;
+        }
+        #orders_list_table tbody tr:hover,
+        #orders_list_table tbody tr:focus-within {
+          background-color: rgba(191,219,254,0.35);
+          box-shadow: inset 0 0 0 1px rgba(59,130,246,0.35);
+        }
+        #orders_list_table tbody tr.is-selected {
+          background-color: rgba(191,219,254,0.6);
+          box-shadow: inset 0 0 0 1px rgba(59,130,246,0.55);
+        }
+      </style>
+      <div id="orderDetailsBlock" class="mt-4 hidden">
+        <div class="orders-layout min-h-[65vh]">
+          <!-- Orders Details panel (left) -->
+          <div class="orders-details rounded-lg border border-gray-200/70 bg-white flex flex-col">
+            <div id="order_details_container" class="min-h-[200px] text-gray-500 overflow-auto w-full flex-1">
+              <div class="text-center p-2">
+                <div class="text-sm">برای مشاهده جزئیات، از لیست یک سفارش را انتخاب کنید یا با وارد کردن شماره بیجک جستجو کنید.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Orders list with inline search -->
+          <div class="orders-list overflow-hidden rounded-lg border border-gray-200/70 bg-white flex flex-col">
+            <div class="px-3 py-2 bg-gray-50 text-sm font-bold text-gray-700 flex items-center justify-between gap-2">
+              <span>لیست سفارش‌ها</span>
+              <input id="order_search_input" type="text" placeholder="جستجوی شماره بیجک"
+                     class="block w-40 lg:w-56 h-8 rounded-md border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div id="orders_list_frame" class="overflow-x-auto overflow-y-auto flex-1 max-h-[calc(20*2.8rem)]">
+              <table id="orders_list_table" class="text-sm">
+                <colgroup>
+                  <col class="col-badge">
+                  <col class="col-customer">
+                  <col class="col-model">
+                  <col class="col-status">
+                </colgroup>
+                <thead class="bg-gray-50 sticky top-0">
+                  <tr class="text-xs sm:text-sm">
+                    <th class="px-2 py-1 text-center">
+                      <button type="button"
+                              class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                              data-col="0" data-type="num"
+                              onclick="sortByCol(this)">
+                        شماره بیجک
+                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path d="M10 14l-5-7h10l-5 7z"/>
+                        </svg>
+                      </button>
+                    </th>
+                    <th class="px-2 py-1 text-center">
+                      <button type="button"
+                              class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                              data-col="1"
+                              onclick="sortByCol(this)">
+                        نام مشتری
+                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path d="M10 14l-5-7h10l-5 7z"/>
+                        </svg>
+                      </button>
+                    </th>
+                    <th class="px-2 py-1 text-center">
+                      <button type="button"
+                              class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                              data-col="2"
+                              onclick="sortByCol(this)">
+                        مدل
+                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path d="M10 14l-5-7h10l-5 7z"/>
+                        </svg>
+                      </button>
+                    </th>
+                    <th class="px-2 py-1 text-center">
+                      <button type="button"
+                              class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                              data-col="3"
+                              onclick="sortByCol(this)">
+                        وضعیت
+                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path d="M10 14l-5-7h10l-5 7z"/>
+                        </svg>
+                      </button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="orders_list_body">
+                  {% for o in orders_list %}
+                  <tr class="order-row cursor-pointer" data-order-badge="{{ o.badge_number|default:'' }}" data-order-sub="{{ o.subscription_code|default:'' }}" data-order-id="{{ o.id }}" data-order-status="{{ o.get_status_display }}">
+                    <td class="px-2 py-1 font-mono font-bold badge-cell"><span class="num-ltr">{{ o.badge_number|default:o.subscription_code|default:'-' }}</span></td>
+                    <td class="px-2 py-1 text-right">{{ o.customer_name|default:"" }}</td>
+                    <td class="px-2 py-1 text-right">{{ o.model|default:"" }}</td>
+                    <td class="px-2 py-1 text-right">
+                      <span class="px-2 py-0.5 rounded text-xs font-bold {{ o.get_status_display|order_status_classes }}">{{ o.get_status_display }}</span>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <div class="px-3 py-2 border-t border-gray-200 bg-gray-50/70">
+              <div class="text-xs font-bold text-gray-700 mb-1">خلاصه وضعیت سفارش‌ها</div>
+              <div class="flex flex-wrap gap-2 text-xs">
+                {% for item in orders_status_summary %}
+                  <span class="px-2 py-1 rounded border border-gray-200 bg-white text-gray-700">{{ item.label }}: {{ item.count }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log Details Section -->
+      <div id="logDetailsBlock" class="mt-4 hidden">
+        <!-- English: Make the logs list full-width by removing the side details panel -->
+        <div class="grid grid-cols-1 gap-4">
+          <style>
+            /* Prevent line wrapping in logs table headers and cells */
+            #logDetailsBlock table, #logDetailsBlock th, #logDetailsBlock td { white-space: nowrap; }
+            /* English: Force LTR for numbers to keep time/date readable in Persian UI */
+            .num-ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+          </style>
+          <style>
+            /* English: Make export buttons show a full black outline on keyboard/mouse focus */
+            #log_export_xlsx_btn:focus-visible,
+            #log_export_pdf_btn:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
+          </style>
+          <style>
+            /* English: Force inset focus styles so nothing gets clipped by overflow containers */
+            #log_date_from:focus,
+            #log_date_from:focus-visible,
+            #log_date_to:focus,
+            #log_date_to:focus-visible,
+            #log_search_input:focus,
+            #log_search_input:focus-visible {
+              /* Draw focus inside the element bounds */
+              box-shadow: inset 0 0 0 2px #3b82f6 !important;
+              outline: none !important;
+            }
+            /* English: Show inset black border only for keyboard focus or while actively clicking */
+            #log_export_xlsx_btn:focus-visible,
+            #log_export_xlsx_btn:active,
+            #log_export_pdf_btn:focus-visible,
+            #log_export_pdf_btn:active {
+              box-shadow: inset 0 0 0 2px #000 !important;
+              outline: none !important;
+            }
+          </style>
+          <!-- English: Dedicated toolbar above the list (match other lists) -->
+          <!-- English: Allow vertical overflow so focus rings/outlines are not clipped on inputs/buttons -->
+          <div id="logsToolbar" class="flex items-center gap-2 overflow-x-auto overflow-y-visible whitespace-nowrap" dir="rtl">
+            <div class="flex items-center gap-2 shrink-0">
+                <div class="flex items-center gap-2">
+                  <label for="log_section_filter" class="sr-only">واحد</label>
+                  <select id="log_section_filter" class="h-8 text-xs border border-gray-300 rounded bg-white shrink-0">
+                    <option value="">همه واحدها</option>
+                    {% for val,label in section_choices %}
+                      <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                  </select>
+
+                  <label for="log_user_filter" class="sr-only">کاربر</label>
+                  <select id="log_user_filter" class="h-8 text-xs border border-gray-300 rounded bg-white shrink-0">
+                    <option value="">همه کاربران</option>
+                    {% for uid,ulabel in user_choices %}
+                      <option value="{{ uid }}">{{ ulabel }}</option>
+                    {% endfor %}
+                  </select>
+
+                  <label for="log_model_filter" class="sr-only">مدل</label>
+                  <select id="log_model_filter" class="h-8 text-xs border border-gray-300 rounded bg-white max-w-[12rem] shrink-0">
+                    <option value="">همه مدل‌ها</option>
+                    {% for m in model_choices %}
+                      <option value="{{ m }}">{{ m }}</option>
+                    {% endfor %}
+                   </select>
+                </div>
+
+                  <div class="flex items-center gap-1 shrink-0 whitespace-nowrap">
+                    <label for="log_date_from" class="sr-only">از تاریخ</label>
+                    <!-- English: Change placeholder to Persian 'from date' per UI spec -->
+                    <input id="log_date_from" type="text"
+                           class="w-36 h-8 rounded-md border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 persian-date-picker shrink-0"
+                           placeholder="از تاریخ" dir="ltr" data-jdp="true">
+                    <span class="text-gray-400 text-xs shrink-0">-</span>
+                    <label for="log_date_to" class="sr-only">تا تاریخ</label>
+                    <!-- English: Change placeholder to Persian 'to date' per UI spec -->
+                    <input id="log_date_to" type="text"
+                           class="w-36 h-8 rounded-md border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 persian-date-picker shrink-0"
+                           placeholder="تا تاریخ" dir="ltr" data-jdp="true">
+                  </div>
+                  <input id="log_search_input" type="text" placeholder="جستجوی سریع..." class="block w-48 lg:w-56 h-8 rounded-md border border-gray-300 px-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 shrink-0">
+            </div>
+            <div class="flex items-center gap-2 shrink-0 whitespace-nowrap">
+              <a id="log_export_xlsx_btn" href="#" title="خروجی XLSX"
+                 class="inline-flex items-center h-8 px-3 text-xs whitespace-nowrap rounded border font-bold border-green-700 text-green-700 hover:bg-green-200 shrink-0">خروجی XLSX</a>
+              <a id="log_export_pdf_btn" href="#" target="_blank" title="خروجی PDF"
+                 class="inline-flex items-center h-8 px-3 text-xs whitespace-nowrap rounded border font-bold border-red-700 text-red-700 hover:bg-red-200 shrink-0">خروجی PDF</a>
+            </div>
+          </div>
+	          <!-- English: Status bar + list frames with surface pattern and borders (match parts list) -->
+	          <div class="mt-2 text-xs text-gray-500"><span id="logsListStatus">&nbsp;</span></div>
+
+	          <style>
+	            /* English: Ensure horizontal scroll on narrow screens */
+	            @media (max-width: 640px) { #logsTable { min-width: 720px; } }
+	          </style>
+	          <div id="logs_registered_wrapper" class="mt-2 overflow-x-auto surface-pattern surface-elevated rounded-xl p-2">
+	            <div class="overflow-x-auto" style="max-height:60vh; overflow-y:auto;">
+	              <table id="logsTable" class="min-w-full text-sm text-gray-800 border border-gray-300 whitespace-nowrap sm:whitespace-normal">
+                <thead class="bg-gray-50 sticky top-0">
+                  <tr class="text-center">
+                    <th class="p-2 border border-gray-300 text-center">
+                      <button type="button" class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center" data-col="0" data-type="num">
+                        شماره کار
+                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150" viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+                      </button>
+                    </th>
+                    <th class="p-2 border border-gray-300 text-center">
+                      <button type="button" class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center" data-col="1">
+                        واحد
+                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150" viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+                      </button>
+                    </th>
+                    <th class="p-2 border border-gray-300 text-center">
+                      <button type="button" class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center" data-col="2">
+                        کاربر
+                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150" viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+                      </button>
+                    </th>
+                    <th class="p-2 border border-gray-300 text-center">
+                      <button type="button" class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center" data-col="3">
+                        مدل
+                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150" viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+                      </button>
+                    </th>
+                    <th class="p-2 border border-gray-300 text-center">
+                      <button type="button" class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center" data-col="4">
+                        قطعه/محصول
+                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150" viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+                      </button>
+                    </th>
+                    <th class="p-2 border border-gray-300 text-center">
+                      <button type="button" class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center" data-col="5" data-type="num">
+                        تعداد تولید شده
+                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150" viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+                      </button>
+                    </th>
+                    <th class="p-2 border border-gray-300 text-center">
+                      <button type="button" class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center" data-col="6" data-type="num">
+                        تعداد ضایعات/اسقاط
+                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150" viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+                      </button>
+                    </th>
+	                    <th class="p-2 border text-center">
+	                      <button type="button" class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center" data-col="7">
+	                        تاریخ ثبت
+	                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150" viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+	                      </button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for l in logs_list %}
+                  <!-- English: Make the whole row selectable to wire export buttons to the selected record -->
+                  <tr class="hover:bg-gray-50" data-section="{{ l.section }}" data-log-id="{{ l.id }}" data-user-id="{{ l.user.id }}" data-model="{{ l.model|default:'' }}" data-jdate="{{ l.jdate }}">
+                    <td class="p-2 border border-gray-300 text-center">{{ l.job.job_number|default:'' }}</td>
+                    <!-- English: Only show section display; column header renamed to 'واحد' per request -->
+	                    <td class="p-2 border border-gray-300 text-center">{{ l.get_section_display }}</td>
+	                    <td class="p-2 border border-gray-300 text-center">{{ l.user.full_name|default:l.user.username }}</td>
+	                    <td class="p-2 border border-gray-300 text-center">{{ l.model|default:'' }}</td>
+	                    <td class="p-2 border border-gray-300 text-center">{% if l.part %}{{ l.part.name }}{% elif l.product %}{{ l.product.name }}{% else %}{% endif %}</td>
+                    <td class="p-2 border border-gray-300 text-center">
+                      {# English: For product logs, count is always 1; place it in produced when not scrap, else leave blank. For parts, show recorded quantity (blank if 0). #}
+                      {% if l.product and not l.part %}
+                        {% if l.is_scrap %}{% else %}1{% endif %}
+                      {% else %}
+                        {% if l.produced_qty %}{{ l.produced_qty }}{% endif %}
+                      {% endif %}
+                    </td>
+                    <td class="p-2 border border-gray-300 text-center">
+                      {# English: For product logs, show 1 in scrap column only if scrap; otherwise leave blank. For parts, show recorded scrap quantity (blank if 0). #}
+                      {% if l.product and not l.part %}
+                        {% if l.is_scrap %}1{% else %}{% endif %}
+                      {% else %}
+                        {% if l.scrap_qty %}{{ l.scrap_qty }}{% endif %}
+                      {% endif %}
+                    </td>
+	                    <td class="p-2 border border-gray-300 text-center"><span class="num-ltr">{{ l.jdate }}</span> <span class="num-ltr">{{ l.logged_at|date:"H:i" }}</span></td>
+                  </tr>
+	                  {% endfor %}
+	                </tbody>
+	              </table>
+	            </div>
+	          </div>
+	
+	          <!-- English: Open jobs list (per-section open jobs used for daily work entry) -->
+	          <div id="logs_open_wrapper" class="mt-2 overflow-x-auto surface-pattern surface-elevated rounded-xl p-2 hidden">
+	            <div class="overflow-x-auto" style="max-height:60vh; overflow-y:auto;">
+	              <table id="openJobsTable" class="min-w-full text-sm text-gray-800 border border-gray-300 whitespace-nowrap sm:whitespace-normal">
+	                <thead class="bg-gray-50 sticky top-0">
+	                  <tr class="text-center">
+	                    <th class="p-2 border border-gray-300 text-center">
+	                      <button type="button"
+	                              class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center"
+	                              data-col="0" data-type="num">
+	                        شماره کار
+	                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+	                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+	                          <path d="M10 14l-5-7h10l-5 7z"/>
+	                        </svg>
+	                      </button>
+	                    </th>
+	                    <th class="p-2 border border-gray-300 text-center">
+	                      <button type="button"
+	                              class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center"
+	                              data-col="1">
+	                        واحد
+	                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+	                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+	                          <path d="M10 14l-5-7h10l-5 7z"/>
+	                        </svg>
+	                      </button>
+	                    </th>
+	                    <th class="p-2 border border-gray-300 text-center">
+	                      <button type="button"
+	                              class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center"
+	                              data-col="2">
+	                        مدل
+	                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+	                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+	                          <path d="M10 14l-5-7h10l-5 7z"/>
+	                        </svg>
+	                      </button>
+	                    </th>
+	                    <th class="p-2 border border-gray-300 text-center">
+	                      <button type="button"
+	                              class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center"
+	                              data-col="3">
+	                        قطعه/محصول
+	                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+	                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+	                          <path d="M10 14l-5-7h10l-5 7z"/>
+	                        </svg>
+	                      </button>
+	                    </th>
+	                    <th class="p-2 border border-gray-300 text-center">
+	                      <button type="button"
+	                              class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center"
+	                              data-col="4">
+	                        وضعیت
+	                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+	                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+	                          <path d="M10 14l-5-7h10l-5 7z"/>
+	                        </svg>
+	                      </button>
+	                    </th>
+	                    <th class="p-2 border border-gray-300 text-center">
+	                      <button type="button"
+	                              class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center"
+	                              data-col="5">
+	                        تاریخ ایجاد
+	                        <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+	                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+	                          <path d="M10 14l-5-7h10l-5 7z"/>
+	                        </svg>
+	                      </button>
+	                    </th>
+	                  </tr>
+	                </thead>
+	                <tbody>
+	                  {% for j in logs_open_jobs_list %}
+	                  <tr class="hover:bg-gray-50" data-section="{{ j.section }}" data-model="{{ j.model|default:'' }}" data-created="{{ j.created_date }}">
+	                    <td class="p-2 border border-gray-300 text-center">{{ j.job_number }}</td>
+	                    <td class="p-2 border border-gray-300 text-center">{{ j.section_label }}</td>
+	                    <td class="p-2 border border-gray-300 text-center">{{ j.model|default:'' }}</td>
+	                    <td class="p-2 border border-gray-300 text-center">{{ j.item_name|default:'' }}</td>
+	                    <td class="p-2 border border-gray-300 text-center">{{ j.label_display|default:'' }}</td>
+	                    <td class="p-2 border border-gray-300 text-center">
+	                      <span class="num-ltr">{{ j.created_date }}</span>
+	                      <span class="num-ltr">{{ j.created_time }}</span>
+	                    </td>
+	                  </tr>
+	                  {% endfor %}
+	                </tbody>
+	              </table>
+	            </div>
+	          </div>
+	        </div>
+	      </div>
+    </div>
+</div>
+</div>
+
+<script>
+  const ORDER_STATUS_CLASS_MAP = (() => {
+    try {
+      const el = document.getElementById('order-status-class-map');
+      return el ? JSON.parse(el.textContent) : {};
+    } catch (_) {
+      return {};
+    }
+  })();
+</script>
+<script src="{% static 'js/chart.lite.v2.js' %}?v=20251016"></script>
+<script>
+  (function() {
+    // Base datasets used by some dynamic cards
+    const statusLabels = {{ chart_labels|safe }};
+    const statusData = {{ chart_data|safe }};
+    const statusColors = {{ chart_colors|safe }};
+    // English: Total registered logs across all sections for card + legend + status bar
+    const TOTAL_REGISTERED_LOGS = {{ total_production_logs|default:0 }};
+    window.ArchenTotalRegisteredLogs = TOTAL_REGISTERED_LOGS;
+
+    // Dynamic report charts data
+    const dynamicDatasets = {
+      products: {
+        title: 'توزیع محصولات بر اساس مدل',
+        type: 'doughnut',
+        labels: {{ products_chart_labels|safe }},
+        data: {{ products_chart_data|safe }},
+      },
+      parts: {
+        title: 'وضعیت موجودی قطعات',
+        type: 'doughnut',
+        labels: {{ parts_inventory_chart_labels|safe }},
+        data: {{ parts_inventory_chart_data|safe }},
+        backgroundColor: ['rgba(239,68,68,.85)','rgba(34,197,94,.85)'],
+      },
+      orders: {
+        title: 'وضعیت سفارش‌ها',
+        type: 'doughnut',
+        labels: statusLabels,
+        data: statusData,
+        backgroundColor: statusColors,
+        list: {{ chart_labels|safe }}.map((l,i)=>({label:l, count: {{ chart_data|safe }}[i]})),
+      },
+	      logs: {
+	        title: 'توزیع کارها براساس بخش‌های تولید',
+	        type: 'bar',
+	        labels: {{ logs_chart_labels|safe }},
+	        // English: Two series – registered work (light green) and open work (orange)
+	        series: [
+	          {
+	            key: 'registered',
+	            label: 'ثبت شده',
+	            data: {{ logs_chart_registered_data|safe }},
+	            backgroundColor: '#4ade80',
+	          },
+	          {
+	            key: 'open',
+	            label: 'باز',
+	            data: {{ logs_chart_open_data|safe }},
+	            backgroundColor: '#f97316',
+	          },
+	        ],
+	      },
+      models: {
+        title: 'توزیع قطعات بر اساس مدل',
+        type: 'doughnut',
+        labels: {{ models_chart_labels|safe }},
+        data: {{ models_chart_data|safe }},
+      },
+      materials: {
+        title: 'وضعیت موجودی مواد اولیه',
+        type: 'doughnut',
+        labels: {{ materials_chart_labels|safe }},
+        data: {{ materials_chart_data|safe }},
+        backgroundColor: ['rgba(239,68,68,.85)','rgba(34,197,94,.85)'],
+        list: {{ materials_summary|safe }},
+      },
+      users: {
+        title: 'کاربران بر اساس نقش',
+        type: 'doughnut',
+        labels: {{ users_chart_labels|safe }},
+        data: {{ users_chart_data|safe }},
+        // Colors come from Users app role badges
+        backgroundColor: {{ users_chart_colors|safe }},
+        list: {{ users_summary|safe }},
+      },
+      jobs: {
+        title: 'کارها بر اساس برچسب',
+        type: 'doughnut',
+        labels: {{ jobs_chart_labels|safe }},
+        data: {{ jobs_chart_data|safe }},
+        // Use server-provided colors aligned to label order
+        backgroundColor: {{ jobs_chart_colors|safe }},
+        list: {{ jobs_summary|safe }},
+      },
+    };
+
+    let dynamicChart = null;
+    const container = document.getElementById('dynamicChartContainer');
+    const titleEl = document.getElementById('dynamicChartTitle');
+    const canvasEl = document.getElementById('dynamicChart');
+    const defaultPalette = ['#3b82f6','#10b981','#eab308','#ef4444','#22c55e','#a855f7','#f59e0b','#14b8a6','#8b5cf6','#f43f5e'];
+
+    function buildDistinctPalette(count) {
+      if (!count) return [];
+      if (count <= defaultPalette.length) {
+        return defaultPalette.slice(0, count);
+      }
+      const colors = defaultPalette.slice();
+      const extraNeeded = count - colors.length;
+      for (let i = 0; i < extraNeeded; i++) {
+        const hue = Math.round((360 / extraNeeded) * i);
+        const saturation = 65 + ((i % 3) * 5);
+        const lightness = 50 + ((i % 2) * 6);
+        colors.push(`hsl(${(hue + (i * 7)) % 360}, ${saturation}%, ${lightness}%)`);
+      }
+      return colors;
+    }
+
+    if (dynamicDatasets.products) {
+      const labelCount = Array.isArray(dynamicDatasets.products.labels) ? dynamicDatasets.products.labels.length : 0;
+      dynamicDatasets.products.backgroundColor = buildDistinctPalette(labelCount);
+    }
+
+    function showChart(key) {
+      const dataset = dynamicDatasets[key];
+      if (!dataset) return;
+      // Display container
+      container.classList.remove('hidden');
+
+      titleEl.textContent = dataset.title;
+      // If chart already exists, destroy it before creating a new one
+      try {
+        if (dynamicChart) {
+          dynamicChart.destroy();
+        }
+        if (window.Chart) {
+          const ctx = canvasEl.getContext('2d');
+          const chartType = dataset.type || 'bar';
+          let chartData;
+          if (Array.isArray(dataset.series) && dataset.series.length) {
+            chartData = {
+              labels: dataset.labels,
+              datasets: dataset.series.map((s, idx) => ({
+                label: s.label || '',
+                data: Array.isArray(s.data) ? s.data : [],
+                backgroundColor: s.backgroundColor
+                  || (Array.isArray(dataset.backgroundColor)
+                        ? dataset.backgroundColor[idx % dataset.backgroundColor.length]
+                        : (dataset.backgroundColor || defaultPalette[idx % defaultPalette.length])),
+              })),
+            };
+          } else {
+            chartData = {
+              labels: dataset.labels,
+              datasets: [{
+                label: dataset.title,
+                data: dataset.data,
+                backgroundColor: dataset.backgroundColor || defaultPalette,
+              }],
+            };
+          }
+          dynamicChart = new Chart(ctx, {
+            type: chartType,
+            data: chartData,
+            options: {
+              responsive: true,
+              legend: false,
+              animationDuration: 600,
+            },
+          });
+          try { if (window.ArchenCharts) window.ArchenCharts.register('reports-dynamic', dynamicChart); } catch(_){}
+        }
+      } catch (e) {
+        console.warn('Chart.js not available for dynamic chart:', e);
+      }
+
+      const legendEl = document.getElementById('dynamicLegend');
+      const orderStatusPanel = document.getElementById('order_status_filters_panel');
+      const jobStatusPanel = document.getElementById('job_status_filters_panel');
+      if (orderStatusPanel) orderStatusPanel.classList.toggle('hidden', key !== 'orders');
+      if (jobStatusPanel) jobStatusPanel.classList.toggle('hidden', key !== 'jobs');
+      if (legendEl) {
+        legendEl.innerHTML = '';
+        if (key === 'orders' || key === 'jobs') {
+          legendEl.classList.add('hidden');
+	        } else if (key === 'logs') {
+	          legendEl.classList.remove('hidden');
+	          const labels = Array.isArray(dataset.labels) ? dataset.labels : [];
+	          const series = Array.isArray(dataset.series) ? dataset.series : [];
+
+	          const registeredSeries = series.find(s => s.key === 'registered') || series[0] || { data: [] };
+	          const openSeries = series.find(s => s.key === 'open') || series[1] || { data: [] };
+	          const regData = Array.isArray(registeredSeries.data) ? registeredSeries.data : [];
+	          const openData = Array.isArray(openSeries.data) ? openSeries.data : [];
+
+	          const table = document.createElement('table');
+	          table.className = 'w-full text-xs text-gray-900 border border-gray-300 border-collapse table-fixed';
+
+	          const thead = document.createElement('thead');
+	          const headRow = document.createElement('tr');
+
+	          const thLabel = document.createElement('th');
+	          thLabel.className = 'px-2 py-1 border border-gray-300 text-right align-middle';
+	          thLabel.textContent = 'بخش تولید';
+	          headRow.appendChild(thLabel);
+
+	          function makeToggleCell(seriesItem, fallbackLabel) {
+	            const th = document.createElement('th');
+	            th.className = 'px-2 py-1 border border-gray-300 text-center align-middle';
+	            th.style.width = '4rem';
+	            const span = document.createElement('span');
+	            span.className = 'inline-block min-w-[3rem] text-center cursor-pointer select-none text-gray-700 rounded-full px-2 py-0.5';
+	            span.textContent = seriesItem.label || fallbackLabel || '';
+	            const modeKey = (seriesItem.key === 'open') ? 'open' : 'registered';
+	            span.setAttribute('data-logs-mode-toggle', modeKey);
+	            if (modeKey === 'open') {
+	              span.style.backgroundColor = '#fed7aa';
+	            } else {
+	              span.style.backgroundColor = '#bbf7d0';
+	            }
+	            span.style.border = '1px solid #000000';
+	            span.style.boxShadow = '0 0 0 1px rgba(0,0,0,0.2)';
+	            span.title = (modeKey === 'open') ? 'نمایش لیست کارهای باز' : 'نمایش لیست ثبت‌های تولید';
+	            span.addEventListener('click', () => {
+	              try {
+	                if (window.ArchenReportsLogs && typeof window.ArchenReportsLogs.setMode === 'function') {
+	                  window.ArchenReportsLogs.setMode(modeKey);
+	                }
+	              } catch (e) { /* ignore */ }
+	            });
+	            th.appendChild(span);
+	            return th;
+	          }
+
+	          headRow.appendChild(makeToggleCell(registeredSeries, 'ثبت شده'));
+	          headRow.appendChild(makeToggleCell(openSeries, 'باز'));
+	          thead.appendChild(headRow);
+	          table.appendChild(thead);
+
+	          const tbody = document.createElement('tbody');
+	          labels.forEach((label, idx) => {
+	            const tr = document.createElement('tr');
+	            tr.className = 'border-t border-gray-200';
+
+	            const tdLabel = document.createElement('td');
+	            tdLabel.className = 'px-2 py-1 text-right align-middle border border-gray-200';
+	            tdLabel.textContent = label;
+
+	            const tdReg = document.createElement('td');
+	            tdReg.className = 'px-2 py-1 text-center align-middle border border-gray-200';
+	            tdReg.style.width = '4rem';
+	            const vReg = regData[idx];
+	            const regSpan = document.createElement('span');
+	            regSpan.className = 'num-ltr';
+	            regSpan.textContent = (vReg === 0 || vReg) ? vReg : '·';
+	            tdReg.appendChild(regSpan);
+
+	            const tdOpen = document.createElement('td');
+	            tdOpen.className = 'px-2 py-1 text-center align-middle border border-gray-200';
+	            tdOpen.style.width = '4rem';
+	            const vOpen = openData[idx];
+	            const openSpan = document.createElement('span');
+	            openSpan.className = 'num-ltr';
+	            openSpan.textContent = (vOpen === 0 || vOpen) ? vOpen : '·';
+	            tdOpen.appendChild(openSpan);
+
+	            tr.appendChild(tdLabel);
+	            tr.appendChild(tdReg);
+	            tr.appendChild(tdOpen);
+	            tbody.appendChild(tr);
+	          });
+
+          if (labels.length && (regData.length || openData.length)) {
+            const totalRow = document.createElement('tr');
+            totalRow.className = 'border-t border-gray-300 bg-gray-50 font-bold';
+
+            const tdTitle = document.createElement('td');
+            tdTitle.className = 'px-2 py-1 text-right align-middle border border-gray-300';
+            tdTitle.textContent = 'جمع کل';
+
+            // English: Use global registered logs total so the summary row
+            // matches the "کارهای ثبت شده" card; fall back to local sum.
+            const sumReg = (typeof TOTAL_REGISTERED_LOGS === 'number'
+                            ? TOTAL_REGISTERED_LOGS
+                            : regData.reduce((s, v) => s + (Number(v) || 0), 0));
+            const sumOpen = openData.reduce((s, v) => s + (Number(v) || 0), 0);
+
+	            const tdSumReg = document.createElement('td');
+	            tdSumReg.className = 'px-2 py-1 text-center align-middle border border-gray-300';
+	            tdSumReg.style.width = '4rem';
+	            const sumRegSpan = document.createElement('span');
+	            sumRegSpan.className = 'num-ltr';
+	            sumRegSpan.textContent = sumReg;
+	            tdSumReg.appendChild(sumRegSpan);
+
+	            const tdSumOpen = document.createElement('td');
+	            tdSumOpen.className = 'px-2 py-1 text-center align-middle border border-gray-300';
+	            tdSumOpen.style.width = '4rem';
+	            const sumOpenSpan = document.createElement('span');
+	            sumOpenSpan.className = 'num-ltr';
+	            sumOpenSpan.textContent = sumOpen;
+	            tdSumOpen.appendChild(sumOpenSpan);
+
+	            totalRow.appendChild(tdTitle);
+	            totalRow.appendChild(tdSumReg);
+	            totalRow.appendChild(tdSumOpen);
+	            tbody.appendChild(totalRow);
+	          }
+
+	          table.appendChild(tbody);
+	          legendEl.appendChild(table);
+        } else {
+          legendEl.classList.remove('hidden');
+          // Default legend: label + single value with colored swatch
+          const colors = (Array.isArray(dataset.backgroundColor) ? dataset.backgroundColor : defaultPalette);
+          const labels = dataset.labels || [];
+          const dataArr = Array.isArray(dataset.data) ? dataset.data : [];
+          labels.forEach((label, i) => {
+            const li = document.createElement('li');
+            li.className = 'py-1 flex items-center justify-between';
+            const left = document.createElement('span');
+            left.className = 'inline-flex items-center gap-2 text-gray-700';
+            const swatch = document.createElement('span');
+            swatch.className = 'inline-block w-3 h-3 rounded-sm';
+            swatch.style.backgroundColor = colors[i % colors.length];
+            const txt = document.createElement('span');
+            txt.className = 'whitespace-normal font-bold text-gray-900';
+            txt.textContent = label;
+            left.appendChild(swatch);
+            left.appendChild(txt);
+            const val = document.createElement('span');
+            val.className = 'text-xs font-bold text-gray-900 bg-gray-50 rounded px-2 py-0.5';
+            const n = (dataArr[i] ?? '');
+            val.textContent = n;
+            li.appendChild(left);
+            li.appendChild(val);
+            legendEl.appendChild(li);
+          });
+        }
+      }
+
+      // Toggle detail blocks for Jobs and Orders charts
+      try {
+        const jobBlock = document.getElementById('jobDetailsBlock');
+        const orderBlock = document.getElementById('orderDetailsBlock');
+        const logBlock = document.getElementById('logDetailsBlock');
+        if (jobBlock) jobBlock.classList.toggle('hidden', key !== 'jobs');
+        if (orderBlock) orderBlock.classList.toggle('hidden', key !== 'orders');
+        if (logBlock) logBlock.classList.toggle('hidden', key !== 'logs');
+      } catch (e) { /* no-op */ }
+    }
+
+    // Attach click listeners to summary cards with active state persistence
+    const cards = Array.from(document.querySelectorAll('[data-chart-key]'));
+    let activeCard = null;
+    let activeKey = null;
+    const storageKey = 'reports.activeKey';
+    window.ArchenReportsSync = window.ArchenReportsSync || {};
+    function setActive(card) {
+      if (activeCard && activeCard !== card) {
+        activeCard.classList.remove('is-active');
+      }
+      activeCard = card;
+      if (activeCard) activeCard.classList.add('is-active');
+    }
+    function activateSection(key, opts = {}) {
+      if (!key) return;
+      const targetCard = document.querySelector(`[data-chart-key="${key}"]`);
+      if (targetCard) setActive(targetCard);
+      activeKey = key;
+      if (opts.persist !== false) {
+        try { sessionStorage.setItem(storageKey, key); } catch(_) {}
+      }
+      showChart(key);
+      if (window.ArchenReportsSync && typeof window.ArchenReportsSync[key] === 'function') {
+        try { window.ArchenReportsSync[key](); } catch (syncErr) { console.warn('sync handler failed', syncErr); }
+      }
+    }
+    cards.forEach(card => {
+      card.addEventListener('click', () => {
+        const key = card.getAttribute('data-chart-key');
+        activateSection(key);
+      });
+    });
+
+
+    // On reload, restore the last active card; on normal navigation, clear it
+    (function restoreActiveOnReload(){
+      let navType = 'navigate';
+      try {
+        const entries = performance.getEntriesByType('navigation');
+        if (entries && entries[0] && entries[0].type) navType = entries[0].type;
+        else if (performance.navigation) {
+          // Legacy fallback mapping
+          const t = performance.navigation.type;
+          navType = (t === 1) ? 'reload' : (t === 2 ? 'back_forward' : 'navigate');
+        }
+      } catch(_) {}
+
+      if (navType === 'reload') {
+        try {
+          const key = sessionStorage.getItem(storageKey);
+          if (key) {
+            activateSection(key, {persist: false});
+          }
+        } catch(_) {}
+      } else {
+        try { sessionStorage.removeItem(storageKey); } catch(_) {}
+        // Keep all cards inactive and containers hidden by default
+      }
+    })();
+
+    window.ArchenReportsDashboard = window.ArchenReportsDashboard || {};
+    window.ArchenReportsDashboard.activateSection = activateSection;
+
+    // Live refresh: poll lightweight metrics API and update counters and active chart
+    async function refreshMetrics(){
+      try {
+        const resp = await fetch('{% url "reports:metrics_api" %}');
+        const json = await resp.json();
+        // Update counters
+        document.querySelectorAll('[data-counter]').forEach(el => {
+          const k = el.getAttribute('data-counter');
+          if (json.totals && Object.prototype.hasOwnProperty.call(json.totals, k)) {
+            el.textContent = json.totals[k];
+          }
+        });
+        // Update datasets object for client-side charts
+        if (json.datasets){
+          Object.keys(json.datasets).forEach(k => {
+            const ds = json.datasets[k];
+            if (dynamicDatasets[k]){
+              dynamicDatasets[k].labels = ds.labels || [];
+              if ('data' in ds) {
+                dynamicDatasets[k].data = ds.data || [];
+              }
+              if (Array.isArray(ds.series)) {
+                dynamicDatasets[k].series = ds.series.slice();
+              }
+              if (ds.backgroundColor) dynamicDatasets[k].backgroundColor = ds.backgroundColor;
+            }
+          });
+        }
+        // If a chart is active, re-render it with the latest dataset
+        if (activeKey){ showChart(activeKey); }
+      } catch (e) { /* ignore errors to keep UI responsive */ }
+    }
+    // Start polling periodically; keep interval modest to reduce load
+    setInterval(refreshMetrics, 15000);
+    // Also do an initial refresh shortly after load to catch any new changes
+    setTimeout(refreshMetrics, 2000);
+  })();
+</script>
+
+  <script>
+  // Client-side loader for Job Details panel with graceful UI updates
+  (function(){
+    const container = document.getElementById('job_details_container');
+    const input = document.getElementById('job_search_input');
+    const jobTableBody = document.querySelector('#reportsJobTable tbody');
+    const jobEmptyRow = document.getElementById('jobFilterEmptyRow');
+    const statusFiltersHost = document.getElementById('job_status_filters');
+    const statusAllBtn = document.getElementById('job_status_filter_all');
+    const statusListButtons = statusFiltersHost ? Array.from(statusFiltersHost.querySelectorAll('.job-status-filter')) : [];
+    const jobStatusButtons = statusAllBtn ? [statusAllBtn, ...statusListButtons] : statusListButtons;
+    let activeJobStatusFilter = '';
+
+    async function loadJobDetails(jobNumber){
+      const normalized = (jobNumber || '').trim();
+      if (!normalized || !container) return;
+      container.innerHTML = '<div class="py-8 text-gray-600">در حال بارگذاری...</div>';
+      try {
+        // Use absolute path to avoid reverse issues when not namespaced
+        const resp = await fetch('/reports/job-details/?job_number=' + encodeURIComponent(normalized));
+        const data = await resp.json();
+        if (data && data.ok){
+          container.innerHTML = data.html;
+        } else {
+          container.innerHTML = '<div class="py-8 text-red-600">شماره کار یافت نشد.</div>';
+        }
+      } catch (e){
+        container.innerHTML = '<div class="py-8 text-red-600">خطا در دریافت اطلاعات.</div>';
+      }
+    }
+
+    function toAsciiDigits(str){
+      if (!str) return '';
+      return String(str)
+        .replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06F0))
+        .replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660));
+    }
+
+    function filterJobRows(query){
+      if (!jobTableBody) return;
+      const normalized = toAsciiDigits((query || '').trim()).toLowerCase();
+      const rows = jobTableBody.querySelectorAll('tr[data-job-number]');
+      let visibleCount = 0;
+      rows.forEach(row => {
+        const jobNumber = toAsciiDigits(row.getAttribute('data-job-number') || '').toLowerCase();
+        const jobLabel = (row.getAttribute('data-job-label') || '').trim();
+        const statusMatch = !activeJobStatusFilter || jobLabel === activeJobStatusFilter;
+        const numberMatch = !normalized || jobNumber.includes(normalized);
+        const shouldShow = statusMatch && numberMatch;
+        row.classList.toggle('hidden', !shouldShow);
+        if (shouldShow) visibleCount += 1;
+      });
+      if (jobEmptyRow) {
+        const totalRows = rows.length;
+        const showMessage = totalRows > 0 && visibleCount === 0;
+        jobEmptyRow.classList.toggle('hidden', !showMessage);
+      }
+    }
+
+    function setJobStatusFilter(code){
+      activeJobStatusFilter = code || '';
+      if (jobStatusButtons.length) {
+        jobStatusButtons.forEach(btn => {
+          const key = btn.getAttribute('data-label') || '';
+          const isActive = activeJobStatusFilter ? (key === activeJobStatusFilter) : (key === '');
+          btn.classList.toggle('is-active', isActive);
+        });
+      }
+      filterJobRows(input ? input.value : '');
+    }
+
+    function bindJobRows(scope){
+      (scope || document).querySelectorAll('tr[data-job-number]').forEach(row => {
+        if (row.__jobDetailsBound) return;
+        row.__jobDetailsBound = true;
+        row.addEventListener('click', () => loadJobDetails(row.getAttribute('data-job-number') || ''));
+      });
+    }
+
+    bindJobRows(document);
+    if (jobStatusButtons.length) {
+      setJobStatusFilter('');
+    } else {
+      filterJobRows('');
+    }
+
+    if (jobStatusButtons.length) {
+      jobStatusButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const label = btn.getAttribute('data-label') || '';
+          // For a specific status, always lock the filter to that
+          // code even on repeated clicks.  Only the "all" button
+          // (empty data-label) resets the filter to show all jobs.
+          if (!label) {
+            setJobStatusFilter('');
+          } else {
+            setJobStatusFilter(label);
+          }
+        });
+      });
+    }
+
+    if (input) {
+      let t = null;
+      input.addEventListener('input', () => {
+        const v = (input.value || '').trim();
+        filterJobRows(v);
+        if (t) clearTimeout(t);
+        t = setTimeout(() => { if (v) loadJobDetails(v); }, 350);
+      });
+    }
+
+    window.ArchenJobPanel = {
+      loadJobDetails,
+      bindJobRows,
+      setStatusFilter: setJobStatusFilter,
+      filterRows: filterJobRows,
+    };
+  })();
+  </script>
+
+  <script>
+  // Client-side loader for Order Details panel
+  (function(){
+    const container = document.getElementById('order_details_container');
+    const input = document.getElementById('order_search_input');
+    const ordersTbody = document.getElementById('orders_list_body');
+    const statusFiltersHost = document.getElementById('order_status_filters');
+    const statusAllBtn = document.getElementById('order_status_filter_all');
+    const statusListButtons = statusFiltersHost ? Array.from(statusFiltersHost.querySelectorAll('.order-status-filter')) : [];
+    const statusFilterButtons = statusAllBtn ? [statusAllBtn, ...statusListButtons] : statusListButtons;
+    let lastLoadedKey = null;
+    let activeStatusFilter = '';
+    let badgeSearchValue = '';
+
+    function toAsciiDigits(str){
+      if (!str) return '';
+      const map = {
+        '۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9',
+        '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'
+      };
+      return String(str).split('').map(ch => map[ch] ?? ch).join('');
+    }
+
+    function normalizeDigits(value){
+      return toAsciiDigits(value || '').trim();
+    }
+
+    function matchesBadgeFilter(row){
+      if (!badgeSearchValue) return true;
+      const badge = normalizeDigits(row.getAttribute('data-order-badge') || '').toLowerCase();
+      const sub = normalizeDigits(row.getAttribute('data-order-sub') || '').toLowerCase();
+      return (badge && badge.includes(badgeSearchValue)) || (sub && sub.includes(badgeSearchValue));
+    }
+
+    function applyStatusFilter(){
+      if (!ordersTbody) return;
+      const rows = Array.from(ordersTbody.querySelectorAll('tr[data-order-id]'));
+      let visibleCount = 0;
+      rows.forEach(row => {
+        const rowStatus = row.getAttribute('data-order-status') || '';
+        const statusMatch = !activeStatusFilter || rowStatus === activeStatusFilter;
+        const badgeMatch = matchesBadgeFilter(row);
+        const shouldShow = statusMatch && badgeMatch;
+        row.style.display = shouldShow ? '' : 'none';
+        if (shouldShow) visibleCount += 1;
+      });
+      let emptyRow = document.getElementById('ordersFilterEmptyRow');
+      if (!emptyRow) {
+        emptyRow = document.createElement('tr');
+        emptyRow.id = 'ordersFilterEmptyRow';
+        emptyRow.innerHTML = '<td colspan="4" class="px-2 py-3 text-center text-gray-500 text-sm">سفارشی با این وضعیت یافت نشد.</td>';
+        ordersTbody.appendChild(emptyRow);
+      }
+      emptyRow.style.display = visibleCount === 0 ? '' : 'none';
+    }
+
+    function setBadgeFilter(raw){
+      badgeSearchValue = normalizeDigits(raw || '').toLowerCase();
+      applyStatusFilter();
+      if (!badgeSearchValue) return;
+      const rows = Array.from(ordersTbody.querySelectorAll('tr[data-order-id]')).filter(row => row.style.display !== 'none');
+      const exactRow = rows.find(row => {
+        const badge = normalizeDigits(row.getAttribute('data-order-badge') || '').toLowerCase();
+        const sub = normalizeDigits(row.getAttribute('data-order-sub') || '').toLowerCase();
+        return (badge && badge === badgeSearchValue) || (sub && sub === badgeSearchValue);
+      });
+      if (exactRow) {
+        loadOrderDetails({
+          badge: exactRow.getAttribute('data-order-badge') || '',
+          sub: exactRow.getAttribute('data-order-sub') || '',
+          id: exactRow.getAttribute('data-order-id') || '',
+        }, exactRow);
+      }
+    }
+
+    function setStatusFilter(statusLabel){
+      activeStatusFilter = statusLabel || '';
+      statusFilterButtons.forEach(btn => {
+        const target = btn.getAttribute('data-status') || '';
+        const isActive = activeStatusFilter ? (target === activeStatusFilter) : (target === '');
+        btn.classList.toggle('is-active', isActive);
+      });
+      applyStatusFilter();
+    }
+
+    if (statusFilterButtons.length){
+      statusFilterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const label = btn.getAttribute('data-status') || '';
+          // For a specific status, always keep the filter locked
+          // on that label even on repeated clicks. Only the
+          // \"all\" button (empty data-status) clears the filter.
+          if (!label){
+            setStatusFilter('');
+          } else {
+            setStatusFilter(label);
+          }
+        });
+      });
+    }
+    // If all button exists but wasn't part of NodeList (e.g., missing), ensure click resets
+    if (statusAllBtn && statusFilterButtons.indexOf(statusAllBtn) === -1) {
+      statusAllBtn.addEventListener('click', () => setStatusFilter(''));
+    }
+
+    function matchesRow(row, key){
+      if (!row || !key) return false;
+      const badge = row.getAttribute('data-order-badge') || '';
+      const idAttr = row.getAttribute('data-order-id') || '';
+      const subAttr = row.getAttribute('data-order-sub') || '';
+      if (key.id && idAttr && key.id === idAttr) return true;
+      if (key.sub && subAttr && key.sub === subAttr) return true;
+      if (key.badge && badge === key.badge && !key.id && !key.sub) return true;
+      return false;
+    }
+
+    function markActiveRow(key, preferredRow){
+      if (!ordersTbody) return;
+      const rows = Array.from(ordersTbody.querySelectorAll('tr[data-order-id]'));
+      let targetRow = null;
+      if (preferredRow && rows.includes(preferredRow)) {
+        targetRow = preferredRow;
+      } else if (key) {
+        targetRow = rows.find(row => matchesRow(row, key)) || null;
+      }
+      rows.forEach(row => {
+        row.classList.toggle('is-selected', row === targetRow);
+      });
+    }
+
+    function normalizeKey(raw){
+      if (!raw) return null;
+      if (typeof raw === 'string') {
+        const badge = raw.trim();
+        return badge ? { badge } : null;
+      }
+      const badge = (raw.badge || '').trim();
+      const sub = (raw.sub || '').trim();
+      const id = (raw.id || '').toString().trim();
+      if (badge || sub || id) {
+        return { badge, sub, id };
+      }
+      return null;
+    }
+
+    function buildQuery(key){
+      const params = new URLSearchParams();
+      if (key.badge) params.set('badge', key.badge);
+      if (key.sub) params.set('sub', key.sub);
+      if (key.id) params.set('id', key.id);
+      return params.toString();
+    }
+
+    async function loadOrderDetails(rawKey, preferredRow = null){
+      const key = normalizeKey(rawKey);
+      if (!key || !container) return;
+      lastLoadedKey = key;
+      const hasUniqueKey = Boolean(key.id || key.sub);
+      markActiveRow(hasUniqueKey ? key : null, preferredRow);
+      container.innerHTML = '<div class="py-8 text-gray-600">در حال بارگذاری...</div>';
+      try {
+        const resp = await fetch('/reports/order-details/?' + buildQuery(key));
+        const data = await resp.json();
+        if (data && data.ok) {
+          container.innerHTML = data.html;
+          bindRelatedJobLinks(container);
+          let resolvedKey = null;
+          if (data.key) {
+            if (typeof data.key === 'string') {
+              resolvedKey = normalizeKey({
+                badge: data.key,
+                sub: key.sub,
+                id: key.id,
+              });
+            } else {
+              const merged = {
+                badge: (data.key.badge || key.badge || '').trim(),
+                sub: (data.key.sub || key.sub || '').trim(),
+                id: (data.key.id || key.id || '').toString().trim(),
+              };
+              resolvedKey = normalizeKey(merged);
+            }
+          }
+          if (!resolvedKey && hasUniqueKey) {
+            resolvedKey = key;
+          }
+          if (resolvedKey) {
+            lastLoadedKey = resolvedKey;
+            const rowForHighlight = (preferredRow && ordersTbody && ordersTbody.contains(preferredRow)) ? preferredRow : null;
+            markActiveRow(resolvedKey, rowForHighlight);
+          }
+        } else {
+          container.innerHTML = '<div class="py-8 text-red-600">سفارش یافت نشد.</div>';
+          markActiveRow(null);
+        }
+      } catch (e){
+        container.innerHTML = '<div class="py-8 text-red-600">بروز خطا در دریافت اطلاعات.</div>';
+        markActiveRow(null);
+      }
+    }
+
+    function bindRows(scope){
+      (scope || document).querySelectorAll('tr[data-order-id]').forEach(row => {
+        if (row.__orderPanelBound) return;
+        row.__orderPanelBound = true;
+        row.addEventListener('click', () => {
+          loadOrderDetails({
+            badge: row.getAttribute('data-order-badge') || '',
+            sub: row.getAttribute('data-order-sub') || '',
+            id: row.getAttribute('data-order-id') || '',
+          }, row);
+        });
+      });
+    }
+
+    function bindRelatedJobLinks(scope){
+      (scope || document).querySelectorAll('.js-related-job-link').forEach(link => {
+        if (link.__relatedJobBound) return;
+        link.__relatedJobBound = true;
+        link.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          const jobNumber = link.getAttribute('data-job-number') || '';
+          if (!jobNumber) return;
+          if (window.ArchenReportsDashboard && typeof window.ArchenReportsDashboard.activateSection === 'function') {
+            window.ArchenReportsDashboard.activateSection('jobs');
+          }
+          const jobBlock = document.getElementById('jobDetailsBlock');
+          if (jobBlock) {
+            jobBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+          const loadJob = () => {
+            if (window.ArchenJobPanel && typeof window.ArchenJobPanel.loadJobDetails === 'function') {
+              window.ArchenJobPanel.loadJobDetails(jobNumber);
+            }
+          };
+          setTimeout(loadJob, 80);
+        });
+      });
+    }
+
+    bindRows(document);
+    setStatusFilter('');
+
+    if (input) {
+      let t = null;
+      input.addEventListener('input', () => {
+        const raw = input.value || '';
+        if (t) clearTimeout(t);
+        t = setTimeout(() => setBadgeFilter(raw), 180);
+      });
+    }
+
+    window.ArchenOrdersPanel = {
+      loadOrderDetails,
+      bindOrderRows: bindRows,
+      bindRelatedJobLinks,
+      getLastLoadedKey: () => lastLoadedKey,
+      applyStatusFilter,
+      setStatusFilter,
+      markActiveRow,
+      setBadgeFilter,
+    };
+  })();
+
+  // Live sync for the orders list so it mirrors the Orders module
+  (function(){
+    const tbody = document.getElementById('orders_list_body');
+    if (!tbody) return;
+
+    const endpoint = '/orders/api/live-orders/';
+    let isLoading = false;
+    let lastSync = 0;
+    const limit = 200;
+    const minIntervalMs = 15000;
+
+    function escapeHtml(str){
+      const map = {"&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"};
+      return String(str || '').replace(/[&<>"']/g, ch => map[ch] || ch);
+    }
+
+    function renderOrders(list){
+      if (!Array.isArray(list) || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="px-2 py-3 text-center text-gray-500 text-sm">سفارشی یافت نشد.</td></tr>';
+        if (window.ArchenOrdersPanel && typeof window.ArchenOrdersPanel.applyStatusFilter === 'function') {
+          window.ArchenOrdersPanel.applyStatusFilter();
+        }
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      list.forEach(order => {
+        const tr = document.createElement('tr');
+        tr.className = 'order-row cursor-pointer';
+        tr.dataset.orderBadge = order.badge_number || '';
+        tr.dataset.orderSub = order.subscription_code || '';
+        tr.dataset.orderId = order.id;
+        const statusLabel = order.status_display || '';
+        tr.dataset.orderStatus = statusLabel;
+        const statusClasses = ORDER_STATUS_CLASS_MAP[statusLabel] || 'bg-gray-200 text-gray-800';
+        const code = order.badge_number || order.subscription_code || '-';
+        tr.innerHTML = `
+          <td class="px-2 py-1 font-mono font-bold badge-cell"><span class="num-ltr">${escapeHtml(code)}</span></td>
+          <td class="px-2 py-1 text-right">${escapeHtml(order.customer_name || '')}</td>
+          <td class="px-2 py-1 text-right">${escapeHtml(order.model || '')}</td>
+          <td class="px-2 py-1 text-right"><span class="px-2 py-0.5 rounded text-xs font-bold ${statusClasses}">${escapeHtml(statusLabel)}</span></td>
+        `;
+        frag.appendChild(tr);
+      });
+      tbody.innerHTML = '';
+      tbody.appendChild(frag);
+      if (window.ArchenOrdersPanel && typeof window.ArchenOrdersPanel.bindOrderRows === 'function') {
+        window.ArchenOrdersPanel.bindOrderRows(tbody);
+      }
+      if (window.ArchenOrdersPanel && typeof window.ArchenOrdersPanel.bindOrderRows === 'function') {
+        window.ArchenOrdersPanel.bindOrderRows(tbody);
+      }
+      if (window.ArchenOrdersPanel && typeof window.ArchenOrdersPanel.applyStatusFilter === 'function') {
+        window.ArchenOrdersPanel.applyStatusFilter();
+      }
+      if (window.ArchenOrdersPanel && typeof window.ArchenOrdersPanel.markActiveRow === 'function') {
+        window.ArchenOrdersPanel.markActiveRow(window.ArchenOrdersPanel.getLastLoadedKey && window.ArchenOrdersPanel.getLastLoadedKey());
+      }
+    }
+
+    async function refreshOrders(force = false){
+      const now = Date.now();
+      if (isLoading) return;
+      if (!force && now - lastSync < minIntervalMs) return;
+      isLoading = true;
+      try {
+        const resp = await fetch(`${endpoint}?limit=${limit}`, { headers: { 'Accept': 'application/json' } });
+        if (!resp.ok) throw new Error('bad response');
+        const data = await resp.json();
+        renderOrders(Array.isArray(data.orders) ? data.orders : []);
+        lastSync = Date.now();
+        if (window.ArchenOrdersPanel && typeof window.ArchenOrdersPanel.markActiveRow === 'function') {
+          window.ArchenOrdersPanel.markActiveRow(window.ArchenOrdersPanel.getLastLoadedKey && window.ArchenOrdersPanel.getLastLoadedKey());
+        }
+      } catch (err) {
+        console.error('orders sync failed', err);
+      } finally {
+        isLoading = false;
+      }
+    }
+
+    function ensureFresh(){
+      refreshOrders(true);
+    }
+
+    refreshOrders(true);
+
+    window.ArchenOrdersList = {
+      refresh: refreshOrders,
+      ensureFresh,
+    };
+    window.ArchenReportsSync = window.ArchenReportsSync || {};
+    window.ArchenReportsSync.orders = () => {
+      if (window.ArchenOrdersList && typeof window.ArchenOrdersList.refresh === 'function') {
+        window.ArchenOrdersList.refresh(true);
+      }
+    };
+  })();
+
+
+  // Client-side helpers for logs list (filters, export links)
+  (function(){
+	    const input = document.getElementById('log_search_input');
+	    const sectionSelect = document.getElementById('log_section_filter');
+	    const userSelect = document.getElementById('log_user_filter');
+	    const modelSelect = document.getElementById('log_model_filter');
+	    const dateFrom = document.getElementById('log_date_from');
+	    const dateTo = document.getElementById('log_date_to');
+    // English: Some pages may render more than one export button (e.g., hidden blocks).
+    // Use querySelectorAll so all existing buttons receive fresh URLs and no duplicate-ID issue breaks wiring.
+    const xlsxBtns = Array.from(document.querySelectorAll('#log_export_xlsx_btn'));
+    const pdfBtns = Array.from(document.querySelectorAll('#log_export_pdf_btn'));
+    const registeredWrapper = document.getElementById('logs_registered_wrapper');
+    const openWrapper = document.getElementById('logs_open_wrapper');
+    let logsMode = 'registered'; // 'registered' | 'open'
+
+    function getSortState(){
+      let col = '';
+      let dir = '';
+      try {
+        const tableId = (logsMode === 'open') ? '#openJobsTable' : '#logsTable';
+        const headers = document.querySelectorAll(tableId + ' thead .sort-btn');
+        headers.forEach(btn => {
+          const ic = btn.querySelector('.sort-indicator');
+          if (ic && ic.classList.contains('opacity-100')) {
+            col = btn.getAttribute('data-col') || '';
+            dir = ic.classList.contains('rotate-180') ? 'asc' : 'desc';
+          }
+        });
+      } catch(_){}
+      return {col, dir};
+    }
+
+    function updateExportLinks(){
+      const params = new URLSearchParams();
+      if (sectionSelect && sectionSelect.value) params.set('section', sectionSelect.value);
+      if (userSelect && userSelect.value) params.set('user', userSelect.value);
+      if (modelSelect && modelSelect.value) params.set('model', modelSelect.value);
+      if (dateFrom && dateFrom.value) params.set('df', dateFrom.value);
+      if (dateTo && dateTo.value) params.set('dt', dateTo.value);
+      if (input && input.value) params.set('q', input.value);
+      params.set('mode', logsMode === 'open' ? 'open' : 'registered');
+      const s = getSortState();
+      if (s.col) params.set('sort_col', s.col);
+      if (s.dir) params.set('sort_dir', s.dir);
+      const xHref = '/reports/logs/export/xlsx/?' + params.toString();
+      const pHref = '/reports/logs/export/pdf/?' + params.toString();
+      xlsxBtns.forEach(el => { try { el.href = xHref; } catch(_){} });
+      pdfBtns.forEach(el => { try { el.href = pHref; } catch(_){} });
+    }
+
+    function toEnDigits(s){
+      if (!s) return '';
+      const fa = '۰۱۲۳۴۵۶۷۸۹';
+      const ar = '٠١٢٣٤٥٦٧٨٩';
+      return String(s).replace(/[۰-۹]/g, d => String(fa.indexOf(d))).replace(/[٠-٩]/g, d => String(ar.indexOf(d)));
+    }
+
+    function normalizeDateStr(s){
+      s = toEnDigits((s || '').trim());
+      if (!s) return '';
+      return s.replaceAll('-', '/');
+    }
+
+    function normalizeSearchText(value){
+      return toEnDigits((value || '').toString().trim().toLowerCase());
+    }
+
+    function updateStatus(){
+      const el = document.getElementById('logsListStatus');
+      if (!el) return;
+      if (logsMode === 'open') {
+        const allRows = Array.from(document.querySelectorAll('#openJobsTable tbody tr'));
+        const visible = allRows.filter(r => r.style.display !== 'none');
+        el.textContent = `تعداد کارهای باز: ${allRows.length} | پس از فیلتر: ${visible.length}`;
+        return;
+      }
+      const allRows = Array.from(document.querySelectorAll('#logsTable tbody tr'));
+      const visible = allRows.filter(r => r.style.display !== 'none');
+      const totalRegistered = (typeof window.ArchenTotalRegisteredLogs === 'number'
+                               ? window.ArchenTotalRegisteredLogs
+                               : allRows.length);
+      el.textContent = `تعداد کارهای ثبت شده: ${totalRegistered} | پس از فیلتر: ${visible.length}`;
+    }
+
+    function applyLogFilters(){
+      const q = normalizeSearchText(input && input.value || '');
+      const sec = (sectionSelect && sectionSelect.value) || '';
+      const uid = (userSelect && userSelect.value) || '';
+      const mdl = (modelSelect && modelSelect.value || '').toLowerCase();
+      const df = normalizeDateStr(dateFrom && dateFrom.value);
+      const dt = normalizeDateStr(dateTo && dateTo.value);
+
+      if (logsMode === 'open') {
+        // Filters for open jobs list: unit + model + date + search text.
+        document.querySelectorAll('#openJobsTable tbody tr').forEach(r => {
+          const txt = normalizeSearchText(r.textContent || '');
+          const okText = !q || txt.includes(q);
+          const okSec = !sec || (r.getAttribute('data-section') === sec);
+          const rowModel = (r.getAttribute('data-model') || '').toLowerCase();
+          const okModel = !mdl || (rowModel === mdl);
+          const rdate = normalizeDateStr(r.getAttribute('data-created'));
+          const okFrom = !df || (!!rdate && rdate >= df);
+          const okTo = !dt || (!!rdate && rdate <= dt);
+          r.style.display = (okText && okSec && okModel && okFrom && okTo) ? '' : 'none';
+        });
+      } else {
+        // Filters for registered logs list: unit + user + model + date + search text.
+        document.querySelectorAll('#logsTable tbody tr').forEach(r => {
+          const txt = normalizeSearchText(r.textContent || '');
+          const okText = !q || txt.includes(q);
+          const okSec = !sec || (r.getAttribute('data-section') === sec);
+          const okUser = !uid || (r.getAttribute('data-user-id') === uid);
+          const rowModel = (r.getAttribute('data-model') || '').toLowerCase();
+          const okModel = !mdl || (rowModel === mdl);
+          const rdate = normalizeDateStr(r.getAttribute('data-jdate'));
+          const okFrom = !df || (!!rdate && rdate >= df);
+          const okTo = !dt || (!!rdate && rdate <= dt);
+          r.style.display = (okText && okSec && okUser && okModel && okFrom && okTo) ? '' : 'none';
+        });
+      }
+      updateStatus();
+    }
+    let t = null;
+    if (input) { input.addEventListener('input', () => { if (t) clearTimeout(t); t = setTimeout(() => { applyLogFilters(); updateExportLinks(); }, 200); }); }
+    if (sectionSelect) { sectionSelect.addEventListener('change', () => { applyLogFilters(); updateExportLinks(); }); }
+    if (userSelect) { userSelect.addEventListener('change', () => { applyLogFilters(); updateExportLinks(); }); }
+    if (modelSelect) { modelSelect.addEventListener('change', () => { applyLogFilters(); updateExportLinks(); }); }
+    // Ensure filters react to both native changes and persian datepicker updates
+    function bindDate(el){
+      if (!el) return;
+      ['input','change','blur'].forEach(evt => {
+        el.addEventListener(evt, () => { if (t) clearTimeout(t); t = setTimeout(() => { applyLogFilters(); updateExportLinks(); }, 150); });
+      });
+      // jQuery-based Persian datepicker events (best-effort)
+      try {
+        if (window.jQuery) {
+          const $el = window.jQuery(el);
+          $el.on('change input pDatepicker:changed pdp:changed', function(){
+            if (t) clearTimeout(t); t = setTimeout(() => { applyLogFilters(); updateExportLinks(); }, 100);
+          });
+        }
+      } catch (_) { /* ignore */ }
+    }
+    bindDate(dateFrom);
+    bindDate(dateTo);
+
+    function syncLegendToggles(mode) {
+      const toggles = document.querySelectorAll('[data-logs-mode-toggle]');
+      toggles.forEach((el) => {
+        const m = (el.getAttribute('data-logs-mode-toggle') || 'registered') === 'open' ? 'open' : 'registered';
+        if (m === mode) {
+          el.classList.add('text-blue-700', 'font-extrabold');
+          el.classList.remove('text-gray-700');
+        } else {
+          el.classList.remove('text-blue-700', 'font-extrabold');
+          el.classList.add('text-gray-700');
+        }
+      });
+    }
+
+    function setLogsMode(mode){
+      logsMode = mode === 'open' ? 'open' : 'registered';
+
+      // Toggle which list is visible
+      if (registeredWrapper && openWrapper) {
+        if (logsMode === 'registered') {
+          registeredWrapper.classList.remove('hidden');
+          openWrapper.classList.add('hidden');
+        } else {
+          registeredWrapper.classList.add('hidden');
+          openWrapper.classList.remove('hidden');
+        }
+      }
+
+      // Gray out user filter in open mode
+      if (userSelect) {
+        if (logsMode === 'open') {
+          userSelect.disabled = true;
+          userSelect.classList.add('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+        } else {
+          userSelect.disabled = false;
+          userSelect.classList.remove('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+        }
+      }
+
+      // In open-jobs mode hide non‑product sections (cutting / cnc_tools) from the unit filter
+      if (sectionSelect) {
+        const banned = ['cutting', 'cnc_tools'];
+        const opts = Array.from(sectionSelect.options || []);
+        opts.forEach((opt) => {
+          const val = opt.value || '';
+          const isBanned = banned.includes(val);
+          if (logsMode === 'open' && isBanned) {
+            opt.disabled = true;
+            opt.hidden = true;
+          } else {
+            opt.disabled = false;
+            opt.hidden = false;
+          }
+        });
+        // If a banned unit was selected, reset to "all"
+        if (logsMode === 'open' && banned.includes(sectionSelect.value || '')) {
+          sectionSelect.value = '';
+        }
+      }
+
+      syncLegendToggles(logsMode);
+      applyLogFilters();
+      updateExportLinks();
+    }
+
+    // Initial status and export links after DOM ready (default: registered)
+    setLogsMode('registered');
+    updateExportLinks();
+
+    // Expose controller so legend header can switch modes
+    window.ArchenReportsLogs = {
+      setMode: setLogsMode,
+      getMode: () => logsMode,
+    };
+
+    // Update export links after any sort click (defer to let DOM classes update)
+    document.addEventListener('click', function(e){
+      const el = e.target.closest('#logsTable thead .sort-btn');
+      if (!el) return;
+      setTimeout(updateExportLinks, 60);
+    });
+  })();
+  </script>
+  {% endblock %}

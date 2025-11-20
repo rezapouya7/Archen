@@ -1,0 +1,411 @@
+{% extends 'layout.html' %}
+
+
+{% load static %}
+{#
+  Job form for creating or editing a job within the jobs app.  This
+  template is derived from ``production_line/job_form.html`` but with
+  breadcrumbs and URLs adjusted to point at the jobs namespace.  It
+  reuses the same ``CreateJobForm`` defined in ``production_line.forms``.
+#}
+
+{% block title %}
+  {% if is_editing %}ویرایش کار{% else %}ایجاد کار{% endif %} | صنایع چوبی آرچن
+{% endblock %}
+
+{% block page_title %}
+  {% if is_editing %}ویرایش کار{% else %}ایجاد کار{% endif %}
+{% endblock %}
+
+{% block back_button %}
+  <a href="{% url 'jobs:job_list' %}"
+     class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-600 text-blue-700 hover:bg-blue-200">
+    بازگشت
+  </a>
+{% endblock %}
+{% block Breadcrumb %}
+<!-- Breadcrumb -->
+<div class="mb-3 text-sm text-gray-600 rtl text-right">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  <a href="{% url 'jobs:job_list' %}" class="hover:underline">لیست کارها</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">{% if is_editing %}ویرایش کار{% else %}ایجاد کار{% endif %}</span>
+</div>
+{% endblock %}
+{% block content %}
+<div class="bg-transparent p-6 font-sans rtl text-right">
+  <!-- Use the header-like patterned surface for job form -->
+  <div class="w-full max-w-xl mx-auto surface-pattern surface-elevated p-6 rounded-xl">
+
+    {% if form.non_field_errors %}
+      <div class="text-red-600 text-sm space-y-1 mb-4">
+        {% for err in form.non_field_errors %}<p>{{ err }}</p>{% endfor %}
+      </div>
+    {% endif %}
+    <form method="post" novalidate class="space-y-4">
+      {% csrf_token %}
+
+      <!-- Job number -->
+      <div class="flex flex-col">
+        <!-- Bolden input field labels on job form -->
+        <label for="{{ form.job_number.id_for_label }}" class="text-sm text-gray-700 mb-1 font-bold">
+          {{ form.job_number.label }}<span class="text-red-600">*</span>
+        </label>
+        {{ form.job_number }}
+        {% if form.job_number.errors %}
+          <div class="text-xs text-red-600 mt-1">{% for e in form.job_number.errors %}<p>{{ e }}</p>{% endfor %}</div>
+        {% endif %}
+      </div>
+
+      <!-- Product model -->
+      <div class="flex flex-col">
+        <label for="{{ form.model.id_for_label }}" class="text-sm text-gray-700 mb-1 font-bold">
+          {{ form.model.label }}<span class="text-red-600">*</span>
+        </label>
+        {{ form.model }}
+        {% if form.model.errors %}
+          <div class="text-xs text-red-600 mt-1">{% for e in form.model.errors %}<p>{{ e }}</p>{% endfor %}</div>
+        {% endif %}
+      </div>
+
+      <!-- Product -->
+      <div class="flex flex-col">
+        <label for="{{ form.product.id_for_label }}" class="text-sm text-gray-700 mb-1 font-bold">
+          {{ form.product.label }}{% if form.product.field.required %}<span class="text-red-600">*</span>{% endif %}
+        </label>
+        {{ form.product }}
+        {% if form.product.errors %}
+          <div class="text-xs text-red-600 mt-1">{% for e in form.product.errors %}<p>{{ e }}</p>{% endfor %}</div>
+        {% endif %}
+      </div>
+
+      <!-- Sections and job label grid -->
+      <!-- English comment: Force two-column grid on all breakpoints so job label sits beside allowed sections even on mobile. -->
+      <div class="grid grid-cols-2 gap-4">
+        <!-- Allowed sections -->
+        <div class="flex flex-col">
+          <label class="text-sm text-gray-700 mb-1 font-bold">{{ form.allowed_sections.label }}<span class="text-red-600">*</span></label>
+          <div class="flex flex-col gap-2">
+            {% for checkbox in form.allowed_sections %}
+              <label class="inline-flex items-center text-sm">
+                {{ checkbox.tag }}
+                <span class="mr-2">{{ checkbox.choice_label }}</span>
+              </label>
+            {% endfor %}
+          </div>
+          {% if form.allowed_sections.errors %}
+            <div class="text-xs text-red-600 mt-1">{% for e in form.allowed_sections.errors %}<p>{{ e }}</p>{% endfor %}</div>
+          {% endif %}
+        </div>
+        <!-- Job label selector -->
+        <div class="flex flex-col">
+          <label class="text-sm text-gray-700 mb-1 font-bold">{{ form.job_label.label }}<span class="text-red-600">*</span></label>
+          <div class="flex flex-col gap-2">
+            {% for radio in form.job_label %}
+              <label class="inline-flex items-center text-sm">
+                {{ radio.tag }}
+                <span class="mr-2">{{ radio.choice_label }}</span>
+              </label>
+            {% endfor %}
+          </div>
+          {% if form.job_label.errors %}
+            <div class="text-xs text-red-600 mt-1">{% for e in form.job_label.errors %}<p>{{ e }}</p>{% endfor %}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if section_progress_items %}
+      <div class="rounded-lg border border-dashed border-gray-300/80 bg-white/60 p-4 text-xs">
+        <div class="flex items-center justify-between font-bold text-gray-600 mb-2">
+          <span>هایلایت مسیر تولید</span>
+          {% if is_editing %}
+            <button type="button" id="progressResetBtn" class="text-blue-600 hover:underline hidden text-[11px]">بازنشانی هایلایت</button>
+          {% endif %}
+        </div>
+        <div id="jobProgressTrack"
+             class="flex flex-wrap items-center gap-2"
+             data-mode="{% if is_editing %}edit{% else %}create{% endif %}"
+             data-flow-length="{{ section_progress_length|default:0 }}"
+             data-original-cursor="{{ section_progress_cursor|default:0 }}"
+             data-max-jump="{{ section_progress_cursor|default:0 }}">
+          {% for item in section_progress_items %}
+            <button type="button"
+                    class="px-2 py-1 rounded-full border text-xs font-bold transition {% if item.state == 'done' %}bg-emerald-100 text-emerald-900 border-emerald-200{% elif item.state == 'active' %}bg-blue-100 text-blue-900 border-blue-200{% else %}bg-gray-100 text-gray-500 border-gray-200{% endif %} {% if item.can_jump %}cursor-pointer hover:border-blue-400{% else %}cursor-default{% endif %}"
+                    data-index="{{ item.index }}"
+                    data-slug="{{ item.slug }}"
+                    data-can-jump="{{ item.can_jump|yesno:'true,false' }}"
+                    data-state="{{ item.state }}">
+              {{ item.label }}
+            </button>
+            {% if not forloop.last %}<span class="text-gray-400">›</span>{% endif %}
+          {% endfor %}
+        </div>
+        <input type="hidden" name="progress_cursor" id="jobProgressCursor" value="{{ section_progress_cursor|default:0 }}">
+        <p class="mt-2 text-gray-500">
+          {% if is_editing %}
+            فقط بخش‌های تکمیل‌شده قابل انتخاب هستند و با ذخیره، ثبت‌های بعدی حذف می‌شوند.
+          {% else %}
+            اولین بخش مجاز به صورت خودکار هایلایت شده است.
+          {% endif %}
+        </p>
+      </div>
+      {% endif %}
+
+      <!-- Deposit account field -->
+      <div class="flex flex-col">
+        <label for="{{ form.deposit_account.id_for_label }}" class="text-sm text-gray-700 mb-1 font-bold">
+          {{ form.deposit_account.label }}
+        </label>
+        {{ form.deposit_account }}
+        {% if form.deposit_account.errors %}
+          <div class="text-xs text-red-600 mt-1">{% for e in form.deposit_account.errors %}<p>{{ e }}</p>{% endfor %}</div>
+        {% endif %}
+      </div>
+
+      <!-- Buttons -->
+      <div class="flex flex-col sm:flex-row gap-4 pt-6 justify-between">
+        <a href="{% url 'jobs:job_list' %}"
+           class="w-full sm:w-1/2 px-4 py-2 rounded text-sm font-semibold text-center border border-red-700 text-red-700 hover:bg-red-200 transition">
+          انصراف
+        </a>
+        <button type="submit"
+                class="w-full sm:w-1/2 px-4 py-2 rounded text-sm font-semibold text-center border border-green-700 text-green-700 hover:bg-green-200 transition">
+                      {% if is_editing %}ذخیره{% else %}ایجاد{% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function() {
+  const track = document.getElementById('jobProgressTrack');
+  const cursorInput = document.getElementById('jobProgressCursor');
+  if (!track || !cursorInput) return;
+  const chips = Array.from(track.querySelectorAll('button[data-index]'));
+  if (!chips.length) return;
+  const flowLength = parseInt(track.dataset.flowLength || String(chips.length), 10) || chips.length;
+  const originalCursor = parseInt(track.dataset.originalCursor || cursorInput.value || '0', 10) || 0;
+  const maxJump = parseInt(track.dataset.maxJump || String(originalCursor), 10) || originalCursor;
+  const resetBtn = document.getElementById('progressResetBtn');
+
+  function applyState(cursor) {
+    chips.forEach(chip => {
+      const idx = parseInt(chip.dataset.index || '-1', 10);
+      let state = 'pending';
+      if (idx < cursor) state = 'done';
+      else if (idx === cursor && cursor < flowLength) state = 'active';
+      chip.dataset.state = state;
+      chip.classList.remove(
+        'bg-emerald-100','text-emerald-900','border-emerald-200',
+        'bg-blue-100','text-blue-900','border-blue-200',
+        'bg-gray-100','text-gray-500','border-gray-200'
+      );
+      if (state === 'done') {
+        chip.classList.add('bg-emerald-100','text-emerald-900','border-emerald-200');
+      } else if (state === 'active') {
+        chip.classList.add('bg-blue-100','text-blue-900','border-blue-200');
+      } else {
+        chip.classList.add('bg-gray-100','text-gray-500','border-gray-200');
+      }
+    });
+  }
+
+  function setCursor(cursor) {
+    const clamped = Math.max(0, Math.min(cursor, maxJump));
+    cursorInput.value = clamped;
+    applyState(clamped);
+    if (resetBtn) {
+      resetBtn.classList.toggle('hidden', clamped === originalCursor);
+    }
+  }
+
+  applyState(originalCursor);
+
+  chips.forEach(chip => {
+    const idx = parseInt(chip.dataset.index || '-1', 10);
+    const canJump = chip.dataset.canJump === 'true';
+    if (!canJump || idx >= maxJump) return;
+    chip.addEventListener('click', () => setCursor(idx));
+  });
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => setCursor(originalCursor));
+  }
+})();
+</script>
+
+<script>
+// Ensure saved allowed_sections are shown when editing, regardless of label
+(function() {
+  try {
+    const isEditing = {{ is_editing|yesno:"true,false" }};
+    if (!isEditing) return;
+    const saved = {% if is_editing and job %}{{ job.allowed_sections|safe }}{% else %}[] {% endif %};
+    if (!Array.isArray(saved)) return;
+    const cbs = document.querySelectorAll('input[name="allowed_sections"]');
+    const savedSet = new Set(saved.map(String));
+    cbs.forEach(cb => { cb.checked = savedSet.has(cb.value); });
+  } catch (e) { /* no-op */ }
+})();
+
+// Dynamic product dropdown based on selected model
+  (function() {
+    const modelSelect = document.getElementById('create_job_model');
+    const productSelect = document.getElementById('create_job_product');
+    function clearOptions(sel, placeholder) {
+      if (!sel) return;
+      while (sel.firstChild) sel.removeChild(sel.firstChild);
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = placeholder || '';
+      sel.appendChild(opt);
+      sel.setAttribute('disabled', 'disabled');
+    }
+    if (modelSelect) {
+      modelSelect.addEventListener('change', function() {
+        const model = this.value;
+        if (!model) {
+          clearOptions(productSelect, 'انتخاب محصول');
+          return;
+        }
+        fetch(`/production_line/api/products/?model=${encodeURIComponent(model)}`)
+          .then(r => r.json())
+          .then(({results}) => {
+            while (productSelect.firstChild) productSelect.removeChild(productSelect.firstChild);
+            if (results.length === 0) {
+              productSelect.setAttribute('disabled', 'disabled');
+              // No product available: also ensure allowed sections are cleared
+              try { document.querySelectorAll('input[name="allowed_sections"]').forEach(cb => cb.checked = false); } catch(_) {}
+              return;
+            }
+            productSelect.removeAttribute('disabled');
+            results.forEach(({id, name}) => {
+              const o = document.createElement('option');
+              o.value = id;
+              o.textContent = name;
+              productSelect.appendChild(o);
+            });
+            // Auto-select first product and trigger downstream defaults for sections
+            if (results[0]) {
+              productSelect.value = String(results[0].id);
+              // Fire change so the allowed sections logic runs
+              productSelect.dispatchEvent(new Event('change'));
+            }
+          });
+      });
+    }
+  })();
+
+// Toggle deposit account field based on selected job label
+(function() {
+  const radios = document.querySelectorAll('input[name="job_label"]');
+  const depositInput = document.getElementById('id_deposit_account');
+  function toggleDeposit() {
+    if (!depositInput) return;
+    let selectedVal = null;
+    radios.forEach(radio => { if (radio.checked) selectedVal = radio.value; });
+    if (selectedVal === 'deposit') {
+      depositInput.removeAttribute('disabled');
+    } else {
+      depositInput.setAttribute('disabled', 'disabled');
+    }
+  }
+  radios.forEach(radio => radio.addEventListener('change', toggleDeposit));
+  toggleDeposit();
+})();
+
+// Default allowed sections based on product materials (MDF/page) and job label
+(function() {
+  const isEditing = {% if is_editing %}true{% else %}false{% endif %};
+  const productSelect = document.getElementById('create_job_product');
+  const allowedCheckboxes = Array.from(document.querySelectorAll('input[name="allowed_sections"]'));
+  const jobLabelRadios = Array.from(document.querySelectorAll('input[name="job_label"]'));
+
+  function getSelectedJobLabel() {
+    let val = null;
+    jobLabelRadios.forEach(r => { if (r.checked) val = r.value; });
+    return val;
+  }
+
+  function uncheckAll() {
+    allowedCheckboxes.forEach(cb => cb.checked = false);
+  }
+
+  function checkAllExcept(excludeVals) {
+    allowedCheckboxes.forEach(cb => {
+      if (excludeVals && excludeVals.indexOf(cb.value) !== -1) {
+        cb.checked = false;
+      } else {
+        cb.checked = true;
+      }
+    });
+  }
+
+  function setDefaultsForProduct(productId) {
+    if (!productId) return;
+    // If job label isn't 'in_progress' then clear all
+    const label = getSelectedJobLabel();
+    // Do not alter user selection for non in_progress labels
+    if (label !== 'in_progress') return;
+    fetch(`/production_line/api/product-requires-workpage/?product_id=${encodeURIComponent(productId)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data || !data.ok) {
+          // fallback: conservative defaults (no workpage)
+          // uncheck workpage, check others
+          checkAllExcept(['workpage']);
+          return;
+        }
+        const requires = !!data.requires_workpage;
+        if (requires) {
+          // Check all except sewing and upholstery
+          checkAllExcept(['sewing', 'upholstery']);
+        } else {
+          // Do not check workpage, check others
+          checkAllExcept(['workpage']);
+        }
+      }).catch(() => {
+        // on error, be conservative
+        checkAllExcept(['workpage']);
+      });
+  }
+
+  if (productSelect) {
+    productSelect.addEventListener('change', function() {
+      const pid = this.value;
+      // Only set defaults when a real product is selected
+      if (!pid) return;
+      setDefaultsForProduct(pid);
+    });
+  }
+
+  function onJobLabelChange() {
+    const label = getSelectedJobLabel();
+    if (label === 'in_progress') {
+      // if product selected, re-run defaults
+      const pid = productSelect ? productSelect.value : null;
+      if (pid) setDefaultsForProduct(pid);
+    } else {
+      // For any other label, default to no ticks; user may change afterwards
+      uncheckAll();
+    }
+  }
+
+  jobLabelRadios.forEach(r => r.addEventListener('change', onJobLabelChange));
+  // Run once on load to ensure correct state when editing
+  document.addEventListener('DOMContentLoaded', function() {
+    // Only auto-apply defaults on initial render when creating a new job
+    if (isEditing) {
+      return;
+    }
+    const pid = productSelect ? productSelect.value : null;
+    const label = getSelectedJobLabel();
+    if (label === 'in_progress' && pid) {
+      setDefaultsForProduct(pid);
+    }
+  });
+})();
+</script>
+{% endblock %}

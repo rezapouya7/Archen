@@ -1,0 +1,71 @@
+{# PATH: /Archen/reports/templates/reports/logs_list_export.html #}
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>{{ title }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    @font-face {
+      font-family: 'Vazirmatn';
+      src: url('/static/fonts/Vazirmatn/Vazirmatn-Regular.ttf') format('truetype');
+      font-weight: normal; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Vazirmatn';
+      src: url('/static/fonts/Vazirmatn/Vazirmatn-Bold.ttf') format('truetype');
+      font-weight: 700; font-style: normal; font-display: swap;
+    }
+    html, body { font-family: Vazirmatn, Tahoma, sans-serif; color: #111827; margin: 0; padding: 16px; }
+    h1, h2, h3 { margin: 0 0 12px; font-weight: 700; }
+    .meta { margin-bottom: 12px; color: #6b7280; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th { background: #F9FAFB; color: #111827; }
+    th, td { border: 1px solid #D1D5DB; padding: 6px 8px; text-align: right; vertical-align: middle; white-space: nowrap; }
+    .num { text-align: center; direction: ltr; unicode-bidi: isolate; }
+    /* Print page setup: better margins + avoid header truncation */
+    @page { size: A4 portrait; margin: 12mm; }
+    @media print {
+      body { padding: 0; }
+      .no-print { display: none !important; }
+      thead { display: table-header-group; }
+      tfoot { display: table-footer-group; }
+    }
+  </style>
+  <script>
+    window.addEventListener('load', function(){
+      try { window.print(); } catch (e) {}
+    });
+  </script>
+  </head>
+<body>
+  <h3>{{ title }}</h3>
+  <div class="meta">تاریخ تهیه: <span class="num">{{ print_dt|default:"" }}</span></div>
+  <table>
+    <thead>
+      <tr>
+        {% for h in headers %}
+          <th>{{ h }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          <td class="num">{{ r.0 }}</td>
+          <td>{{ r.1 }}</td>
+          <td>{{ r.2 }}</td>
+          <td>{{ r.3 }}</td>
+          <td>{{ r.4 }}</td>
+          <td class="num">{{ r.5 }}</td>
+          <td class="num">{{ r.6 }}</td>
+          <td>{{ r.7 }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="no-print" style="margin-top:12px; color:#6b7280; font-size:12px;">
+    نکته: برای ذخیره PDF از دیالوگ چاپ، گزینه «Save as PDF» را انتخاب کنید.
+  </div>
+</body>
+</html>

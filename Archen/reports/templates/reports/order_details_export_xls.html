@@ -1,0 +1,36 @@
+{# PATH: /Archen/reports/templates/reports/order_details_export_xls.html #}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>سفارش {{ order.subscription_code|default:'-' }}</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <style>
+    table { border-collapse: collapse; width:100%; }
+    th, td { border:1px solid #e5e7eb; padding:6px; text-align:right; }
+    .muted { background:#f3f4f6; }
+  </style>
+</head>
+<body>
+  <table>
+    <tr class="muted"><th colspan="4">جزئیات سفارش</th></tr>
+    <tr><td>کد اشتراک</td><td>{{ order.subscription_code|default:'-' }}</td><td>وضعیت</td><td>{{ order.get_status_display }}</td></tr>
+    <tr><td>نام مشتری</td><td>{{ order.customer_name|default:'-' }}</td><td>شهر</td><td>{{ order.city|default:'-' }}</td></tr>
+    <tr><td>مدل</td><td>{{ order.model|default:'-' }}</td><td>نمایشگاه/فروشگاه</td><td>{{ order.exhibition_name|default:'-' }}</td></tr>
+    <tr><td>ورود پارچه</td><td>{{ fabric_entry_jdt }}</td><td>تاریخ سفارش</td><td>{{ order_jdt }}</td></tr>
+    <tr><td>تاریخ تحویل</td><td>{{ delivery_jdt }}</td><td></td><td></td></tr>
+  </table>
+  <br/>
+  <table>
+    <thead><tr class="muted"><th>نام آیتم</th><th>تعداد</th></tr></thead>
+    <tbody>
+    {% for it in items %}
+      <tr><td>{{ it.name }}</td><td>{{ it.qty }}</td></tr>
+    {% empty %}
+      <tr><td colspan="2" style="text-align:center;">آیتمی ثبت نشده است.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>
+

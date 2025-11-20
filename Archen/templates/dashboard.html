@@ -1,0 +1,87 @@
+<!-- PATH: /Archen/templates/dashboard.html -->
+{% extends "layout.html" %}
+{% load static %}
+{% block print_button %}{% endblock %}
+{% block page_title %}داشبورد{% endblock %}
+{% block content %}
+    <main class="p-6">
+      {% if is_superuser or user.role == 'manager' or user.role == 'accountant' %}
+      <div class="grid grid-cols-2 justify-items-center gap-6 mb-8">
+        {# Cards are ordered alphabetically by Persian names to satisfy UI requirements. #}
+        <!-- Inventory -->
+        <div class="icon-card {% if user.role == 'accountant' %}opacity-50 pointer-events-none{% endif %}">
+          <a href="{% if user.role == 'accountant' %}#{% else %}{% url 'inventory:dashboard' %}{% endif %}" class="icon-link" aria-label="انبار">
+            <span class="icon-wrapper">
+              <img src="{% static 'icons/dashboard_inventory.png' %}" alt="انبار">
+            </span>
+          </a>
+          <div class="icon-label">انبار</div>
+        </div>
+        <!-- Accounting -->
+        <div class="icon-card">
+          <a href="{% url 'accounting:dashboard' %}" class="icon-link" aria-label="حسابداری">
+            <span class="icon-wrapper">
+              <img src="{% static 'icons/dashboard_accounting.png' %}" alt="حسابداری">
+            </span>
+          </a>
+          <div class="icon-label">حسابداری</div>
+        </div>
+        <!-- Production Line -->
+        <div class="icon-card {% if user.role == 'accountant' %}opacity-50 pointer-events-none{% endif %}">
+          <a href="{% if user.role == 'accountant' %}#{% else %}{% url 'production_line:index' %}{% endif %}" class="icon-link" aria-label="خط تولید">
+            <span class="icon-wrapper">
+              <img src="{% static 'icons/dashboard_production_line.png' %}" alt="خط تولید">
+            </span>
+          </a>
+          <div class="icon-label">خط تولید</div>
+        </div>
+        <!-- Jobs -->
+        <div class="icon-card {% if user.role == 'accountant' %}opacity-50 pointer-events-none{% endif %}">
+          <a href="{% if user.role == 'accountant' %}#{% else %}{% url 'jobs:job_list' %}{% endif %}" class="icon-link" aria-label="کارها">
+            <span class="icon-wrapper">
+              <img src="{% static 'icons/dashboard_jobs.png' %}" alt="کارها">
+            </span>
+          </a>
+          <div class="icon-label">کارها</div>
+        </div>
+        <!-- Orders -->
+        <div class="icon-card">
+          <a href="{% url 'orders:list' %}" class="icon-link" aria-label="سفارش‌ها">
+            <span class="icon-wrapper">
+              <img src="{% static 'icons/dashboard_orders.png' %}" alt="سفارش‌ها">
+            </span>
+          </a>
+          <div class="icon-label">سفارش‌ها</div>
+        </div>
+        <!-- Users -->
+        <div class="icon-card {% if user.role == 'accountant' %}opacity-50 pointer-events-none{% endif %}">
+          <a href="{% if user.role == 'accountant' %}#{% else %}{% url 'users:user_list' %}{% endif %}" class="icon-link" aria-label="کاربران">
+            <span class="icon-wrapper">
+              <img src="{% static 'icons/dashboard_users.png' %}" alt="کاربران">
+            </span>
+          </a>
+          <div class="icon-label">کاربران</div>
+        </div>
+        <!-- Reports -->
+        <div class="icon-card">
+          <a href="{% url 'reports:list' %}" class="icon-link" aria-label="گزارش‌ها">
+            <span class="icon-wrapper">
+              <img src="{% static 'icons/dashboard_reports.png' %}" alt="گزارش‌ها">
+            </span>
+          </a>
+          <div class="icon-label">گزارش‌ها</div>
+        </div>
+        <!-- Maintenance -->
+        <div class="icon-card {% if user.role == 'accountant' %}opacity-50 pointer-events-none{% endif %}">
+          <a href="{% if user.role == 'accountant' %}#{% else %}{% url 'maintenance:maintenance' %}{% endif %}" class="icon-link" aria-label="نگه‌داری سیستم">
+            <span class="icon-wrapper">
+              <img src="{% static 'icons/dashboard_maintenance.png' %}" alt="نگه‌داری سیستم">
+            </span>
+          </a>
+          <div class="icon-label">نگه‌داری سیستم</div>
+        </div>
+      </div>
+      {% endif %}
+
+    </main>
+{% endblock %}

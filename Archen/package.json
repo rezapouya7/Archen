@@ -1,0 +1,13 @@
+{
+  "name": "archen",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local build tooling for Tailwind CSS",
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.js -i assets/tailwind/input.css -o static/css/app.min.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.14"
+  }
+}
+

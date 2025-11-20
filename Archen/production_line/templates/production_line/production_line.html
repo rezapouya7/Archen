@@ -1,0 +1,76 @@
+<!-- PATH: /Archen/production_line/templates/production_line/production_line.html -->
+{% extends "layout.html" %}
+{% load static %}
+{% block title %}خط تولید | صنایع چوبی آرچن{% endblock %}
+{% block page_title %}خط تولید{% endblock %}
+{% block back_button %}
+  <a href="{% url 'dashboard' %}"
+     class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-600 text-blue-700 hover:bg-blue-200">بازگشت</a>
+{% endblock %}
+{% block Breadcrumb %}
+<!-- Breadcrumb navigation -->
+<div class="mb-3 text-sm text-gray-600 rtl text-right">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">خط تولید</span>
+</div>
+{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto">
+  {# گرید 3 ستونه؛ با slice به 6 کارت = دقیقاً دو ردیف #}
+  <div class="grid grid-cols-2 gap-6 justify-items-center">
+  {% for stage in stages|slice:":6" %}
+
+    {% with stage_url=None %}
+      {% if is_manager and stage.slug %}
+        {% if stage.nested %}
+          {% if stage.slug == 'carpentry' %}
+            {% url 'production_line:carpentry' as stage_url %}
+          {% elif stage.slug == 'upholstery_unit' %}
+            {% url 'production_line:upholstery' as stage_url %}
+          {% else %}
+            {% url 'production_line:unit' stage.slug as stage_url %}
+          {% endif %}
+        {% else %}
+          {% if stage.slug == 'workpage' %}
+            {% url 'production_line:workpage' as stage_url %}
+          {% elif stage.slug == 'undercoating' %}
+            {% url 'production_line:undercoating' as stage_url %}
+          {% elif stage.slug == 'painting' %}
+            {% url 'production_line:painting' as stage_url %}
+          {% elif stage.slug == 'packaging' %}
+            {% url 'production_line:packaging' as stage_url %}
+          {% else %}
+            {% url 'production_line:section_dashboard' stage.slug as stage_url %}
+          {% endif %}
+        {% endif %}
+      {% endif %}
+
+  
+      {% if stage_url %}
+        <div class="icon-card">
+          <a href="{{ stage_url }}" class="icon-link" aria-label="{{ stage.name }}">
+            <span class="icon-wrapper">
+              <img src="{% static 'icons/' %}{{ stage.icon }}" alt="{{ stage.name }}">
+            </span>
+          </a>
+          <span class="icon-label">{{ stage.name }}</span>
+        </div>
+      {% else %}
+        <div class="icon-card">
+          <span class="icon-wrapper icon-wrapper--static">
+            <img src="{% static 'icons/' %}{{ stage.icon }}" alt="{{ stage.name }}">
+          </span>
+          <span class="icon-label">{{ stage.name }}</span>
+        </div>
+      {% endif %}
+
+    {% endwith %}
+  {% endfor %}
+  </div>
+</div>
+
+{% if not stages %}
+  <p>هیچ مرحله‌ای برای نمایش وجود ندارد.</p>
+{% endif %}
+{% endblock %}

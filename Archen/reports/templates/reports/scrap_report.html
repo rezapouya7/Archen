@@ -1,0 +1,66 @@
+<!-- PATH: /Archen/reports/templates/reports/scrap_report.html -->
+{% extends 'layout.html' %}
+
+{% load static %}
+{% block title %}گزارش ضایعات | صنایع چوبی آرچن{% endblock %}
+{% block page_title %}گزارش ضایعات{% endblock %}
+{% block content %}
+<div class="p-6 rtl text-right">
+  <form method="get" class="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div>
+      <!-- Bolden filter labels on reports -->
+      <label class="block text-sm mb-1 font-bold">بخش</label>
+      <select name="section" class="border rounded w-full p-2">
+        <option value="">همه</option>
+        {% for val,label in sections %}
+          <option value="{{ val }}" {% if filters.section == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm mb-1 font-bold">مدل</label>
+      <select name="model" class="border rounded w-full p-2">
+        <option value="">همه</option>
+        {% for m in models %}
+          <option value="{{ m }}" {% if filters.model == m %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm mb-1 font-bold">از تاریخ (جلالی)</label>
+      <input type="text" name="date_from" value="{{ filters.date_from }}" placeholder="1403-01-01" class="border rounded w-full p-2">
+    </div>
+    <div>
+      <label class="block text-sm mb-1 font-bold">تا تاریخ (جلالی)</label>
+      <input type="text" name="date_to" value="{{ filters.date_to }}" placeholder="1403-12-29" class="border rounded w-full p-2">
+    </div>
+    <div class="md:col-span-4">
+      <button class="px-4 py-2 bg-blue-600 text-white rounded">اعمال فیلتر</button>
+    </div>
+  </form>
+
+  <div class="overflow-x-auto surface-pattern surface-elevated rounded-xl p-2">
+    <!-- Prevent word wrapping on mobile; restore normal on >=sm -->
+    <table class="min-w-full bg-transparent border whitespace-nowrap sm:whitespace-normal">
+      <thead>
+        <tr class="bg-gray-100 text-gray-700">
+          <th class="px-4 py-2 border">بخش</th>
+          <th class="px-4 py-2 border">مدل</th>
+          <th class="px-4 py-2 border">تعداد ضایعات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data %}
+          <tr>
+            <td class="px-4 py-2 border">{{ row.section }}</td>
+            <td class="px-4 py-2 border">{{ row.model }}</td>
+            <td class="px-4 py-2 border text-center">{{ row.count }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3" class="p-4 text-center text-gray-500">موردی یافت نشد.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

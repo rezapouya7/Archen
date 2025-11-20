@@ -1,0 +1,123 @@
+<!-- PATH: /Archen/inventory/templates/inventory/model_form.html -->
+{% extends 'layout.html' %}
+
+{% load static %}
+{% load static widget_tweaks %}
+
+{% block back_button %}
+  <a href="{% url 'inventory:models_list' %}"
+     class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-600 text-blue-700 hover:bg-blue-200">
+    بازگشت
+  </a>
+{% endblock %}
+
+{% block title %}{% if is_editing %}ویرایش مدل{% else %}افزودن مدل{% endif %} | انبار{% endblock %}
+{% block page_title %}{% if is_editing %}ویرایش مدل{% else %}افزودن مدل{% endif %}{% endblock %}
+
+{% block Breadcrumb %}
+<!-- Breadcrumb -->
+<!-- Inject corrected breadcrumb (server-side markup) -->
+<div class="mb-3 text-sm text-gray-600 rtl text-right">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  <a href="{% url 'inventory:dashboard' %}" class="hover:underline">انبار</a>
+  <span class="mx-1">›</span>
+  <a href="{% url 'inventory:models_list' %}" class="hover:underline">لیست مدل‌ها</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">{% if is_editing %}ویرایش مدل{% else %}افزودن مدل{% endif %}</span>
+</div>
+<!-- Rewrite breadcrumb text/links precisely and hide legacy block below -->
+{% comment %}
+<script>(function(){try{
+  var fixed=document.getElementById('breadcrumb-fixed-model');
+  if(fixed){
+    var urlDashboard = "{% url 'dashboard' %}";
+    var urlInventory = "{% url 'inventory:dashboard' %}";
+    var urlList = "{% url 'inventory:models_list' %}";
+    var isEditing = {{ is_editing|yesno:"true,false" }};
+    fixed.innerHTML = ''
+      + '<a href="'+urlDashboard+'" class="hover:underline">داشبورد</a>'
+      + '<span class="mx-1">›</span>'
+      + '<a href="'+urlInventory+'" class="hover:underline">انبار</a>'
+      + '<span class="mx-1">›</span>'
+      + '<a href="'+urlList+'" class="hover:underline">لیست مدل‌ها</a>'
+      + '<span class="mx-1">›</span>'
+      + '<span class="text-gray-800 font-semibold">' + (isEditing ? 'ویرایش مدل' : 'افزودن مدل') + '</span>';
+  }
+  var sib=fixed&&fixed.nextElementSibling; if(sib&&sib.matches('div.mb-3.text-sm.text-gray-600.rtl.text-right')){sib.style.display='none';}
+}catch(_){}})();</script>
+{% endcomment %}
+{% comment %}<div class="mb-3 text-sm text-gray-600 rtl text-right">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  <a href="{% url 'inventory:dashboard' %}" class="hover:underline">انبار</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">مدل‌ها</span>
+</div>{% endcomment %}
+{% endblock %}
+{% block content %}
+<div class="py-6 font-sans rtl text-right">
+  <div class="max-w-xl mx-auto px-4">
+    <!-- Align form card surface with header style -->
+    <div class="surface-pattern surface-elevated rounded-xl p-6">
+      <form method="post" class="space-y-4" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="text-red-600 text-sm space-y-1">
+            {% for err in form.non_field_errors %}<p>{{ err }}</p>{% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="flex flex-col">
+          <!-- Make input field labels bold on model form -->
+          <label for="{{ form.name.id_for_label }}" class="text-sm text-gray-700 mb-1 font-bold">{{ form.name.label }}<span class="text-red-600">*</span></label>
+          {{ form.name|add_class:'w-full border border-gray-300 p-2 rounded text-sm' }}
+          {% if form.name.errors %}
+            <div class="text-xs text-red-600 mt-1">{% for e in form.name.errors %}<p>{{ e }}</p>{% endfor %}</div>
+          {% endif %}
+        </div>
+        <div class="flex flex-col">
+          <label for="{{ form.description.id_for_label }}" class="text-sm text-gray-700 mb-1 font-bold">{{ form.description.label }}</label>
+          {{ form.description|add_class:'w-full border border-gray-300 p-2 rounded text-sm' }}
+          {% if form.description.errors %}
+            <div class="text-xs text-red-600 mt-1">{% for e in form.description.errors %}<p>{{ e }}</p>{% endfor %}</div>
+          {% endif %}
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-4 pt-4 justify-between">
+          <a href="{% url 'inventory:models_list' %}" class="w-full sm:w-1/2 px-4 py-2 rounded text-sm font-semibold text-center border border-red-700 text-red-700 hover:bg-red-200 transition">
+            انصراف
+          </a>
+          <button type="submit" class="w-full sm:w-1/2 px-4 py-2 rounded text-sm font-semibold text-center border border-green-700 text-green-700 hover:bg-green-200 transition">
+            {% if is_editing %}ذخیره{% else %}ایجاد{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  // Unify breadcrumb for Model form: Dashboard › Inventory › Models List › Add/Edit
+  document.addEventListener('DOMContentLoaded', function(){
+    try {
+      var bc = document.querySelector('div.mb-3.text-sm.text-gray-600.rtl.text-right');
+      if (!bc) return;
+      var isEditing = {{ is_editing|yesno:"true,false" }};
+      var urlDashboard = "{% url 'dashboard' %}";
+      var urlInventory = "{% url 'inventory:dashboard' %}";
+      var urlList = "{% url 'inventory:models_list' %}";
+      bc.innerHTML = ''
+        + '<a href="' + urlDashboard + '" class="hover:underline">داشبورد</a>'
+        + '<span class="mx-1">›</span>'
+        + '<a href="' + urlInventory + '" class="hover:underline">انبار</a>'
+        + '<span class="mx-1">›</span>'
+        + '<a href="' + urlList + '" class="hover:underline">لیست مدل‌ها</a>'
+        + '<span class="mx-1">›</span>'
+        + '<span class="text-gray-800 font-semibold">' + (isEditing ? 'ویرایش مدل' : 'افزودن مدل') + '</span>';
+    } catch(_){}
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,563 @@
+<!-- PATH: /Archen/orders/templates/orders/public_order_summary.html -->
+{% extends "public_base.html" %}
+{% load static %}
+
+{% block title %}گزارش وضعیت سفارش{% endblock %}
+
+{% block extra_head %}
+  <style>
+    .public-shell {
+      max-width: 80rem;
+      margin: 1.5rem auto;
+      padding: 1.5rem;
+    }
+    .public-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      direction: ltr;
+    }
+    .toolbar-left {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      direction: rtl;
+    }
+    .toolbar-right img {
+      height: 3rem;
+      width: 3rem;
+      border-radius: 0.75rem;
+    }
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.35rem 0.9rem;
+      border-radius: 9999px;
+      border-width: 1px;
+      border-style: solid;
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+    .btn-print {
+      background-color: rgba(243, 244, 246, 0.8);
+      border-color: rgba(156, 163, 175, 0.9);
+      color: #111827;
+    }
+    .btn-exit {
+      background-color: rgba(248, 113, 113, 0.08);
+      border-color: rgba(239, 68, 68, 0.8);
+      color: #991b1b;
+    }
+    .btn-print:hover {
+      background-color: #8A8E91;
+      border-color: #4b5563;
+      color: #1f2937;
+    }
+    .btn-exit:hover {
+      background-color: #f87171;
+      border-color: #c53636;
+      color: #741717;
+    }
+    .public-card {
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+    }
+    .order-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .order-table th,
+    .order-table td {
+      border-bottom: 1px solid rgba(209, 213, 219, 0.9);
+      padding: 0.45rem 0.5rem;
+      text-align: right;
+      vertical-align: top;
+    }
+    .order-table th {
+      background-color: rgba(243, 244, 246, 0.85);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .order-table td {
+      background-color: rgba(255, 255, 255, 0.92);
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.05rem 0.55rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .chip-status {
+      background-color: rgba(59, 130, 246, 0.12);
+      color: #1d4ed8;
+    }
+    .chip-stage {
+      background-color: rgba(16, 185, 129, 0.12);
+      color: #047857;
+    }
+    .jobs-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .job-card {
+      border-radius: 0.75rem;
+      padding: 0.9rem 0.9rem 0.8rem 0.9rem;
+      background-color: rgba(255, 255, 255, 0.96);
+      box-shadow:
+        0 2px 6px rgba(0,0,0,0.08),
+        0 8px 20px rgba(0,0,0,0.06);
+      width: 100%;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+    }
+    .job-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .job-title {
+      font-weight: 700;
+    }
+    .job-badge {
+      font-size: 0.75rem;
+      border-radius: 9999px;
+      padding: 0.15rem 0.55rem;
+    }
+    .job-badge-label-in_progress { background-color: #6b7280; color: #ffffff; }
+    .job-badge-label-completed { background-color: #16a34a; color: #ffffff; }
+    .job-badge-label-scrapped { background-color: #b91c1c; color: #ffffff; }
+    .job-badge-label-warranty { background-color: #facc15; color: #000000; }
+    .job-badge-label-repaired { background-color: #2563eb; color: #ffffff; }
+    .job-badge-label-deposit { background-color: #92400e; color: #ffffff; }
+    .progress-circle {
+      position: relative;
+      width: 72px;
+      height: 72px;
+    }
+    .progress-circle svg {
+      transform: rotate(-90deg);
+    }
+    .progress-circle .progress-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 800;
+    }
+    .flow-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      margin-top: 0.4rem;
+      font-size: 0.8rem;
+    }
+    .flow-pill {
+      padding: 0.1rem 0.5rem;
+      border-radius: 9999px;
+      border: 1px dashed rgba(148, 163, 184, 0.9);
+    }
+    .flow-pill.done {
+      background-color: rgba(34, 197, 94, 0.1);
+      border-style: solid;
+      border-color: rgba(34, 197, 94, 0.8);
+    }
+    .flow-pill.active {
+      background-color: rgba(59, 130, 246, 0.1);
+      border-style: solid;
+      border-color: rgba(59, 130, 246, 0.9);
+    }
+    .flow-pill.pending {
+      background-color: rgba(249, 250, 251, 0.9);
+    }
+    .logs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      margin-top: 0.6rem;
+    }
+    .logs-table th,
+    .logs-table td {
+      border-bottom: 1px solid rgba(229, 231, 235, 0.9);
+      padding: 0.25rem 0.35rem;
+      text-align: right;
+    }
+    .logs-table th {
+      background-color: rgba(243, 244, 246, 0.9);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .logs-table td {
+      background-color: rgba(255, 255, 255, 0.96);
+    }
+    .overall-progress-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .overall-text {
+      font-size: 0.9rem;
+      line-height: 1.7;
+    }
+    @media print {
+      .public-shell {
+        margin: 0;
+        padding: 0.5rem;
+        box-shadow: none !important;
+      }
+      .public-toolbar {
+        display: none !important;
+      }
+      .job-card {
+        box-shadow: none !important;
+      }
+      .site-background-frame {
+        display: none !important;
+      }
+      body.has-bg-pattern {
+        background: #ffffff !important;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="public-shell surface-pattern surface-elevated">
+    <div class="public-toolbar">
+      <div class="toolbar-left">
+        <button type="button" class="btn-outline btn-print" id="btn-print">
+          چاپ
+        </button>
+        <button type="button" class="btn-outline btn-exit" id="btn-exit">
+          خروج
+        </button>
+      </div>
+      <div class="toolbar-right">
+        <img src="{% static 'icons/icon-192x192.png' %}" alt="ARCHEN">
+      </div>
+    </div>
+
+    {% if not order %}
+      <div class="public-card surface-elevated" style="background-color: rgba(254,242,242,0.95);">
+        <p class="text-sm text-red-700 font-bold">
+          سفارشی با این کد گارانتی یافت نشد.
+        </p>
+        {% if serial %}
+          <p class="text-xs text-gray-700 mt-1">کد اسکن شده: {{ serial }}</p>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="public-card surface-elevated" style="margin-bottom: 1rem;">
+        <h2 class="font-bold mb-2 text-base">
+          مشخصات کلی سفارش
+        </h2>
+        <table class="order-table">
+          <tr>
+            <th>شماره بیجک</th>
+            <td>{{ order.badge_number|default:"-" }}</td>
+            <th>نام مشتری</th>
+            <td>{{ order.customer_name|default:"-" }}</td>
+          </tr>
+          <tr>
+            <th>نام فروشگاه</th>
+            <td>{{ order.exhibition_name|default:"-" }}</td>
+            <th>شهر</th>
+            <td>{{ order.city|default:"-" }}</td>
+          </tr>
+          <tr>
+            <th>تاریخ سفارش</th>
+            <td>{{ order.order_date|default:"-" }}</td>
+            <th>تاریخ تحویل</th>
+            <td>{{ order.delivery_date|default:"-" }}</td>
+          </tr>
+          <tr>
+            <th>تاریخ ورود پارچه</th>
+            <td>{{ order.fabric_entry_date|default:"-" }}</td>
+            <th>توضیحات پارچه</th>
+            <td>{{ order.fabric_description|default:"-" }}</td>
+          </tr>
+          <tr>
+            <th>کد اشتراک مشتری</th>
+            <td>{{ order.subscription_code|default:"-" }}</td>
+            <th>تولید کننده</th>
+            <td>{{ order.producer|default:"-" }}</td>
+          </tr>
+          <tr>
+            <th>شماره تماس مشتری</th>
+            <td>{{ order.customer_phone|default:"-" }}</td>
+            <th>شماره تماس راننده</th>
+            <td>{{ order.driver_phone|default:"-" }}</td>
+          </tr>
+          <tr>
+            <th>ارسال کننده</th>
+            <td>{{ order.sender|default:"-" }}</td>
+            <th>نام راننده</th>
+            <td>{{ order.driver_name|default:"-" }}</td>
+          </tr>
+          <tr>
+            <th>کد پارچه</th>
+            <td>{{ order.fabric_code|default:"-" }}</td>
+            <th>کد رنگ</th>
+            <td>{{ order.color_code|default:"-" }}</td>
+          </tr>
+          <tr>
+            <th>وضعیت سفارش</th>
+            <td>
+              <span class="chip chip-status">{{ order.status }}</span>
+            </td>
+            <th>مرحله فعلی</th>
+            <td>
+              <span class="chip chip-stage">{{ order.current_stage }}</span>
+            </td>
+          </tr>
+          <tr>
+            <th>کد گارانتی (سریال)</th>
+            <td colspan="3">
+              <span id="serial-text" data-serial="{{ serial_display|default:serial }}">{{ serial_display|default:serial|default:"-" }}</span>
+            </td>
+          </tr>
+          {% if order.description %}
+          <tr>
+            <th>توضیحات سفارش</th>
+            <td colspan="3">{{ order.description }}</td>
+          </tr>
+          {% endif %}
+        </table>
+      </div>
+
+      <div class="public-card surface-elevated" style="margin-bottom: 1rem;">
+        <h2 class="font-bold mb-2 text-base">
+          مدل‌ها و محصولات انتخابی
+        </h2>
+        <table class="order-table">
+          <thead>
+            <tr>
+              <th>مدل</th>
+              <th>محصول</th>
+              <th>کد محصول</th>
+              <th>تعداد</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if order.items.all %}
+              {% for item in order.items.all %}
+                <tr>
+                  <td>{{ item.product.product_model.name|default:"-" }}</td>
+                  <td>{{ item.product.name|default:"-" }}</td>
+                  <td>
+                    {% if order.qr_code %}
+                      {% with serial=order.qr_code|default:"" %}
+                        {% with ascii=serial|slice:":12" %}
+                          {{ ascii|upper }} {{ forloop.counter }}
+                        {% endwith %}
+                      {% endwith %}
+                    {% else %}
+                      {{ forloop.counter }}
+                    {% endif %}
+                  </td>
+                  <td>{{ item.quantity|default:"-" }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="4" class="text-center text-sm text-gray-500">
+                  محصولی ثبت نشده است.
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="public-card surface-elevated" style="margin-bottom: 1rem;">
+        <div class="overall-progress-card">
+          <div class="overall-text">
+            <h2 class="font-bold mb-1 text-base">میانگین پیشرفت کلی پروژه</h2>
+            <p class="text-sm text-gray-700">
+              این درصد میانگین پیشرفت همه شماره‌کارهای مرتبط با این سفارش است.
+            </p>
+          </div>
+          <div class="progress-circle" data-progress="{{ overall_progress|default:0 }}">
+            <svg viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="16" stroke="#e5e7eb" stroke-width="3" fill="none"></circle>
+              <circle class="progress-ring" cx="18" cy="18" r="16" stroke="#10b981" stroke-width="3" fill="none"
+                      stroke-linecap="round" stroke-dasharray="100 100" stroke-dashoffset="100"></circle>
+            </svg>
+            <div class="progress-label">{{ overall_progress|default:0 }}%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="public-card surface-elevated">
+        <h2 class="font-bold mb-2 text-base">
+          شماره‌کارها، نقشه فرآیندی و گزارش‌ها
+        </h2>
+        {% if jobs %}
+          <div class="jobs-grid">
+            {% for j in jobs %}
+              {% with job=j.instance %}
+              <section class="job-card">
+                <header class="job-header">
+                  <div>
+                    <div class="job-title">شماره کار: {{ job.job_number }}</div>
+                    <div class="text-xs text-gray-600">
+                      محصول: {{ job.product.name|default:"-" }}
+                    </div>
+                  </div>
+                  <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.25rem;">
+                    <div class="job-badge job-badge-label-{{ job.job_label|default:'in_progress' }}">
+                      {{ job.get_job_label_display|default:job.job_label }}
+                    </div>
+                    <div class="progress-circle" data-progress="{{ j.progress_percent|default:0 }}">
+                      <svg viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" r="16" stroke="#e5e7eb" stroke-width="3" fill="none"></circle>
+                        <circle class="progress-ring" cx="18" cy="18" r="16" stroke="#3b82f6" stroke-width="3" fill="none"
+                                stroke-linecap="round" stroke-dasharray="100 100" stroke-dashoffset="100"></circle>
+                      </svg>
+                      <div class="progress-label">{{ j.progress_percent|default:0 }}%</div>
+                    </div>
+                  </div>
+                </header>
+
+                {% if j.flow_items %}
+                  <div class="flow-list" aria-label="نقشه فرآیندی">
+                    {% for step in j.flow_items %}
+                      <span class="flow-pill {{ step.state }}">{{ step.label }}</span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+
+                {% if j.logs %}
+                  <table class="logs-table">
+                    <thead>
+                      <tr>
+                        <th>بخش</th>
+                        <th>کاربر</th>
+                        <th>تاریخ</th>
+                        <th>تعداد تولید</th>
+                        <th>تعداد اسقاط</th>
+                        <th>توضیح</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for log in j.logs %}
+                        <tr>
+                          <td>{{ log.get_section_display }}</td>
+                          <td>
+                            {% if log.user.full_name %}
+                              {{ log.user.full_name }}
+                            {% elif log.user.get_full_name %}
+                              {{ log.user.get_full_name }}
+                            {% elif log.user.first_name or log.user.last_name %}
+                              {{ log.user.first_name }}{% if log.user.first_name and log.user.last_name %} {% endif %}{{ log.user.last_name }}
+                            {% else %}
+                              -
+                            {% endif %}
+                          </td>
+                          <td>{{ log.jdate }}</td>
+                          <td>{{ log.produced_qty }}</td>
+                          <td>{{ log.scrap_qty }}</td>
+                          <td>{{ log.note|default:"-" }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                {% else %}
+                  <p class="text-xs text-gray-500 mt-2">
+                    تاکنون گزارشی برای این شماره‌کار ثبت نشده است.
+                  </p>
+                {% endif %}
+              </section>
+              {% endwith %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-sm text-gray-600">
+            هنوز شماره‌کاری به این سفارش متصل نشده است.
+          </p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script>
+    (function() {
+      function initCircles() {
+        var items = document.querySelectorAll('.progress-circle');
+        items.forEach(function(el) {
+          var val = parseInt(el.getAttribute('data-progress') || '0', 10);
+          val = isNaN(val) ? 0 : Math.max(0, Math.min(100, val));
+          var ring = el.querySelector('.progress-ring');
+          if (!ring) return;
+          var circumference = 2 * Math.PI * 16;
+          var offset = circumference * (1 - (val / 100));
+          ring.setAttribute('stroke-dasharray', circumference + ' ' + circumference);
+          ring.setAttribute('stroke-dashoffset', offset.toString());
+        });
+      }
+
+      function normalizeSerial() {
+        var el = document.getElementById('serial-text');
+        if (!el) return;
+        var txt = el.getAttribute('data-serial') || el.textContent || '';
+        function toLatinDigits(s) {
+          return (s || '').replace(/[\\u06F0-\\u06F9]/g, function(ch) {
+            return String.fromCharCode(ch.charCodeAt(0) - 0x06F0 + 48);
+          }).replace(/[\\u0660-\\u0669]/g, function(ch) {
+            return String.fromCharCode(ch.charCodeAt(0) - 0x0660 + 48);
+          });
+        }
+        var ascii = toLatinDigits(txt).toUpperCase();
+        ascii = ascii.replace(/[0-9A-Z]/g, function(ch) {
+          var code = ch.charCodeAt(0);
+          if (code >= 48 && code <= 57) return String.fromCharCode(code - 48 + 0xFF10);
+          if (code >= 65 && code <= 90) return String.fromCharCode(code - 65 + 0xFF21);
+          return ch;
+        });
+        el.textContent = ascii;
+        el.style.fontFamily = 'Courier New, Consolas, Menlo, Monaco, ui-monospace, monospace';
+        el.setAttribute('lang', 'en');
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        initCircles();
+        normalizeSerial();
+
+        var btnPrint = document.getElementById('btn-print');
+        var btnExit = document.getElementById('btn-exit');
+        if (btnPrint) {
+          btnPrint.addEventListener('click', function() {
+            window.print();
+          });
+        }
+        if (btnExit) {
+          btnExit.addEventListener('click', function() {
+            if (window.close) {
+              window.close();
+            } else {
+              window.location.href = 'about:blank';
+            }
+          });
+        }
+      });
+    })();
+  </script>
+{% endblock %}

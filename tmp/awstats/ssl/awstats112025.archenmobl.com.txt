@@ -1,0 +1,1928 @@
+AWSTATS DATA FILE 8.0 (build 20240604)
+# If you remove this file, all statistics for date 202511 will be lost/reset.
+# Last config file used to build this data file was /home/archenmo/tmp/awstats/ssl/awstats.archenmobl.com.conf.
+
+# Position (offset in bytes) in this file for beginning of each section for
+# direct I/O access. If you made changes somewhere in this file, you should
+# also remove completely the MAP section (AWStats will rewrite it at next
+# update).
+BEGIN_MAP 28
+POS_GENERAL 2086                
+POS_TIME 2775                
+POS_VISITOR 30558               
+POS_DAY 41145               
+POS_DOMAIN 3754                
+POS_LOGIN 4394                
+POS_ROBOT 4549                
+POS_WORMS 5039                
+POS_EMAILSENDER 5170                
+POS_EMAILRECEIVER 5313                
+POS_SESSION 41654               
+POS_FILESIZE 62488               
+POS_REQUESTTIME 62642               
+POS_SIDER 41867               
+POS_FILETYPES 5448                
+POS_DOWNLOADS 5696                
+POS_OS 5744                
+POS_BROWSER 6080                
+POS_SCREENSIZE 7347                
+POS_UNKNOWNREFERER 7421                
+POS_UNKNOWNREFERERBROWSER 7963                
+POS_ORIGIN 8552                
+POS_SEREFERRALS 8696                
+POS_PAGEREFS 8896                
+POS_SEARCHWORDS 9131                
+POS_KEYWORDS 9283                
+POS_MISC 2437                
+POS_ERRORS 9342                
+POS_CLUSTER 4250                
+POS_SIDER_404 9515                
+END_MAP
+
+# LastLine    = Date of last record processed - Last record line number in last log - Last record offset in last log - Last record signature value
+# FirstTime   = Date of first visit for history file
+# LastTime    = Date of last visit for history file
+# LastUpdate  = Date of last update - Nb of parsed records - Nb of parsed old records - Nb of parsed new records - Nb of parsed corrupted - Nb of parsed dropped
+# TotalVisits = Number of visits
+# TotalUnique = Number of unique visitors
+# MonthHostsKnown   = Number of hosts known
+# MonthHostsUnKnown = Number of hosts unknown
+BEGIN_GENERAL 8
+LastLine 20251115153040 4663 1169097 11717479620257
+FirstTime 20251101034310
+LastTime 20251115145851
+LastUpdate 20251115153851 4663 0 4663 0 0
+TotalVisits 331                 
+TotalUnique 240                 
+MonthHostsKnown 0                   
+MonthHostsUnknown 264                 
+END_GENERAL
+
+# Misc ID - Pages - Hits - Bandwidth
+BEGIN_MISC 10
+JavaEnabled 0 0 0
+TotalMisc 0 0 0
+FlashSupport 0 0 0
+DirectorSupport 0 0 0
+JavascriptDisabled 0 0 0
+PDFSupport 0 0 0
+AddToFavourites 0 109 0
+WindowsMediaPlayerSupport 0 0 0
+QuickTimeSupport 0 0 0
+RealPlayerSupport 0 0 0
+END_MISC
+
+# Hour - Pages - Hits - Bandwidth - Not viewed Pages - Not viewed Hits - Not viewed Bandwidth
+BEGIN_TIME 24
+0 933 2362 101146621 180 183 584079
+1 212 333 10665835 79 93 6029284
+2 168 349 17353135 196 317 1290153
+3 274 590 20439658 43 101 872570
+4 127 195 3361819 24 34 584266
+5 75 149 6427313 154 154 620592
+6 215 349 13427714 51 75 1263544
+7 10 29 1217773 202 204 881532
+8 138 155 2244447 129 132 498620
+9 359 692 20478822 98 103 1681258
+10 776 1350 43387233 143 149 2897641
+11 2205 4044 123922761 563 586 17254095
+12 2879 5017 136714240 939 944 37823684
+13 1663 2557 63011317 269 277 7402484
+14 1372 2253 62655107 280 328 13367594
+15 918 1635 47123828 356 360 9810497
+16 1479 2629 88380609 446 475 1182397
+17 955 1465 37922412 281 299 2033714
+18 1495 2363 77638970 221 237 46494
+19 582 1009 82522051 103 112 143751
+20 349 943 38401188 231 234 1585648
+21 232 519 21089408 172 186 3727149
+22 379 898 73671058 148 152 620852
+23 499 1229 91284181 203 208 119122
+END_TIME
+
+# Domain - Pages - Hits - Bandwidth
+# The 25 first Pages must be first (order not required for others)
+BEGIN_DOMAIN 26
+ir 14566 26236 945553283
+us 2220 3834 119965430
+in 478 879 32665800
+es 476 752 25089790
+cz 176 425 22906058
+ro 141 299 8907963
+fr 67 145 7301254
+gb 59 146 4718065
+cn 21 68 2984923
+de 17 75 3463176
+ca 15 29 726336
+ie 10 60 2979204
+ua 9 32 1151524
+zz 5 20 1064567
+hn 5 22 885149
+ru 5 11 214065
+ee 4 4 205816
+at 4 32 1580500
+eu 4 24 1112230
+ao 3 5 175265
+za 2 2 105474
+se 2 4 523759
+ch 2 2 0
+jp 1 1 52518
+lt 1 1 4182
+it 1 6 151169
+END_DOMAIN
+
+# Cluster ID - Pages - Hits - Bandwidth
+BEGIN_CLUSTER 0
+END_CLUSTER
+
+# Login - Pages - Hits - Bandwidth - Last visit
+# The 10 first Pages must be first (order not required for others)
+BEGIN_LOGIN 0
+END_LOGIN
+
+# Robot ID - Hits - Bandwidth - Last visit - Hits on robots.txt
+# The 25 first Hits must be first (order not required for others)
+BEGIN_ROBOT 9
+facebookexternalhit/ 37 2240324 20251112175439 0
+Googlebot/ 23 1304679 20251115040531 0
+Googlebot\-Image/ 5 807075 20251112114056 0
+no_user_agent 3 157777 20251107075404 0
+bingbot/ 3 158559 20251115125545 0
+360Spider 3 157792 20251109091845 0
+bot[\s_+:,\.\;\/\\-] 2 105486 20251111193222 0
+SemrushBot/ 2 105697 20251115135259 0
+curl 1 52845 20251113211520 0
+END_ROBOT
+
+# Worm ID - Hits - Bandwidth - Last visit
+# The 5 first Hits must be first (order not required for others)
+BEGIN_WORMS 0
+END_WORMS
+
+# EMail - Hits - Bandwidth - Last visit
+# The 20 first Hits must be first (order not required for others)
+BEGIN_EMAILSENDER 0
+END_EMAILSENDER
+
+# EMail - Hits - Bandwidth - Last visit
+# The 20 first hits must be first (order not required for others)
+BEGIN_EMAILRECEIVER 0
+END_EMAILRECEIVER
+
+# Files type - Hits - Bandwidth - Bandwidth without compression - Bandwidth after compression
+BEGIN_FILETYPES 9
+html 16785 975094410 0 0
+jpg 6 175836 0 0
+svg 9 84612 0 0
+json 126 108108 0 0
+css 141 2760378 0 0
+Unknown 1379 1385054 0 0
+png 604 41380868 0 0
+js 14060 163006942 0 0
+ttf 4 491292 0 0
+END_FILETYPES
+
+# Downloads - Hits - Bandwidth
+BEGIN_DOWNLOADS 0
+END_DOWNLOADS
+
+# OS ID - Hits
+BEGIN_OS ID - Hits - Pages 18
+android11 31 7
+android13 106 31
+macosx15 28 13
+win11 1 1
+win7 8 8
+macos12 8 8
+macosx7 1 1
+androidmarshmallow 14 4
+win10 17543 10594
+os/2 12 0
+Unknown 58 14
+linux 208 44
+androidoreo 25 13
+android10 11088 5660
+macosx6 5 5
+ios_iphone 3838 1863
+android 139 27
+android12 1 1
+END_OS
+
+# Browser ID - Hits - Pages
+BEGIN_BROWSER 60
+chrome130.0.0.0 34 5
+chrome143.0.7499.15 25 5
+firefox139.0 6 3
+safari14.1.1 1 1
+chrome137.0.0.0 3 3
+firefox145.0 2625 1451
+chrome141.0.0.0 1781 900
+chrome141.0.7390.122 195 44
+chrome91.0.4472.124 6 6
+chrome116.0.0.0 26 9
+chrome128.0.2739.1 1 1
+msie10.0 2 2
+chrome45.0.2454.85 2 2
+chrome85.0.4183.121 1 1
+samsung 3 0
+chrome93.0.4577.82 2 2
+safari5.1.3 1 1
+android 1 0
+chrome134.0.0.0 1 1
+firefox39.0 2 2
+chrome142.0.0.0 10975 6224
+chrome127.0.0.0 3 3
+chrome104.0.5112.97 1 1
+firefox133.0 1 0
+chrome120.0.0.0 1 1
+chrome92.0.4515.107 23 6
+chrome50.0.2661.102 3 3
+firefox126.0 1 1
+chrome142.0.7444.102 44 8
+chrome138.0.0.0 149 48
+chrome105.0.0.0 4 2
+chrome42.0.2311.90 1 1
+chrome136.0.0.0 6362 2892
+chrome140.0.0.0 32 4
+chrome117.0.0.0 21 6
+chrome125.0.0.0 10 2
+safari5.0.4 2 2
+firefox59.0 10 1
+chrome110.0.0.0 1 1
+chrome131.0.0.0 11 2
+chrome62.0.3202.84 1 1
+safari18.2 2 1
+chrome58.0.3029.110 1 1
+chrome101.0.4951.100 1 1
+safari15.4 4 4
+chrome139.0.0.0 4 2
+chrome132.0.0.0 43 5
+Unknown 63 12
+chrome121.0.0.0 2 2
+chrome135.0.0.0 15 5
+safari26.0.1 3496 1774
+iphone 144 24
+firefox120.0 5 5
+chrome138.0.7204.23 17 3
+safari5.1 1 1
+chrome114.0.0.0 8 8
+chrome133.0.0.0 1 1
+safari 198 65
+netscape5.0 7 2
+firefox144.0 6728 4730
+END_BROWSER
+
+# Screen size - Hits
+BEGIN_SCREENSIZE 0
+END_SCREENSIZE
+
+# Unknown referer OS - Last visit date
+BEGIN_UNKNOWNREFERER 9
+SafariViewService/8622.1.22.10.11_CFNetwork/3860.100.1_Darwin/25.0.0 20251104165954
+Mozilla/5.0 20251109102113
+Telegram/31623_CFNetwork/3860.100.1_Darwin/25.0.0 20251102153511
+python-httpx/0.24.1 20251114225754
+python-httpx/0.28.1 20251112210724
+python-requests/2.32.5 20251115115903
+Python/3.13_aiohttp/3.12.15 20251114171201
+NetworkingExtension/8622.1.22.10.11_CFNetwork/3860.100.1_Darwin/25.0.0 20251103161014
+Python/3.11_aiohttp/3.13.0 20251109050616
+END_UNKNOWNREFERER
+
+# Unknown referer Browser - Last visit date
+BEGIN_UNKNOWNREFERERBROWSER 9
+SafariViewService/8622.1.22.10.11_CFNetwork/3860.100.1_Darwin/25.0.0 20251104165954
+python-httpx/0.24.1 20251114225754
+Telegram/31623_CFNetwork/3860.100.1_Darwin/25.0.0 20251102153511
+python-httpx/0.28.1 20251112210724
+NetworkingExtension/8622.1.22.10.11_Network/5569.2.3_iOS/26.0.1 20251104165948
+python-requests/2.32.5 20251115115903
+NetworkingExtension/8622.1.22.10.11_CFNetwork/3860.100.1_Darwin/25.0.0 20251103161014
+Python/3.13_aiohttp/3.12.15 20251114171201
+Python/3.11_aiohttp/3.13.0 20251109050616
+END_UNKNOWNREFERERBROWSER
+
+# Origin - Pages - Hits 
+BEGIN_ORIGIN 6
+From0 179 3359
+From1 5 5
+From2 8 8
+From3 7 13
+From4 18095 29729
+From5 0 0
+END_ORIGIN
+
+# Search engine referers ID - Pages - Hits
+BEGIN_SEREFERRALS 3
+google_com 1 1
+www_google_com_hk 1 1
+www_google_com 6 6
+END_SEREFERRALS
+
+# External page referers - Pages - Hits
+# The 25 first Pages must be first (order not required for others)
+BEGIN_PAGEREFS 3
+http://m.facebook.com 3 3
+https://mail.archenmobl.com 3 9
+https://www.facebook.com 1 1
+END_PAGEREFS
+
+# Search keyphrases - Number of search
+# The 10 first number of search must be first (order not required for others)
+BEGIN_SEARCHWORDS 0
+END_SEARCHWORDS
+
+# Search keywords - Number of search
+# The 25 first number of search must be first (order not required for others)
+BEGIN_KEYWORDS 0
+END_KEYWORDS
+
+# Errors - Hits - Bandwidth
+BEGIN_ERRORS 8
+404 1720 6703733
+301 1 0
+421 2 644
+401 1 53
+302 3198 0
+500 825 100449206
+403 5 14113
+400 1 62984
+END_ERRORS
+
+# URL with 404 errors - Hits - Last URL referrer
+BEGIN_SIDER_404 600
+/core/.env 2 -
+/wp-includes/SimplePie/Cache/index.php 2 -
+/wp-includes/blocks/block/index.php 2 -
+//mail.php 5 -
+/wp-includes/css/dist/format-library/index.php 2 -
+//bak.php 5 -
+/wp-content/plugins/post-smtp/readme.txt 1 -
+//wp-includes/blocks/table/int/tmpl/index.php 4 -
+//chosen.php 5 -
+/wp-includes/blocks/archives/index.php 2 -
+/wp-includes/blocks/spacer/index.php 2 -
+/lander/sberchat5v4_tds_newcrm_028-vnutr/index.php 1 -
+/6bXX29bt 1 -
+//hexx.php 1 -
+/api/swagger.json 3 -
+//wp-admin/user/xmrlpc.php 4 -
+//wp-includes/images/smilies/techl.php 1 -
+//wp-sigunq.php 5 -
+//wp-admin/ccx/index.php 4 -
+/wp-content/plugins/order-delivery-date/readme.txt 1 -
+//class.api.php 5 -
+/wp-includes/blocks/calendar/index.php 2 -
+/wp-content/themes/foodbakery/style.css 1 -
+//fw.php 5 -
+/app_dev.php/_profiler/open 2 -
+/v2/_catalog 3 -
+/wp-admin/includes/index.php 2 -
+//wp-content/ccx/index.php 4 -
+/ 1 -
+/robots.txt 37 -
+/wp-includes/css/dist/list-reusable-blocks/index.php 2 -
+/sm/26b4b0d0b1e283d6b3ec9857ac597d7a60c76ac17be1ef4c965f03086de426bb.map 1 -
+/complete-order/ 1 -
+/merchant/code 1 -
+/wp-includes/sodium_compat/src/Core32/SecretStream/index.php 2 -
+/wp-includes/blocks/query-pagination-next/index.php 2 -
+//alfa-rex.php 3 -
+//wp-admin/admin.php 3 -
+/BNp8hDTk 1 -
+/gpLFR5sr 1 -
+//wp-admin/images/admin.php 1 -
+//css.php 5 -
+/wp-content/plugins/one_images_user/one_images_user.php 1 -
+//fm1.php 3 -
+//wp-atom.php 5 -
+/wp-includes/js/tinymce/plugins/charmap/index.php 2 -
+//wp-content/uploads/lock360.php 1 -
+//BDKR28_shell.php 1 -
+/dtex1.php 4 -
+//xl2023.php 3 -
+//repeater.php 5 -
+/product/round-beech/ 1 -
+/wp-includes/Text/Diff/Renderer/index.php 2 -
+/wp-includes/js/thickbox/index.php 2 -
+//wp-login.php 5 -
+/wp-content/uploads/2024/05/cropped-IMG_20240520_085655_740-1-192x192.jpg 1 -
+/3vt4yTCT 1 -
+/wp-includes/Requests/Cookie/index.php 2 -
+/zxDLJZ 1 -
+/s/133313e23373e2538313e2033313/_/ 3 -
+//rk2.php 1 -
+/p3y69 1 -
+/wp-includes/sodium_compat/src/Core32/Curve25519/Ge/Core32.php 1 -
+/wp-includes/js/jquery/index.php 2 -
+/zvzxtzva.php 1 www.google.com
+/.vscode/sftp.json 3 -
+/wp-content/plugins/rss-feed-post-generator-echo/readme.txt 1 -
+/wp-content/plugins/chaty-pro/css/chaty-front.min.css 1 -
+/wp-content/plugins/pwnd-1/pwnd.php 2 -
+//wp-includes/images/media/newfl.php 1 -
+/wp-content/plugins/ai-engine/labs/mcp.js 1 -
+//class-wp-ms-themes-list-table-other.php 1 -
+/static/icons/dashboard_reports.8d922c61923f.png 2 https://archenmobl.com/
+/wp-content/themes/seotheme/db.php 1 www.google.com
+/wp-includes/widgets/dir/index.php 2 -
+//wp-includes/themes.php 4 -
+//uploads/k69834253_index.php 3 -
+/about 3 -
+/wp-includes/block-patterns/index.php 2 -
+/blog/wp-login.php 1 -
+/lander/sberchat5v4_tds_newcrm_017-ec_register-_1730370309/index.php 1 -
+/wp-includes/Text/Diff/Engine/index.php 2 -
+/wp-includes/blocks/cover/index.php 2 -
+//cong.php 5 -
+/wp-includes/js/dist/index.php 2 -
+//wp-conflg.php 5 -
+/lander/sberchat5v4_tds_newcrm_038-vnutr_1721815245/index.php 1 -
+//wp-includes/Requests/about.php 5 -
+/wp-content/themes/index.php 2 -
+/wp-includes/css/dist/patterns/index.php 2 -
+//wp-admin/css/colors/blue/az.php 1 -
+//wp-includes/BDKR28_asq3dm1u.php 1 -
+/wp-includes/js/swfupload/index.php 2 -
+/coba.php 1 -
+//.well-known/pki-validation/about.php 3 -
+/wp-includes/js/imgareaselect/index.php 2 -
+/wp-content/plugins/WooCommerce-Multi-Locations-Inventory-Management/readme.txt 1 -
+/zxin.php 1 -
+/wp-login 1 -
+//wp-admin/css/colors/blue/about.php 4 -
+/static/icons/dashboard_jobs.2dc864e98dca.png 2 https://archenmobl.com/
+/5jshCV 1 -
+//wp-content/themes/about.php 3 -
+/wp-content/plugins/wp-registration/readme.txt 1 -
+/actuator/env 3 -
+//wp-includes/images/crystal/filed.php 1 -
+/wp-admin/index.php 2 -
+//upfile.php 5 -
+/wp-includes/js/tinymce/plugins/hr/index.php 2 -
+//wp-content/plugins/seoplugins/db.php 4 -
+/info.php 4 -
+/author/bot/feed/ 1 -
+/wp-includes/blocks/embed/index.php 2 -
+/product/perfect-sofa/ 1 -
+//wp-includes/images/about.php 3 -
+/js 5 -
+/SyhZkyvD 1 -
+/wp-json/mcp/v1 1 -
+/cms/wp-login.php 1 -
+/wp-content/plugins/contact-form-7/includes/swv/js/index.js 1 -
+//wp-includes/IXR/about.php 3 -
+//wp-admin/network/xmrlpc.php 4 -
+/wp-content/plugins/one_images_usder/oned_images_user.php 1 -
+/wp-content/plugins/king-addons/readme.txt 1 -
+/wp-includes/js/tinymce/langs/index.php 2 -
+//index.php 5 -
+/wp-includes/blocks/social-link/index.php 2 -
+/wp-admin/network/index.php 2 -
+//wp-admin/images/xmrlpc.php 4 -
+//content.php 5 -
+/wsd.php 1 -
+//worm0.PhP7 4 -
+/wp-content/plugins/podlove-podcasting-plugin-for-wordpress/readme.txt 1 -
+/blog/ 1 -
+//wp-includes/widgets/about.php 3 -
+/@vite/env 3 -
+/product-category/furniture/ 2 -
+/wp-includes/blocks/video/index.php 2 -
+/wp-includes/Requests/index.php 2 -
+/apple-touch-icon.png 3 -
+/262LBNFp 1 -
+/api/graphql 3 -
+//.tmb/class_api.php 5 -
+/wp-content/plugins/instawp-connect/readme.txt 1 -
+/9LBgkTzq 1 -
+/wp-includes/blocks/site-tagline/index.php 2 -
+/wp-login.php 27 -
+//wp-content/themes/seotheme/db.php 4 -
+//mark.php 1 -
+/wp-includes/Requests/Auth/index.php 2 -
+/lander/sberquiz-2223-3 1 -
+/wp-includes/js/mediaelement/renderers/index.php 2 -
+//wp-content/themes/travelscape/json.php 3 -
+/swagger/index.html 3 -
+/doiconvs.php 1 -
+/php-cgi/php-cgi.exe 3 -
+/xmlrpc.php 75 -
+//.well-known/about.php 3 -
+//cgi-bin/xmrlpc.php 4 -
+/static/js/chart.lite.v2.b693d23c57fa.js 2 https://archenmobl.com/serviceworker.js
+/.env 12 -
+/wp-includes/Requests/Response/index.php 2 -
+/wp-includes/Text/Diff/index.php 2 -
+/wp-includes/js/dist/vendor/index.php 2 -
+//.well-known/1mages.php 1 -
+/swagger.json 3 -
+/wp-content/plugins/index.php 2 -
+/wp-content/postnews.php 4 www.google.com
+//nf_tracking.php 3 -
+/config.json 3 -
+//wp-admin/maint/ff2.php 1 -
+//wp-content/plugins/linkpreview/db.php 4 -
+//log.php 5 -
+/wp-includes/interactivity-api/index.php 2 -
+/lander/testsberv4-copy--1/ 1 -
+//wp-includes/block-patterns/about.php 3 -
+//atomlib.php 5 -
+/wp-includes/blocks/code/index.php 2 -
+/wp-admin/css/index.php 2 -
+/swagger/v1/swagger.json 3 -
+/static/js/validation-fa.e732d0c2b756.js 14 https://archenmobl.com/
+//.well-known/admin.php 5 -
+//simple.php 5 -
+//as.php 5 -
+/static/js/jquery-ui.min.dd3e8e013a29.js 14 https://archenmobl.com/
+/wp-content/plugins/pwnd/pwnd.php 4 -
+/wp-includes/blocks/site-logo/index.php 2 -
+/wp-includes/blocks/more/index.php 2 -
+/product-category/furniture/page/2/ 1 -
+/wp-includes/js/jcrop/index.php 2 -
+/KLFzmbdm 1 -
+//users.php 4 -
+/postnews.php 5 www.google.com
+//wp-admin/x.php 4 -
+/wp-includes/SimplePie/HTTP/index.php 2 -
+/wp-includes/css/dist/components/index.php 2 -
+/wp-content/themes/service-finder/style.css 1 -
+/wp-content/themes/freeio/style.css 1 -
+/wp-content/themes/alone/style.css 1 -
+/wp-content/plugins/armember/js/arm_widgets_js.js 1 -
+/wp-includes/images/wlw/index.php 2 -
+/4gpzSvhY 1 -
+/wp-includes/css/dist/edit-widgets/index.php 2 -
+//wp-includes/ID3/about.php 3 -
+//henla-68-APT-66x66.php 1 -
+/uploaded_script.php 2 -
+/v2/api-docs 3 -
+/.env.save 2 -
+/wp-includes/IXR/index.php 2 -
+/wp-includes/blocks/post-featured-image/index.php 2 -
+/wp-includes/SimplePie/XML/Declaration/index.php 2 -
+/wp-includes/assets/index.php 2 -
+//.well-known/acme-challenge/license.php 4 -
+//ws.php 5 -
+//ccx/index.php 4 -
+/wp-content/index.php 4 -
+/wp-includes/blocks/loginout/index.php 2 -
+/wp-includes/images/media/index.php 2 -
+//wp-admin/maint/wp-login.php 3 -
+/wp-includes/certificates/index.php 2 -
+/wp-content/upgrade/index.php 2 -
+/wp-includes/js/tinymce/plugins/fullscreen/index.php 2 -
+/merchant/z/payment/ 1 -
+/wp-content/cache/index.php 2 -
+//shell20211028.php 3 -
+/static/css/app.min.06d813284eee.css 16 https://archenmobl.com/
+//wp-admin/network/cloud.php 3 -
+/@.php 1 -
+/about.php 2 -
+/wp-includes/blocks/columns/index.php 2 -
+/wp-json/sure-triggers/v1/automation/action 1 -
+//wp-head.php 5 -
+/wp-includes/blocks/post-content/index.php 2 -
+//wp-content/plugins/king-addons/readme.txt 2 -
+/dwztdbhG 1 -
+/wp-includes/blocks/image/index.php 2 -
+/zMmL28CN 1 -
+/payment/index.php 1 -
+/wp-content/plugins/ht-contactform/readme.txt 1 -
+//alfa-rex.php7 3 -
+/contact-us/ 3 -
+/wp-includes/blocks/post-date/index.php 2 -
+//wp-admin/js/about.php 7 -
+/static/favicon.d41d8cd98f00.ico 2 https://archenmobl.com/users/login/
+/wp-content/plugins/contact-form-7/includes/js/index.js 1 -
+//wp-2019.php 5 -
+/q1gpDhK4 1 -
+/static/js/jquery.min.49170b3165a3.js 14 https://archenmobl.com/
+/wp-includes/Requests/Exception/Transport/index.php 2 -
+//wp-admin/css/colors/coffee/index.php 4 -
+//moon.php 5 -
+//wp-content/wso.php 3 -
+/login 1 -
+/GJcjXsGY 1 -
+/wp-includes/rest-api/search/index.php 2 -
+/j26HRfdD 1 -
+//BDKR28_pnbi8jhp.php 1 -
+//wp-includes/plugins.php 4 -
+/worksec.php 2 -
+/wp-cron.php 3 -
+/static/orders/js/persian-date.min.f15ce1d79f7d.js 14 https://archenmobl.com/
+//wso112233.php 3 -
+/.gitignore 1 -
+/wp-includes/blocks/nextpage/index.php 2 -
+/static/icons/dashboard_maintenance.bed6ecd50ee3.png 2 https://archenmobl.com/
+/wp-content/plugins/wp-event-solution/readme.txt 1 -
+/abc.php 1 -
+/blog-verify 3 -
+/wp-admin/images/index.php 3 -
+/wp-content/plugins/smart-manager-for-wp-e-commerce/readme.txt 1 -
+/sitemap.xml.gz 2 -
+//wp-content/plugins/fix/up.php 3 -
+/qJYNKtCd 1 -
+/wp-includes/Requests/Transport/index.php 2 -
+/wp-includes/css/dist/index.php 2 -
+/wp-includes/blocks/media-text/index.php 2 -
+/mQ2bDkV4 1 -
+//wp-content/plugins/hellopress/wp_filemanager.php 5 -
+//install.php 5 -
+/wp-includes/blocks/query-title/index.php 2 -
+/wp-includes/blocks/button/index.php 2 -
+/wp-content/themes/litho/style.css 1 -
+/api 3 -
+//.well-known/acme-challenge/cloud.php 9 -
+/style.php 3 -
+/wp-includes/ID3/index.php 2 -
+//wp-includes/js/tinymce/skins/lightgray/img/index.php 5 -
+/wp-content/plugins/essential-addons-for-elementor-lite/readme.txt 1 -
+/users/login//app-ads.txt 1 -
+/wp-includes/images/index.php 2 -
+/sbr 1 -
+/wp-includes/blocks/post-terms/index.php 2 -
+/9hs69 1 -
+//defaul1.php 3 -
+/wp-content/themes/style.php 1 -
+/login.action 3 -
+/atex1.php 1 -
+//wp-content/plugins/core/include.php 5 -
+/server 3 -
+/wp-content/themes/miraculous/style.css 1 -
+/wp-includes/blocks/categories/index.php 2 -
+/my-account/ 8 -
+/wp-content/plugins/gravityforms/readme.txt 1 -
+/users/login//sellers.json 1 -
+/wp-content/plugins/woocommerce/assets/js/frontend/add-to-cart.min.js 1 -
+/wp-includes/blocks/post-excerpt/index.php 2 -
+/9XgxmrM3 1 -
+//themes.php 8 -
+//lufix.php 5 -
+/wp-content/languages/index.php 2 -
+/n6PdMqLz 1 -
+/wp-includes/css/dist/block-directory/index.php 2 -
+/apple-touch-icon-120x120-precomposed.png 1 -
+/swagger-ui.html 3 -
+/mode.php 1 -
+/wp-includes/blocks/shortcode/index.php 2 -
+/static/icons/dashboard_accounting.fbb7fe4213ac.png 2 https://archenmobl.com/
+//wp-admin/images/index.php 4 -
+/kXMGtQpC 1 -
+/wp-content/themes/adforest/style.css 1 -
+/wp-content/uploads/index.php 2 -
+/wp-includes/blocks/freeform/index.php 2 -
+/wp-includes/blocks/audio/index.php 2 -
+//wp-content/themes/pridmag/db.php 4 -
+//wp-content/themes/twentyseventeen/page/index.php 5 -
+/28kxhS 1 -
+/vNyFhhL5 1 -
+/wp-content/themes/superio/style.css 1 -
+//wp-admin/css/colors/ectoplasm/12.php 1 -
+/lander/sberchat5v4_tds_newcrm_017-ec_register-_1732091122/index.php 1 -
+/wp-includes/Requests/Utility/index.php 2 -
+//blog.php 5 -
+/wp-includes/css/dist/nux/index.php 2 -
+//wp-activate.php 5 -
+//.well-known/acme-challenge/xmrlpc.php 4 -
+/wp-content/worksec.php 2 -
+/BSDLw5Mp 2 -
+/wp-includes/fonts/index.php 2 -
+/Kd67Fq1x 1 -
+/wp-includes/blocks/post-title/index.php 2 -
+//ini.php 5 -
+/graphql/api 3 -
+//cjfuns.php 4 -
+//.well-known/pki-validation/cloud.php 3 -
+//BDKR28_jblnamqu.php 1 -
+/3ds.php 3 -
+/wp-includes/customize/index.php 2 -
+//doc.php 5 -
+/YWy6BPtM 1 -
+/wp-includes/blocks/query-pagination/index.php 2 -
+//wp-admin/includes/class-wp-privacy-policy-content-https.php 1 -
+/wp-includes/blocks/gallery/index.php 2 -
+/wp-content/plugins/cidaas-pro-master/composer.json 2 -
+//wp-apxupx.php 5 -
+/wp-includes/css/dist/reusable-blocks/index.php 2 -
+/sitemaps.xml 2 -
+//wp-includes/pomo/about.php 3 -
+/wp-content/plugins/ultimate-member/readme.txt 1 -
+/webjars/swagger-ui/index.html 3 -
+//makeasmtp.php 5 -
+/wp-includes/css/dist/customize-widgets/index.php 2 -
+/wp-content/plugins/wp-automatic/css/wp-automatic.css 1 -
+/sberchat008-prilca/ 1 -
+/wp-content/plugins/cf7-styler/README.txt 2 -
+//wp-info.php 4 -
+/wp-includes/blocks/pullquote/index.php 2 -
+/wp-content/themes/woodmart/js/scripts/wc/updateCartFragmentsFix.js 1 -
+/apple-touch-icon-precomposed.png 3 -
+/wp-content/plugins/wp-user-avatar/changelog.txt 1 -
+/cabinet 1 -
+/static/icons/dashboard_inventory.a5dd0059e84d.png 2 https://archenmobl.com/
+/wp-includes/images/smilies/index.php 2 -
+/wp-content/backup/wp-config.php.old 1 -
+/app/.env 2 -
+/YRWnWHy7 1 -
+/wp-content/themes/noo-jobmonster/style.css 1 -
+/wp-includes/blocks/heading/index.php 2 -
+//yanz.php 4 -
+/wp-includes/js/tinymce/index.php 2 -
+/wp-content/uploads/2024/05/cropped-IMG_20240520_085655_740-1-180x180.jpg 1 -
+/5/130/narodanimat-1/index.html 2 -
+//plugins.php 5 -
+/aqw.php 1 -
+/wordpress/wp-login.php 1 -
+//wp-content/plugins/wp-apxupx.php 5 -
+/wp-includes/blocks/latest-posts/index.php 2 -
+/n4TWwtZ4 1 -
+/sFRWyHsz 1 -
+//mah.php 5 -
+//wp-admin/css/colors/index.php 4 -
+/wp-includes/html-api/index.php 2 -
+/product/dining-table-bouzhan/ 1 -
+//wp-content/gallery/about.php 3 -
+/wp-content/plugins/smart-manager-for-wp-e-commerce/sm/woo-json.php 1 -
+/wp-includes/blocks/index.php 2 -
+//bypass.php 5 -
+//wp-content/plugins/contact-form-7/includes/js/jquery-ui/themes/smoothness/admin.php 3 -
+//ae.php 5 -
+//wp-admin/css/about.php 3 -
+/wp-includes/SimplePie/Parse/index.php 2 -
+/lander/-bull--sovkombank_quiz/ 1 -
+//404.php 4 -
+//images/cloud.php 3 -
+/wp-includes/PHPMailer/index.php 2 -
+/x/elp.php 1 -
+//dropdown.php 4 -
+/lander/sber/ 1 -
+/users/login//ads.txt 1 -
+//403.php 5 -
+/wp-includes/blocks/legacy-widget/index.php 2 -
+/autoload_classmap.php 2 -
+/static/icons/icon-192x192.0c798e38ad86.png 16 https://archenmobl.com/
+/wp-includes/blocks/table/index.php 2 -
+/wp-admin/maint/index.php 2 -
+//admin.php 4 -
+//gecko-litespeed.php 1 -
+//templates/beez5/mar.php 3 -
+/server-status 3 -
+//erros_run.php 3 -
+/wp-includes/blocks/query-pagination-previous/index.php 2 -
+//wp-includes/widgets/ff2.php 1 -
+/wp-includes/blocks/list/index.php 2 -
+/wp-content/plugins/gravityforms/css/print.min.css 1 -
+/wp-includes/blocks/social-links/index.php 2 -
+//wp-content/plugins/wordpress-seo/rk1.php 3 -
+//.well-known/wso112233.php 3 -
+/wp-admin/admin-post.php 1 -
+/wp-includes/blocks/text-columns/index.php 2 -
+/wp-includes/pomo/index.php 2 -
+//wp-admin/includes/BDKR28_qzg8coxf.php 1 -
+//cgi-bin/about.php 5 -
+/static/icons/dashboard_users.f1091ae89df6.png 2 https://archenmobl.com/
+/wp-includes/blocks/tag-cloud/index.php 2 -
+//assets/css/403.php 5 -
+/CtdJ76V 1 -
+/.DS_Store 3 -
+/wp-content/plugins/gutenkit-blocks-addon/readme.txt 1 -
+/cgi-bin/ 1 https://archenmobl.com/serviceworker.js
+/wp-includes/Requests/Exception/HTTP/index.php 2 -
+/wp/wp-login.php 1 -
+//wp-mail.php 5 -
+/wp-admin/js/index.php 2 -
+/wp-content/plugins/fix/up.php 2 -
+/static/icons/dashboard_orders.5a28ce0ace69.png 2 https://archenmobl.com/
+/ecp/Current/exporttool/microsoft.exchange.ediscovery.exporttool.application 3 -
+//radio.php 5 -
+/static/js/select-all-on-focus.d7b2328f0045.js 14 https://archenmobl.com/
+/wp-includes/js/jquery/ui/index.php 2 -
+/wp-content/plugins/woocommerce-gateway-paytrace/assets/js/paytrace-checkout.min.js 1 -
+//wp-content/plugins/zgdsfagck/rk2.php 3 -
+/wp-includes/blocks/query/index.php 2 -
+/prVdNCXD 1 -
+/wp-json/notificationx/v1/analytics 1 -
+//shell.php 5 -
+//wp-admin/css/index.php 5 -
+/NWJs6k27 1 -
+/wp-includes/js/tinymce/plugins/image/index.php 2 -
+/wp-content/plugins/real-logic/one-user.php 1 -
+/wp-includes/SimplePie/Content/Type/index.php 2 -
+/wp-includes/Requests/library/index.php 2 -
+/graphql 3 -
+/wp-content/style.php 1 -
+/wp-includes/blocks/comment-date/index.php 2 -
+/tink_chat/ 1 -
+/wp-includes/js/codemirror/index.php 2 -
+/wp-includes/blocks/site-title/index.php 2 -
+/wp-admin/user/index.php 2 -
+//wp-content/themes/travel/issue.php 3 -
+/wpc.php 1 -
+/telescope/requests 3 -
+/wp-includes/blocks/html/index.php 2 -
+/wp-includes/Requests/src/Exception/Http/index.php 2 -
+/5fH7sTTJ 1 -
+/static/img/archen-watermark.png 19 https://archenmobl.com/orders/warranty/s/77690047066443efad9c2a416ea7bf33/
+/v3/api-docs 3 -
+//wp-admin/includes/about.php 3 -
+/api-docs/swagger.json 3 -
+/orders/edit/96/ 1 https://archenmobl.com/serviceworker.js
+//wp-includes/about.php 3 -
+/wp-includes/js/crop/index.php 2 -
+/static/icons/icon-512x512.50be140f47ed.png 2 https://archenmobl.com/users/login/
+/wp-includes/js/index.php 2 -
+/wp-includes/blocks/missing/index.php 2 -
+//wp-pano.php 3 -
+/wp-includes/blocks/rss/index.php 2 -
+/wp-content/themes/woodmart/js/libs/device.min.js 1 -
+//wp-includes/Text/about.php 3 -
+//wp-includes/SimplePie/about.php 3 -
+/wp-includes/blocks/verse/index.php 2 -
+//wp-content/plugins/Cache/Cache.php 3 -
+//xmrlpc.php 5 -
+//wp-content/banners/about.php 3 -
+/sitemap_index.xml 6 -
+//file.php 5 -
+/wp-content/plugins/uni-woo-custom-product-options-premium/readme.txt 1 -
+/wp-includes/blocks/column/index.php 2 -
+/fpyB8SZ3 1 -
+//admin-filters-part.php 1 -
+/wp-admin/admin-ajax.php 7 -
+//wp-admin/includes/class_api.php 5 -
+//.well-known/pki-validation/xmrlpc.php 4 -
+/wp-includes/SimplePie/Decode/HTML/index.php 2 -
+/xv2qwZ3s 1 -
+//wp-includes/Requests/Text/admin.php 3 -
+//wp-content/plugins/rsquaaj/index4.php 3 -
+//wp-includes/rest-api/about.php 3 -
+//wp-content/index.php 4 -
+/wp-includes/blocks/buttons/index.php 2 -
+/wp-includes/images/crystal/index.php 2 -
+/env.production 2 -
+/wp-includes/css/dist/edit-post/index.php 2 -
+/.git/config 19 -
+//wp-admin/css/colors/ocean/Module.php 3 -
+/areak.php 1 -
+//wp-admin/includes/BDKR28_jsfbufzt.php 1 -
+/wp-includes/blocks/search/index.php 2 -
+/about-us-3/ 1 -
+/3ds1633693954432212 2 -
+/api/gql 3 -
+/wp-admin/ 20 https://www.bing.com/
+//wp-content/themes/twentyfive/include.php 5 -
+/wp-includes/css/index.php 2 -
+/wp-content/userfuns.php 4 www.google.com
+//alfanew.php 3 -
+/sberbank-quiz-v2/ 1 -
+/product/rack-table/ 1 -
+/wp-includes/index.php 2 -
+/swagger/swagger-ui.html 3 -
+/wp-includes/Requests/Proxy/index.php 2 -
+/SrBkPK64 1 -
+/wp-includes/blocks/page-list/index.php 2 -
+/wp-content/plugins/json-api-user/readme.txt 1 -
+//.well-known/akp.php 1 -
+/wp-content/plugins/12-step-meeting-list/readme.txt 2 -
+/sberbank-quiz-4 1 -
+/wp-content/themes/em4u/style.css 1 -
+/category/furniture/ 1 -
+/83036323 1 -
+/wp-includes/Text/index.php 2 -
+/wp-includes/Requests/Exception/index.php 2 -
+/inputs.php 7 -
+/_all_dbs 3 -
+/brand/klober/ 1 -
+//wp-content/plugins/index.php 4 -
+//about.php 4 -
+/wp-includes/blocks/preformatted/index.php 2 -
+/debug/default/view 3 -
+/static/js/sort.17da8610f9e4.js 14 https://archenmobl.com/
+/wp-includes/blocks/group/index.php 2 -
+/wp-includes/block-supports/index.php 2 -
+/areak1.php 1 -
+//wp.php 4 -
+/wp-includes/blocks/post-template/index.php 2 -
+/wp-includes/blocks/separator/index.php 2 -
+/wp-content/plugins/simple/simple.php 2 -
+/wp-includes/SimplePie/index.php 2 -
+/wp-content/uploads/2024/05/cropped-IMG_20240520_085655_740-1-32x32.jpg 1 -
+/wp-includes/css/dist/editor/index.php 2 -
+/wp-config.php 1 -
+/wp-includes/blocks/file/index.php 2 -
+//images/about.php 3 -
+/wp-includes/SimplePie/Net/index.php 2 -
+/nfvX2mRq 1 -
+//wp-includes/style-engine/about.php 5 -
+/CMdTKBx3 1 -
+//wp-blog.php 4 -
+/wp-includes/js/plupload/index.php 2 -
+//%40.php 1 -
+//wp-content/about.php 3 -
+//gawean.PhP7 4 -
+/static/orders/js/persian-datepicker.min.c26409ab312b.js 14 https://archenmobl.com/
+/wp-includes/js/mediaelement/index.php 2 -
+/wp-includes/blocks/paragraph/index.php 2 -
+/apple-touch-icon-120x120.png 1 -
+//wp-content/themes/seotheme/mar.php 4 -
+//wp-config-sample.php 4 -
+/wp-plain.php 1 www.google.com
+//wp-content/plugins/seoplugins/mar.php 4 -
+/wp-includes/blocks/quote/index.php 2 -
+//wp-admin/images/about.php 3 -
+//alfaajapet.php 1 -
+/userfuns.php 3 www.google.com
+/wp-content/plugins/wp-marketing-automations/readme.txt 1 -
+/static/icons/dashboard_production_line.8d40f0095f9a.png 2 https://archenmobl.com/
+//wp-content/plugins/revslider/includes/external/page/index.php 4 -
+/product/mitra-chair/ 1 -
+//wp-admin/dropdown.php 5 -
+//wp-admin/user/langsung-pointer.php 1 -
+/images/images/cache.php 1 -
+/wp-content/uploads/pdf-invoices/ 1 -
+/serviceworker.js 3 https://archenmobl.com/serviceworker.js
+/wp-includes/css/dist/widgets/index.php 2 -
+/lander/sber-fix/ 1 -
+/wp-includes/blocks/query-pagination-numbers/index.php 2 -
+/sitemap.xml 4 -
+//wp-content/shell20211028.php 3 -
+/wp-includes/Requests/src/Exception/index.php 2 -
+//updates.php 5 -
+/wp-includes/blocks/navigation-link/index.php 2 -
+/wp-includes/blocks/latest-comments/index.php 2 -
+END_SIDER_404
+
+# Host - Pages - Hits - Bandwidth - Last visit date - [Start date of last visit] - [Last page of last visit]
+# [Start date of last visit] and [Last page of last visit] are saved only if session is not finished
+# The 25 first Hits must be first (order not required for others)
+BEGIN_VISITOR 264
+5.52.48.177 2647 5734 327972788 20251113174228
+5.237.9.56 1924 2997 65543357 20251105181709
+178.131.162.241 1412 2542 92930699 20251115145851 20251115101001 /orders/
+178.131.162.144 1151 2187 125821404 20251112191310
+2.147.106.100 1122 1429 20751427 20251112183118
+5.237.3.234 687 694 1755569 20251106140032
+5.237.6.145 637 1136 27148944 20251109144640
+5.237.5.172 622 1002 17355434 20251104130655
+178.131.162.174 583 861 30125731 20251111192924
+45.156.180.254 467 860 31568661 20251115125138
+45.93.169.89 400 611 10159211 20251115122330
+62.93.176.74 364 537 13088032 20251110160514
+5.237.2.236 345 601 18633657 20251109183859
+5.215.142.124 310 640 15666803 20251112143004
+5.237.9.238 278 278 582132 20251106153949
+5.217.82.117 277 357 7982591 20251113161112
+198.44.137.171 270 522 11316424 20251102043705
+68.235.45.19 267 327 3433783 20251102140617
+5.217.107.252 246 410 10243322 20251113081148
+5.237.7.180 221 467 12641669 20251103182336
+5.217.208.231 216 525 19719591 20251110132438
+149.36.50.175 194 268 9373612 20251113064925
+5.237.0.243 184 374 16544142 20251115115411
+2.147.49.93 168 458 13269240 20251105124735
+5.215.165.213 163 408 16235831 20251109224105
+2.147.185.27 23 73 2149488 20251101230048
+149.36.50.168 29 63 2840483 20251112135059
+86.54.42.190 1 1 52330 20251102121400
+178.131.162.46 4 13 1090753 20251113082640
+66.102.9.168 3 10 649834 20251110114645
+89.37.63.40 1 1 52737 20251105085710
+31.13.127.6 1 5 199743 20251106143920
+5.211.219.143 93 163 4769680 20251113144201
+5.201.229.144 109 260 5931369 20251104120551
+5.212.80.142 94 107 1418619 20251110135814
+31.13.115.2 0 8 704366 
+74.125.213.39 0 1 54581 
+66.220.149.113 1 2 61509 20251103065701
+66.220.149.22 2 7 398591 20251103065627
+62.93.176.102 35 55 3112182 20251114214855
+74.80.181.155 98 198 6839553 20251108031132
+149.36.50.5 36 82 2528301 20251109125313
+74.125.213.40 2 7 489219 20251102230407
+139.224.221.223 1 3 71105 20251110073329
+195.177.94.161 1 1 52743 20251112021023
+44.200.163.56 1 1 52743 20251106202852
+173.252.87.26 2 12 490240 20251109145433
+104.164.126.117 2 9 546586 20251104060301
+66.249.81.8 1 1 52853 20251113174401
+162.128.160.214 7 32 1598158 20251113141006
+31.13.127.115 1 6 381226 20251106143921
+139.196.151.4 0 1 9185 
+34.239.228.78 1 2 262196 20251114191738
+66.220.149.45 0 4 172627 
+66.249.83.11 0 2 49821 
+89.187.168.86 82 195 10161411 20251105163143
+139.224.24.84 1 2 306730 20251110073322
+109.230.220.143 4 4 209296 20251102065929
+149.57.180.67 1 1 52847 20251113134903
+23.81.62.253 2 7 203448 20251104210024
+5.212.109.50 5 15 931220 20251115110431
+103.196.9.144 1 1 52324 20251104060245
+54.249.201.117 1 6 151270 20251112210715
+5.9.72.155 2 7 150847 20251113174135
+34.212.72.143 1 6 151279 20251114224057
+64.227.165.77 1 2 260803 20251101090858
+5.237.15.66 45 77 1393556 20251115130925
+204.18.85.169 1 3 70841 20251104223048
+146.112.163.51 2 9 667656 20251112093954
+173.252.87.20 1 8 458948 20251109145431
+139.224.24.70 2 7 225985 20251110073325
+66.249.83.103 0 6 351648 
+66.220.149.5 1 9 421583 20251103065627
+204.18.124.109 38 70 2213365 20251110231908
+31.13.127.61 0 4 284893 
+92.222.251.222 17 41 1118901 20251105102356
+104.164.173.186 1 1 52737 20251108060116
+213.199.35.170 1 1 0 20251108200004
+66.220.149.11 1 1 858 20251103065629
+62.93.176.87 71 149 7904375 20251115033239
+31.13.115.114 1 10 427649 20251112185740
+89.198.132.1 22 32 615117 20251112225251
+198.44.138.134 1 3 71107 20251107141911
+173.252.87.5 0 1 89514 
+149.36.50.29 59 88 5855954 20251110231529
+5.217.62.78 52 85 1917573 20251115130506
+69.59.197.164 1 11 659019 20251102230213
+194.5.215.204 5 15 353750 20251101154927
+173.252.87.9 0 5 328069 
+18.141.225.240 1 5 56476 20251101034310
+109.122.250.214 2 13 749914 20251114230143
+31.13.127.10 2 11 443339 20251106143920
+136.243.29.238 6 25 954791 20251102162408
+66.102.9.167 0 1 2786 
+139.224.26.253 0 1 36777 
+15.235.59.82 1 1 52844 20251113120314
+5.237.10.64 71 116 3225658 20251110093734
+68.235.45.26 141 184 2059025 20251102163626
+23.27.145.30 1 1 52737 20251109130202
+147.182.227.195 1 2 262086 20251112003856
+154.28.229.198 1 1 52324 20251104051927
+142.44.241.246 1 1 52853 20251114171201
+209.141.121.197 2 12 660290 20251107185601
+213.176.23.49 6 15 341492 20251104202324
+66.102.8.166 2 10 457850 20251106162445
+66.220.149.13 0 3 88287 
+198.44.138.70 98 120 1169230 20251106122625
+193.226.77.189 4 4 210948 20251105215138
+5.9.74.179 1 4 80292 20251109111605
+2.147.227.241 24 42 1008480 20251110055547
+37.203.210.16 4 4 205816 20251101093301
+103.196.9.91 2 9 547412 20251108060118
+37.98.17.37 32 91 4121996 20251112233818
+173.252.87.13 1 4 121429 20251109145431
+15.235.171.5 1 1 0 20251110151845
+5.210.127.136 18 41 1144816 20251110165848
+202.120.37.109 4 18 804005 20251111174839
+54.169.2.236 0 1 209349 
+124.236.100.56 2 2 104660 20251104090211
+91.208.184.23 1 1 52737 20251106025820
+139.224.27.182 1 5 93645 20251110073324
+64.203.194.196 2 12 660290 20251110192742
+172.233.182.235 0 1 9185 
+173.252.87.2 0 1 2786 
+46.164.79.122 2 13 749804 20251111113321
+74.125.213.38 1 4 84648 20251102230407
+35.92.231.169 1 1 52737 20251107163342
+168.119.169.58 42 79 4793566 20251111204245
+104.28.214.166 5 23 1093446 20251104064515
+74.125.208.9 8 11 1117801 20251110114623
+172.105.87.29 1 1 52737 20251107021006
+23.158.56.125 3 18 959919 20251111222952
+159.65.146.43 1 2 262086 20251108222826
+2.147.129.235 1 3 71113 20251110101348
+5.133.192.88 1 2 262086 20251110233431
+185.197.194.84 2 2 0 20251115115903
+208.78.41.142 59 64 628262 20251108172349
+2.147.199.96 40 73 5502229 20251113174427
+204.85.30.69 2 12 660290 20251110192742
+5.212.140.92 5 23 1094510 20251107185554
+23.27.145.239 1 1 51454 20251101122700
+149.36.50.9 123 254 10383846 20251109155913
+148.153.157.169 6 14 342959 20251112145320
+37.221.29.177 93 321 9667379 20251102044358
+91.99.180.209 2 13 749804 20251105224029
+212.6.82.5 1 11 659017 20251102162351
+132.255.133.134 5 22 885149 20251109180142
+31.220.88.112 2 2 0 20251107115505
+158.220.105.122 1 1 0 20251104153453
+23.27.145.138 1 1 52737 20251106123636
+66.102.9.166 1 4 51640 20251102044026
+66.220.149.27 1 4 358602 20251103065629
+51.158.232.144 4 23 1183386 20251114192751
+112.29.110.123 1 1 52322 20251102045159
+2.147.22.222 2 8 161442 20251113141045
+62.93.176.103 3 8 985201 20251115020804
+45.93.170.83 5 26 1254776 20251114143626
+23.146.184.173 2 2 104648 20251104003610
+31.13.115.6 1 3 127149 20251112185740
+74.125.208.7 5 9 356777 20251111132710
+14.144.14.76 1 1 52735 20251105115353
+149.36.50.18 23 46 3113679 20251109173545
+106.14.237.76 0 2 104078 
+142.93.77.186 1 1 52511 20251104222600
+5.212.44.194 14 18 330734 20251110163754
+107.151.249.232 8 27 1425676 20251102153605
+45.8.132.219 1 1 0 20251112154647
+45.93.171.133 4 23 1302323 20251104162731
+195.178.110.242 2 8 161212 20251112124019
+34.205.50.131 1 1 52743 20251106234928
+5.210.104.80 55 124 5631011 20251112104337
+18.175.199.241 1 6 151279 20251114225749
+2.147.73.173 7 19 480673 20251110192822
+66.220.149.25 0 1 9185 
+91.99.86.117 2 13 749914 20251114204610
+46.164.98.137 10 24 967093 20251111140440
+217.138.194.120 15 29 628277 20251105030911
+66.249.83.104 1 2 55523 20251110114621
+44.193.254.10 3 3 158541 20251114224340
+31.13.115.8 2 3 114861 20251112185803
+66.249.81.9 1 1 527625 20251112223701
+89.198.246.115 37 85 3265712 20251109161845
+64.233.172.140 3 4 638235 20251112223707
+31.13.115.113 0 2 51413 
+66.249.83.102 4 6 350139 20251110114645
+54.197.178.250 1 6 151270 20251112203441
+5.201.192.223 4 29 1100367 20251104205536
+196.251.84.137 2 2 105474 20251110145136
+138.199.233.75 4 22 1093860 20251114133322
+154.204.4.162 3 5 175265 20251105070056
+77.237.239.226 1 1 0 20251114110844
+205.185.114.63 1 1 52844 20251113123038
+178.162.245.90 2 13 749914 20251114192709
+212.47.230.207 45 89 5828603 20251115134304
+89.198.191.153 1 2 262086 20251108103418
+74.125.208.8 2 5 190056 20251102171710
+45.93.169.227 4 25 803619 20251115053127
+2.147.112.110 6 14 302021 20251106201332
+5.212.210.238 20 56 1578909 20251107000744
+159.223.223.197 1 2 261673 20251103214703
+106.15.103.18 0 1 89517 
+104.254.89.83 12 26 568229 20251105124715
+64.233.172.139 0 8 347879 
+51.77.95.18 1 1 52743 20251107203202
+38.213.27.29 6 12 373167 20251113141154
+212.6.82.69 1 11 659019 20251102162351
+217.138.194.121 31 57 1038378 20251105115326
+193.70.47.228 1 6 151169 20251109102110
+15.204.182.106 2 2 105486 20251106080547
+91.224.92.24 1 1 4182 20251110084003
+87.249.132.110 94 230 12744647 20251112165920
+95.133.241.141 8 31 1098781 20251109192240
+38.213.27.171 5 21 1128355 20251114221132
+198.44.138.66 31 40 723971 20251106155858
+86.55.127.214 117 354 12652461 20251108223611
+172.245.92.92 2 2 105694 20251113124631
+66.102.8.168 1 5 400988 20251106162442
+31.13.127.27 0 5 181785 
+45.135.232.10 1 1 52324 20251103015452
+104.164.126.28 1 1 52737 20251111051609
+37.120.156.40 136 294 8644278 20251105021738
+149.57.180.124 1 1 52324 20251103125411
+173.252.87.12 1 2 61922 20251109145504
+2.147.109.151 25 66 2556708 20251112164236
+143.198.170.61 1 1 52330 20251104041302
+93.158.91.25 1 2 261673 20251102134757
+2.147.180.235 13 39 1565787 20251109112928
+5.212.60.16 8 19 549252 20251110122401
+39.154.15.253 1 1 52735 20251106030239
+91.98.207.2 7 31 1307824 20251113235941
+149.36.50.24 124 204 10105166 20251113015321
+93.159.230.28 1 1 52853 20251115044500
+2.147.14.130 4 22 1092600 20251102145646
+66.220.149.112 0 3 41059 
+104.236.238.133 1 2 262086 20251106002926
+23.94.74.105 35 62 3466668 20251110055032
+154.28.229.84 2 9 546586 20251104051942
+5.106.161.34 18 61 2002670 20251104190829
+146.112.163.55 2 23 912844 20251112093955
+66.249.83.10 1 1 216596 20251110114350
+212.11.64.114 1 1 52853 20251114031658
+31.13.127.66 2 3 62780 20251106143953
+103.4.250.201 2 3 180854 20251111051617
+64.233.172.138 1 5 670756 20251112223703
+103.218.240.85 5 5 264225 20251113211521
+15.152.160.196 1 6 151169 20251112162602
+47.106.196.226 6 22 928701 20251106235435
+31.56.36.189 1 1 52847 20251115094134
+66.249.83.12 0 2 115263 
+133.242.174.119 1 1 52518 20251104172534
+5.217.158.23 83 106 3101336 20251102161728
+2.147.44.233 4 12 354805 20251102171632
+2.147.223.73 22 64 1692735 20251102230422
+139.224.221.86 1 1 52743 20251110073318
+158.220.122.154 1 1 0 20251113140035
+98.98.207.47 2 13 749920 20251113225439
+188.121.137.120 9 38 1816065 20251102145735
+213.168.248.123 0 2 18370 
+107.151.216.80 1 3 70449 20251113105806
+51.159.102.239 4 32 1657361 20251101183829
+184.147.208.75 1 1 52743 20251109050616
+66.102.8.167 1 10 641496 20251102230354
+46.164.71.189 30 70 1597051 20251105112024
+5.237.14.151 131 272 10812279 20251113110812
+END_VISITOR
+
+# Date - Pages - Hits - Bandwidth - Visits
+BEGIN_DAY 15
+20251101 105 380 12696491 11
+20251102 864 1482 33671237 32
+20251103 230 505 14560291 10
+20251104 1482 2859 69456822 24
+20251105 1765 2867 67287606 21
+20251106 1183 1368 13531624 26
+20251107 30 92 3420819 8
+20251108 355 795 25601191 11
+20251109 1565 3177 103097665 28
+20251110 1049 1680 57057651 42
+20251111 658 1032 39213101 13
+20251112 4915 8966 438548653 47
+20251113 1770 3677 152919564 26
+20251114 66 204 10745614 15
+20251115 2257 4030 142679171 17
+END_DAY
+
+# Session range - Number of visits
+BEGIN_SESSION 7
+5mn-15mn 24
+30mn-1h 26
+0s-30s 177
+1h+ 27
+30s-2mn 33
+15mn-30mn 17
+2mn-5mn 26
+END_SESSION
+
+# URL - Pages - Bandwidth - Entry - Exit
+# The 25 first Pages must be first (order not required for others)
+BEGIN_SIDER 654
+/reports/api/metrics/ 3412 6966468 9 28
+/orders/jobs-by-selection/ 2078 12834599 0 7
+/production_line/api/job-info/ 1490 185279 1 9
+/production_line/work/ 1269 107545924 9 10
+/jobs/ 988 339243471 1 8
+/orders/ 888 137949759 11 12
+/users/login/ 746 38714356 225 172
+/ 699 36229124 38 17
+/production_line/api/job-details 693 91945 2 0
+/production_line/api/jobs/search 686 1293109 1 2
+/production_line/api/product-requires-workpage/ 615 24442 0 2
+/orders/products-by-models/ 533 1102919 1 0
+/jobs/add/ 303 19893615 0 0
+/production_line/api/products/ 282 268880 0 0
+/inventory/ 270 13727662 0 1
+/orders/create/ 265 25009928 1 0
+/reports/order-details/ 207 1393934 0 0
+/inventory/products/ 203 40065175 0 2
+/reports/ 174 50066194 14 9
+/manifest.json 126 108108 6 22
+/reports/job-details/ 123 793931 0 1
+/production_line/ 92 4829963 1 1
+/inventory/parts/ 79 13022790 0 4
+/orders/api/live-orders/ 67 3386032 0 0
+/production_line/carpentry/ 62 3165474 2 3
+/jobs/edit/1090/ 3 211645 0 0
+/orders/edit/35/ 2 228125 0 0
+/orders/edit/175/ 2 200171 0 0
+/orders/edit/190/ 1 144217 0 0
+/jobs/edit/785/ 1 70704 0 0
+/offline/ 45 2228653 5 6
+/jobs/edit/603/ 1 64283 0 0
+/jobs/edit/975/ 3 212225 0 0
+/jobs/edit/952/ 3 212225 0 0
+/jobs/edit/851/ 1 70907 0 0
+/jobs/edit/773/ 2 141260 0 0
+/orders/warranty/s/b7142434a8344b94a17321cf45cb4ef8/ 1 60621 0 0
+/jobs/edit/889/ 3 210800 1 0
+/orders/edit/13/ 1 97365 0 0
+/jobs/edit/983/ 2 141318 0 0
+/jobs/edit/914/ 4 282857 0 0
+/jobs/edit/771/ 1 70163 0 0
+/jobs/edit/853/ 1 70907 0 0
+/jobs/edit/1067/ 2 141408 0 0
+/jobs/edit/959/ 3 212225 0 0
+/orders/edit/177/ 2 202568 0 0
+/orders/edit/33/ 1 118981 0 0
+/jobs/edit/1020/ 1 70441 0 0
+/jobs/edit/1077/ 1 70208 0 0
+/jobs/edit/981/ 3 212225 0 0
+/orders/edit/15/ 2 230097 0 0
+/jobs/edit/788/ 1 70907 0 0
+/jobs/edit/870/ 3 212198 0 0
+/inventory/products/10/edit/ 1 80119 0 0
+/jobs/edit/882/ 3 210800 0 0
+/orders/edit/47/ 1 127383 0 0
+/jobs/edit/601/ 1 64279 0 0
+/jobs/edit/978/ 3 212225 0 0
+/orders/edit/39/ 1 95678 0 0
+/inventory/materials/add/ 1 54878 0 0
+/jobs/edit/1046/ 1 70704 0 0
+/jobs/edit/831/ 2 142102 0 0
+/jobs/edit/894/ 2 140386 0 0
+/orders/edit/150/ 3 286309 0 0
+/orders/warranty/s/f3cc17141f7a442bb456a62acd78dc9b/ 1 60715 0 0
+/orders/edit/31/ 1 95497 0 0
+/jobs/edit/1007/ 1 70907 0 0
+/orders/warranty/s/77690047066443efad9c2a416ea7bf33/ 1 60356 0 0
+/orders/edit/169/ 2 202594 0 0
+/jobs/edit/1100/ 3 210714 0 0
+/orders/edit/14/ 1 119010 0 0
+/orders/edit/76/ 1 92464 0 0
+/jobs/edit/877/ 3 212198 0 0
+/orders/stage/33/ 4 326 0 0
+/orders/edit/88/ 1 95609 0 0
+/orders/stage/132/ 6 510 0 0
+/orders/edit/32/ 1 118980 0 0
+/reports/job-details/12734/export/xlsx/ 1 2952 0 0
+/orders/edit/106/ 2 207547 0 0
+/jobs/edit/932/ 3 212225 0 0
+/jobs/edit/876/ 4 283078 0 0
+/orders/stage/168/ 6 474 0 0
+/orders/edit/34/ 1 137724 0 0
+/orders/edit/12/ 1 121100 0 0
+/production_line/carpentry/assembly/ 27 1583605 0 0
+/orders/stage/122/ 12 948 0 0
+/orders/edit/19/ 1 100881 0 0
+/jobs/edit/939/ 2 141291 0 0
+/jobs/edit/864/ 1 70907 0 0
+/orders/stage/53/ 2 148 0 0
+/orders/stage/76/ 6 510 0 0
+/inventory/parts/edit/91/ 2 109205 0 0
+/jobs/edit/833/ 1 70907 0 0
+/jobs/edit/844/ 1 70907 0 0
+/reports/order-details/10/export/xlsx/ 1 2835 0 0
+/reports/job-details/4310/export/xlsx/ 1 3074 0 0
+/orders/edit/116/ 2 234374 0 0
+/reports/logs/export/pdf/ 2 10706 0 0
+/jobs/edit/802/ 1 70907 0 0
+/jobs/edit/1101/ 2 140476 0 0
+/inventory/parts/inline_update/ 20 1852 0 0
+/jobs/edit/799/ 1 70907 0 0
+/jobs/edit/1109/ 2 140882 0 0
+/maintenance/backup/accounting/ 1 2 0 0
+/jobs/edit/708/ 1 70238 0 0
+/jobs/edit/817/ 1 70907 0 0
+/jobs/edit/940/ 2 141291 0 0
+/jobs/edit/901/ 2 141318 0 0
+/jobs/edit/1056/ 1 70704 0 0
+/production_line/painting/ 3 160618 0 0
+/jobs/edit/868/ 2 141318 0 0
+/jobs/edit/895/ 3 210800 0 0
+/jobs/edit/1102/ 3 210714 0 0
+/jobs/edit/816/ 1 70907 0 0
+/inventory/parts/edit/58/ 1 54559 0 0
+/orders/edit/1/ 1 87610 0 0
+/orders/stage/152/ 6 510 0 0
+/jobs/edit/1023/ 1 70907 0 0
+/jobs/edit/960/ 3 212225 0 0
+/jobs/edit/848/ 1 70907 0 0
+/orders/edit/30/ 1 95431 0 0
+/jobs/edit/1095/ 2 140326 0 0
+/jobs/edit/903/ 5 354012 0 0
+/jobs/edit/898/ 3 212473 0 0
+/jobs/edit/865/ 2 141318 0 0
+/jobs/edit/1068/ 3 211041 0 0
+/jobs/edit/1086/ 3 211041 0 0
+/jobs/edit/809/ 1 70907 0 0
+/jobs/edit/792/ 2 141814 0 0
+/inventory/products/2/edit/ 4 315608 0 0
+/orders/warranty/s/1cd941d427234ac5a488f8a839656b6b/ 1 60725 0 1
+/jobs/edit/1078/ 2 140912 0 0
+/jobs/edit/845/ 1 70907 0 0
+/reports/job-details/1/export/pdf/ 30 277181 0 0
+/orders/edit/3/ 5 511543 0 0
+/jobs/edit/1104/ 2 140476 0 0
+/jobs/edit/990/ 3 212198 0 0
+/orders/edit/10/ 2 235024 0 0
+/jobs/edit/302/ 4 255437 0 0
+/orders/stage/144/ 6 510 0 0
+/orders/stage/55/ 1 74 0 0
+/jobs/edit/1093/ 2 141814 0 0
+/jobs/edit/614/ 1 70163 0 0
+/orders/edit/48/ 1 95407 0 0
+/jobs/edit/996/ 2 141318 0 0
+/jobs/edit/1092/ 3 211645 0 0
+/jobs/edit/997/ 2 141318 0 0
+/jobs/edit/1116/ 3 211323 0 0
+/jobs/edit/915/ 4 282857 0 0
+/jobs/edit/822/ 1 70907 0 0
+/jobs/edit/1105/ 2 141408 0 0
+/jobs/edit/1008/ 3 212198 0 0
+/jobs/edit/921/ 3 209903 0 0
+/jobs/edit/784/ 1 70704 0 0
+/jobs/edit/1091/ 3 211645 0 0
+/jobs/edit/974/ 4 283105 0 0
+/jobs/edit/1099/ 2 140882 0 0
+/orders/edit/87/ 1 101386 0 0
+/jobs/edit/829/ 1 70907 0 0
+/jobs/edit/1103/ 2 140476 0 0
+/jobs/edit/923/ 3 209705 0 0
+/users/edit/20/ 1 55747 0 0
+/orders/edit/57/ 1 108653 0 0
+/maintenance/backup/orders/ 3 485159 0 0
+/jobs/edit/1022/ 1 70907 0 0
+/orders/edit/172/ 2 202941 0 0
+/jobs/edit/810/ 1 70907 0 0
+/jobs/edit/1021/ 1 70907 0 0
+/jobs/edit/947/ 2 141760 0 0
+/jobs/edit/966/ 3 212225 0 0
+/jobs/edit/918/ 2 140188 0 0
+/jobs/edit/1094/ 2 140326 0 0
+/users/edit/19/ 2 111054 0 1
+/jobs/edit/967/ 3 212225 0 0
+/jobs/edit/946/ 2 141814 0 0
+/jobs/edit/998/ 2 141318 0 0
+/jobs/edit/965/ 3 212225 0 0
+/jobs/edit/1047/ 1 70704 0 0
+/jobs/edit/803/ 1 70907 0 0
+/jobs/edit/909/ 4 280953 0 0
+/orders/edit/158/ 3 291705 0 0
+/jobs/edit/945/ 2 141291 0 0
+/jobs/edit/1006/ 1 70907 0 0
+/jobs/edit/1015/ 2 141814 0 0
+/jobs/edit/1118/ 2 141814 0 0
+/inventory/products/6/edit/ 1 78308 0 0
+/production_line/carpentry/cutting/ 27 1441039 0 0
+/orders/edit/179/ 1 99016 0 0
+/orders/edit/9/ 3 330883 0 0
+/jobs/edit/890/ 2 140386 0 0
+/jobs/edit/1033/ 2 140885 0 0
+/orders/edit/77/ 1 92453 0 0
+/jobs/edit/301/ 5 319733 1 0
+/orders/edit/20/ 1 119100 0 0
+/jobs/edit/791/ 1 70907 0 0
+/orders/stage/131/ 6 510 0 0
+/jobs/edit/1013/ 1 70907 0 0
+/orders/edit/2/ 3 293217 0 0
+/jobs/edit/303/ 4 255403 0 0
+/jobs/edit/902/ 3 212198 0 0
+/jobs/edit/793/ 1 70907 0 0
+/jobs/edit/801/ 1 70907 0 0
+/orders/edit/114/ 4 483814 0 0
+/jobs/edit/840/ 1 70907 0 0
+/orders/stage/143/ 6 510 0 0
+/jobs/edit/917/ 2 139692 0 0
+/jobs/edit/968/ 3 212225 0 0
+/jobs/edit/995/ 2 141318 0 0
+/jobs/edit/1035/ 1 70208 0 0
+/jobs/edit/860/ 1 70907 0 0
+/jobs/edit/916/ 4 281200 0 0
+/orders/edit/90/ 1 101420 0 0
+/jobs/edit/948/ 3 212225 0 0
+/orders/edit/118/ 3 339459 0 0
+/jobs/edit/929/ 3 212198 0 0
+/orders/edit/165/ 2 202722 0 0
+/orders/stage/145/ 6 510 0 0
+/jobs/edit/823/ 1 70907 0 0
+/jobs/edit/1019/ 1 70441 0 0
+/orders/edit/101/ 1 99318 0 0
+/orders/stage/149/ 6 510 0 0
+/jobs/edit/1011/ 2 141814 0 0
+/jobs/edit/3/ 2 127218 0 0
+/jobs/edit/1012/ 1 70907 0 0
+/jobs/edit/1058/ 1 70704 0 0
+/jobs/edit/866/ 2 141318 0 0
+/jobs/edit/847/ 1 70907 0 0
+/orders/stage/147/ 6 510 0 0
+/jobs/edit/910/ 5 351367 0 0
+/jobs/edit/818/ 1 70907 0 0
+/users/edit/3/ 5 278755 0 0
+/users/edit/13/ 1 55752 0 0
+/orders/stage/146/ 18 1458 0 1
+/jobs/edit/867/ 3 212721 0 0
+/jobs/edit/1034/ 3 212171 0 0
+/jobs/edit/846/ 1 70907 0 0
+/orders/edit/134/ 2 209076 0 0
+/jobs/edit/1032/ 2 140600 0 0
+/jobs/edit/896/ 3 210827 0 0
+/jobs/edit/1088/ 3 211041 0 0
+/jobs/edit/1066/ 2 140600 0 0
+/orders/edit/167/ 1 101452 0 0
+/jobs/edit/897/ 2 141318 0 0
+/jobs/edit/1076/ 1 70208 0 0
+/jobs/edit/1014/ 1 70907 0 0
+/jobs/edit/922/ 3 209209 0 0
+/jobs/edit/815/ 1 70907 0 0
+/jobs/edit/821/ 1 70907 0 0
+/jobs/edit/1126/ 8 565620 0 0
+/inventory/parts/edit/24/ 4 217715 0 0
+/jobs/edit/874/ 4 283628 0 0
+/orders/edit/46/ 2 189114 0 0
+/jobs/edit/1039/ 2 140885 0 0
+/jobs/edit/953/ 3 212225 0 0
+/jobs/edit/859/ 1 70907 0 0
+/jobs/edit/1048/ 2 141166 0 0
+/orders/edit/25/ 3 278865 0 0
+/jobs/edit/1117/ 3 212721 0 0
+/jobs/edit/881/ 4 282012 0 0
+/orders/edit/121/ 11 1198348 0 0
+/orders/edit/93/ 1 100802 0 0
+/jobs/edit/970/ 4 283105 0 0
+/orders/stage/113/ 6 474 0 0
+/orders/edit/111/ 1 97470 0 0
+/jobs/edit/1010/ 2 141814 0 0
+/orders/edit/191/ 1 121797 0 0
+/jobs/edit/982/ 3 212198 0 0
+/jobs/edit/1257/ 1 68112 0 0
+/orders/edit/108/ 1 97647 0 0
+/jobs/edit/617/ 1 70163 0 0
+/jobs/edit/772/ 2 140326 0 0
+/jobs/edit/780/ 1 70163 0 0
+/jobs/edit/878/ 6 415415 0 0
+/orders/edit/86/ 1 101513 0 0
+/orders/edit/23/ 1 118982 0 0
+/orders/edit/95/ 9 1070935 0 0
+/production_line/upholstery/upholstery/ 3 161409 0 0
+/jobs/edit/1030/ 2 140600 0 0
+/jobs/edit/852/ 1 70907 0 0
+/jobs/edit/875/ 5 354039 0 0
+/orders/stage/140/ 6 510 0 0
+/jobs/edit/609/ 8 514256 0 0
+/orders/stage/78/ 1 74 0 0
+/orders/edit/162/ 2 202927 0 0
+/orders/edit/141/ 1 168793 0 0
+/jobs/edit/951/ 4 283105 0 0
+/jobs/edit/779/ 1 70163 0 0
+/jobs/edit/989/ 4 283078 0 0
+/jobs/edit/814/ 1 70907 0 0
+/jobs/edit/883/ 4 281214 0 0
+/orders/edit/94/ 2 207465 0 0
+/jobs/edit/1149/ 1 67955 0 0
+/orders/warranty/s/9a9512dd09704abea061c8451deb2544/ 2 121232 0 0
+/orders/edit/29/ 2 188518 0 0
+/orders/edit/21/ 1 118957 0 0
+/orders/edit/22/ 1 115147 0 0
+/inventory/products/4/edit/ 2 156868 0 0
+/jobs/edit/964/ 3 212721 0 0
+/jobs/edit/839/ 1 70907 0 0
+/orders/stage/148/ 6 510 0 0
+/jobs/edit/1057/ 2 141572 0 0
+/jobs/edit/933/ 3 212171 0 0
+/orders/edit/151/ 1 106249 0 0
+/jobs/edit/944/ 2 141318 0 0
+/orders/warranty/s/1014918959e9481d9a34632b5cd2a54d/ 1 60385 0 1
+/orders/stage/180/ 45 3612 0 0
+/orders/stage/151/ 6 510 0 0
+/orders/edit/91/ 4 426472 0 0
+/jobs/edit/1087/ 2 140882 0 0
+/jobs/edit/931/ 1 70411 0 0
+/inventory/models/1/edit/ 3 155802 0 0
+/orders/stage/115/ 7 584 0 0
+/orders/edit/99/ 1 117221 0 0
+/jobs/edit/994/ 4 283132 0 0
+/orders/edit/104/ 1 98162 0 0
+/orders/edit/24/ 1 119074 0 0
+/jobs/edit/786/ 1 70441 0 0
+/jobs/edit/977/ 3 212225 0 0
+/jobs/edit/787/ 2 140882 0 0
+/orders/warranty/s/de55b20cf899420e9e348900fdcd60f0/ 2 121456 0 0
+/orders/edit/92/ 1 95336 0 0
+/jobs/edit/976/ 5 354039 0 0
+/jobs/edit/832/ 2 142102 0 0
+/inventory/materials/edit/1/ 3 165042 0 0
+/jobs/edit/857/ 1 70907 0 0
+/static/fonts/Vazirmatn/Vazirmatn-Bold.ttf 1 123036 0 0
+/jobs/edit/856/ 2 142098 0 0
+/jobs/edit/935/ 1 70411 0 0
+/orders/edit/73/ 1 95556 0 0
+/jobs/edit/804/ 1 70907 0 0
+/jobs/edit/1037/ 2 140885 0 0
+/orders/warranty/s/05de67df3f6e44fe8b4e5e862bdb58ee/ 1 60724 0 0
+/orders/edit/98/ 1 98830 0 0
+/orders/stage/124/ 6 510 0 0
+/jobs/edit/1043/ 1 70907 0 0
+/jobs/edit/794/ 1 70907 0 0
+/jobs/edit/1110/ 2 140326 0 0
+/orders/stage/134/ 6 510 0 0
+/orders/warranty/s/09776cb53b7f427e962f2a7e0de2da07/ 1 60737 0 0
+/jobs/edit/830/ 1 70907 0 0
+/orders/warranty/s/5735f368b4c3486a8670947c4610a538/ 1 60252 0 0
+/orders/edit/160/ 2 203024 0 0
+/jobs/edit/777/ 1 70163 0 0
+/jobs/edit/1045/ 2 141572 0 0
+/jobs/edit/986/ 4 283078 0 0
+/maintenance/backup/inventory/ 2 157519 0 0
+/orders/edit/28/ 1 110133 0 0
+/jobs/edit/776/ 1 70163 0 0
+/orders/edit/159/ 2 203473 0 0
+/jobs/edit/1017/ 1 70907 0 0
+/jobs/edit/938/ 3 211702 0 0
+/jobs/edit/987/ 2 141318 0 0
+/orders/edit/174/ 2 203694 0 0
+/orders/edit/74/ 1 95287 0 0
+/jobs/edit/871/ 5 353985 0 0
+/orders/edit/16/ 1 137670 0 0
+/jobs/edit/824/ 1 70907 0 0
+/orders/warranty/s/74753d0c2e7e458b8c8107d9845cc56d/ 1 60391 0 0
+/reports/job-details/9999/export/xlsx/ 1 3307 0 0
+/jobs/edit/1080/ 3 211870 0 0
+/jobs/edit/782/ 1 70163 0 0
+/jobs/edit/1044/ 2 141166 0 0
+/jobs/edit/888/ 3 210800 0 0
+/jobs/edit/837/ 1 70907 0 0
+/users/edit/14/ 1 55755 0 0
+/jobs/edit/770/ 1 70163 0 0
+/users/list/ 36 3011654 0 0
+/jobs/edit/980/ 4 283628 0 0
+/jobs/edit/955/ 5 354012 0 0
+/jobs/edit/836/ 1 70907 0 0
+/jobs/edit/885/ 5 351628 0 0
+/jobs/edit/850/ 1 70907 0 0
+/orders/edit/71/ 1 111860 0 0
+/orders/edit/181/ 1 229112 0 0
+/jobs/edit/958/ 3 212225 0 0
+/jobs/edit/1042/ 1 70411 0 0
+/maintenance/backup/production/ 2 278513 0 0
+/jobs/edit/1041/ 2 140912 0 0
+/jobs/edit/979/ 3 212225 0 0
+/orders/edit/36/ 1 119086 0 0
+/jobs/edit/873/ 4 283078 0 0
+/inventory/products/1/edit/ 8 629414 0 1
+/jobs/edit/1049/ 2 140600 0 0
+/maintenance/ 29 2103875 0 0
+/orders/edit/72/ 6 1116137 0 0
+/jobs/edit/1050/ 2 141166 0 0
+/jobs/edit/789/ 1 70907 0 0
+/jobs/export/list/xlsx/ 1 23062 0 0
+/orders/edit/119/ 1 95394 0 0
+/jobs/edit/811/ 1 70907 0 0
+/orders/edit/6/ 4 372388 0 0
+/jobs/edit/1054/ 2 140600 0 0
+/jobs/edit/907/ 4 281422 0 0
+/jobs/edit/1038/ 3 212171 0 0
+/orders/edit/7/ 1 143259 0 0
+/jobs/edit/906/ 4 280953 0 0
+/jobs/edit/1082/ 3 211870 0 0
+/jobs/edit/954/ 3 212694 0 0
+/jobs/edit/1113/ 2 140882 0 0
+/jobs/edit/1089/ 4 281482 0 0
+/production_line/upholstery/sewing/ 1 53774 0 0
+/orders/edit/97/ 1 98556 0 0
+/inventory/materials/ 21 1285592 0 0
+/admin/login/ 1 4182 1 1
+/jobs/edit/1081/ 2 141166 0 0
+/jobs/edit/912/ 3 210539 0 0
+/jobs/edit/825/ 2 142102 0 0
+/jobs/edit/1051/ 3 212137 0 0
+/jobs/edit/920/ 3 209903 0 0
+/orders/edit/109/ 1 97587 0 0
+/jobs/edit/1059/ 1 70704 0 0
+/jobs/edit/1040/ 1 70208 0 0
+/orders/stage/38/ 7 584 0 0
+/jobs/edit/828/ 1 70907 0 0
+/jobs/edit/884/ 5 352205 0 0
+/jobs/edit/813/ 1 70907 0 0
+/jobs/edit/1084/ 3 211041 0 0
+/jobs/edit/919/ 3 209903 0 0
+/jobs/edit/1106/ 2 141408 0 0
+/jobs/edit/1018/ 1 70907 0 0
+/jobs/edit/1115/ 2 140882 0 0
+/jobs/edit/1052/ 1 70704 0 0
+/orders/edit/27/ 1 136557 0 0
+/orders/edit/70/ 1 108529 0 0
+/jobs/edit/892/ 2 140855 0 0
+/jobs/edit/927/ 2 141318 0 0
+/jobs/edit/798/ 1 70907 0 0
+/jobs/edit/1139/ 2 140154 0 0
+/orders/stage/174/ 1 74 0 0
+/maintenance/backup/ 9 5614286 0 4
+/jobs/edit/5/ 1 63498 0 0
+/jobs/edit/926/ 3 212225 0 0
+/jobs/edit/1053/ 1 70704 0 0
+/jobs/edit/849/ 1 70907 0 0
+/jobs/edit/1085/ 3 211645 0 0
+/jobs/edit/943/ 2 141318 0 0
+/users/add/ 4 219708 0 0
+/jobs/edit/991/ 2 141318 0 0
+/jobs/edit/934/ 1 70411 0 0
+/jobs/edit/869/ 3 212198 0 0
+/jobs/edit/963/ 5 353985 0 0
+/orders/stage/142/ 6 510 0 0
+/jobs/edit/1114/ 2 140882 0 0
+/jobs/edit/805/ 1 70907 0 0
+/inventory/parts/add/ 4 216829 0 0
+/jobs/edit/1112/ 2 140326 0 0
+/jobs/edit/1055/ 2 141408 0 0
+/jobs/edit/941/ 2 141291 0 0
+/jobs/edit/900/ 2 141318 0 0
+/orders/warranty/s/8482927bd8954112962ad447e235a41e/ 1 60413 0 1
+/orders/stage/154/ 6 510 0 0
+/jobs/edit/808/ 1 70907 0 0
+/jobs/edit/1096/ 2 140326 0 0
+/jobs/edit/993/ 2 141318 0 0
+/jobs/edit/1134/ 3 209859 0 0
+/jobs/edit/961/ 3 212225 0 0
+/jobs/edit/899/ 3 211977 0 0
+/jobs/edit/795/ 1 70907 0 0
+/orders/stage/54/ 2 148 0 0
+/jobs/edit/862/ 1 70907 0 0
+/production_line/workpage/ 6 316554 0 0
+/jobs/edit/1083/ 4 282574 0 0
+/jobs/edit/1119/ 3 211319 0 0
+/jobs/edit/842/ 1 70907 0 0
+/jobs/edit/1111/ 3 210489 0 0
+/jobs/edit/820/ 1 70907 0 0
+/jobs/edit/1028/ 2 140600 0 0
+/jobs/edit/1125/ 3 212112 0 0
+/orders/stage/155/ 13 1094 0 0
+/production_line/undercoating/ 16 867920 0 0
+/production_line/packaging/ 3 160503 0 0
+/jobs/edit/186/ 2 127436 0 0
+/orders/edit/17/ 1 137643 0 0
+/jobs/edit/796/ 1 70907 0 0
+/jobs/edit/797/ 1 70907 0 0
+/jobs/edit/928/ 2 141318 0 0
+/orders/edit/45/ 1 95376 0 0
+/static/fonts/Vazirmatn/Vazirmatn-Regular.ttf 3 368256 0 0
+/orders/edit/157/ 2 202771 0 0
+/jobs/edit/984/ 3 212198 0 0
+/jobs/edit/913/ 4 283641 0 0
+/jobs/edit/1065/ 3 212379 0 0
+/jobs/edit/819/ 1 70907 0 0
+/jobs/edit/1075/ 1 69956 0 0
+/jobs/edit/1004/ 2 141318 0 0
+/maintenance/backup/users/ 1 10757 0 1
+/jobs/edit/774/ 1 70163 0 0
+/orders/stage/175/ 2 148 0 0
+/jobs/edit/807/ 1 70907 0 0
+/jobs/edit/911/ 7 491719 0 0
+/orders/edit/43/ 1 108995 0 0
+/users/edit/22/ 1 55732 0 0
+/production_line/upholstery/ 7 354925 0 0
+/jobs/edit/1002/ 3 212198 0 0
+/jobs/edit/806/ 1 70907 0 0
+/jobs/edit/1123/ 3 211323 0 0
+/orders/stage/130/ 6 510 0 0
+/orders/stage/179/ 4 316 0 0
+/orders/warranty/s/8d629e94bebe460497a14d6a4a5edc7c/ 1 60724 0 0
+/jobs/edit/854/ 1 70907 0 0
+/jobs/edit/1098/ 2 140882 0 0
+/orders/stage/177/ 2 148 0 0
+/jobs/edit/1073/ 1 70665 0 0
+/orders/edit/155/ 8 762611 0 0
+/orders/edit/37/ 2 186861 0 0
+/jobs/edit/1063/ 1 70704 0 0
+/jobs/edit/767/ 1 70163 0 0
+/jobs/edit/925/ 1 70411 0 0
+/jobs/edit/812/ 1 70907 0 0
+/jobs/edit/1001/ 3 212198 0 0
+/maintenance/backup/jobs/ 3 456180 0 0
+/jobs/edit/1009/ 1 70907 0 0
+/orders/stage/176/ 2 148 0 0
+/orders/edit/8/ 2 197938 0 0
+/inventory/products/152/edit/ 1 79404 0 0
+/orders/edit/50/ 1 122858 0 0
+/inventory/models/add/ 4 208126 0 0
+/jobs/edit/1072/ 1 70665 0 0
+/jobs/edit/841/ 1 70907 0 0
+/jobs/edit/800/ 1 70907 0 0
+/jobs/edit/1121/ 2 141258 0 0
+/jobs/edit/893/ 2 140882 0 0
+/orders/export/list/xlsx/ 1 25877 0 0
+/jobs/edit/1062/ 1 70704 0 0
+/jobs/edit/908/ 5 351106 0 0
+/orders/edit/41/ 1 136185 0 0
+/jobs/edit/861/ 1 70907 0 0
+/orders/edit/49/ 2 247434 0 0
+/jobs/edit/999/ 3 212198 0 0
+/jobs/edit/1036/ 2 141408 0 0
+/jobs/edit/1069/ 3 211268 0 0
+/orders/stage/138/ 6 510 0 0
+/jobs/edit/1003/ 3 212198 0 0
+/orders/edit/42/ 1 119030 0 0
+/jobs/edit/962/ 3 212225 0 0
+/jobs/edit/1061/ 1 70704 0 0
+/jobs/edit/1079/ 3 211870 0 0
+/jobs/edit/1122/ 3 211323 0 0
+/orders/edit/102/ 2 206897 0 0
+/reports/job-details/1/export/xlsx/ 3 8376 0 0
+/jobs/edit/942/ 1 70411 0 0
+/jobs/edit/1071/ 2 140848 0 0
+/jobs/edit/992/ 2 141318 0 0
+/orders/stage/128/ 6 510 0 0
+/jobs/edit/827/ 1 70907 0 0
+/inventory/parts/bulk_update/ 2 9382 0 0
+/jobs/edit/1124/ 3 210746 0 0
+/jobs/edit/790/ 1 70907 0 0
+/orders/edit/44/ 1 132296 0 0
+/jobs/edit/826/ 1 70907 0 0
+/orders/edit/168/ 3 304136 0 0
+/orders/edit/170/ 2 203028 0 0
+/jobs/edit/949/ 5 354012 0 0
+/orders/edit/80/ 1 104941 0 0
+/jobs/edit/1064/ 3 212479 0 0
+/jobs/edit/843/ 1 70907 0 0
+/orders/edit/115/ 4 381233 0 0
+/orders/edit/5/ 1 142627 0 0
+/jobs/edit/1192/ 1 67955 0 0
+/jobs/edit/891/ 3 210535 0 0
+/jobs/edit/969/ 5 353985 0 0
+/production_line/api/parts/ 3 13614 0 1
+/jobs/edit/834/ 1 70907 0 0
+/jobs/edit/1016/ 1 70907 0 0
+/jobs/edit/905/ 3 210539 0 0
+/jobs/edit/1108/ 2 141408 0 0
+/jobs/edit/1005/ 3 212198 0 0
+/jobs/edit/1074/ 1 70665 0 0
+/orders/warranty/s/5d2086f33b05413dbe98623e456afd10/ 1 60702 0 0
+/jobs/edit/863/ 1 70907 0 0
+/orders/edit/18/ 1 137690 0 0
+/orders/edit/112/ 1 95381 0 0
+/jobs/edit/1070/ 2 140600 0 0
+/orders/stage/75/ 6 510 0 0
+/jobs/edit/1027/ 2 140600 0 0
+/orders/edit/52/ 1 95478 0 0
+/jobs/edit/611/ 2 140322 1 0
+/orders/edit/84/ 1 101973 0 0
+/jobs/edit/1060/ 1 70907 0 0
+/orders/edit/107/ 1 97594 0 0
+/orders/edit/40/ 1 95358 0 0
+/jobs/edit/930/ 1 70411 0 0
+/jobs/edit/886/ 4 280953 0 0
+/orders/stage/158/ 6 510 0 0
+/orders/stage/141/ 6 510 0 0
+/orders/edit/51/ 1 120646 0 0
+/jobs/edit/1120/ 2 141814 0 0
+/orders/edit/122/ 2 211782 0 0
+/jobs/edit/838/ 1 70907 0 0
+/jobs/edit/887/ 3 210800 0 0
+/inventory/products/add/ 55 4394151 0 0
+/jobs/edit/957/ 5 353985 0 0
+/orders/stage/77/ 1 74 0 0
+/orders/edit/4/ 3 509786 0 0
+/reports/logs/export/xlsx/ 3 26761 0 0
+/jobs/edit/1097/ 2 140882 0 0
+/orders/edit/89/ 1 97985 0 0
+/jobs/edit/956/ 5 354535 0 0
+/jobs/edit/835/ 1 70907 0 0
+/orders/edit/81/ 1 102450 0 0
+/orders/edit/105/ 1 97514 0 0
+/jobs/edit/904/ 3 212198 0 0
+/inventory/products/inline_update/ 25 4462 0 0
+/orders/edit/82/ 1 102995 0 0
+/orders/edit/38/ 1 111929 0 0
+/orders/stage/133/ 6 510 0 0
+/orders/stage/178/ 4 316 0 0
+/orders/edit/54/ 11 1815856 0 0
+/jobs/edit/985/ 2 141318 0 0
+/orders/stage/135/ 6 510 0 0
+/orders/edit/83/ 1 95268 0 0
+/orders/edit/152/ 3 292834 0 0
+/jobs/edit/950/ 3 212225 0 0
+/jobs/edit/435/ 1 64179 0 0
+/jobs/edit/858/ 1 70907 0 0
+/orders/stage/139/ 6 510 0 0
+/jobs/edit/1260/ 1 67950 0 0
+/orders/warranty/s/54075bca4e8c43268c25cdc413f52c67/ 2 120752 0 0
+/accounting/ 30 1999769 0 1
+/jobs/edit/775/ 1 70163 0 0
+/jobs/edit/879/ 4 282012 0 0
+/orders/stage/137/ 6 510 0 0
+/production_line/carpentry/cnc_tools/ 5 270380 0 0
+/orders/edit/96/ 4 396694 0 0
+/jobs/edit/973/ 3 212721 0 0
+/jobs/edit/649/ 1 70907 0 0
+/jobs/edit/783/ 1 70163 0 0
+/orders/stage/136/ 6 510 0 0
+/orders/warranty/s/cca58a215d9f4eb18c0d97664ce02e93/ 1 60715 0 0
+/orders/edit/55/ 2 442233 0 0
+/jobs/edit/1000/ 2 141318 0 0
+/orders/stage/127/ 6 510 0 0
+/jobs/edit/971/ 4 283105 0 0
+/orders/edit/85/ 1 95418 0 0
+/jobs/edit/924/ 3 212225 0 0
+/jobs/edit/781/ 1 70163 0 0
+/orders/stage/150/ 6 510 0 0
+/orders/stage/126/ 6 510 0 0
+/orders/stage/125/ 6 510 0 0
+/orders/edit/53/ 4 374231 0 0
+/orders/edit/180/ 6 601266 0 0
+/jobs/edit/988/ 3 212198 0 0
+/orders/edit/176/ 1 101102 0 0
+/jobs/edit/937/ 1 70411 0 0
+/jobs/edit/1107/ 2 141408 0 0
+/jobs/edit/880/ 3 210800 0 0
+/jobs/edit/778/ 1 70163 0 0
+/reports/log-details/ 19 65882 0 0
+/inventory/models/ 39 2514285 0 0
+/jobs/edit/855/ 1 70907 0 0
+/jobs/edit/936/ 1 70411 0 0
+/jobs/edit/872/ 4 283628 0 0
+/orders/edit/26/ 1 136553 0 0
+/orders/stage/129/ 6 510 0 0
+END_SIDER
+
+# Payload Range - Payload Frequency
+BEGIN_FILESIZE 7
+5K+ 24124
+500-1K 485
+100-500 2745
+44-100 315
+1K-2K 2625
+2K-5K 3432
+0-44 5331
+END_FILESIZE
+
+# Request Time Range - Request Time Frequency
+BEGIN_REQUESTTIME 0
+END_REQUESTTIME

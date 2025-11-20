@@ -1,0 +1,60 @@
+<!-- PATH: /Archen/production_line/templates/production_line/unit.html -->
+{% extends "layout.html" %}
+{% load static %}
+{% block page_title %}{{ unit_name }}{% endblock %}
+
+{% block back_button %}
+  <a href="{% url 'production_line:index' %}"
+     class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-600 text-blue-700 hover:bg-blue-200">
+    بازگشت
+  </a>
+{% endblock %}
+{% block Breadcrumb %}
+<!-- Breadcrumb navigation -->
+<div class="mb-3 text-sm text-gray-600 rtl text-right">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  <a href="{% url 'production_line:index' %}" class="hover:underline">خط تولید</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">{{ unit_name }}</span>
+</div>
+{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto">
+  <div class="grid grid-cols-2 gap-6 justify-items-center">
+    {% for stage in subcards %}
+      {% with stage_url=None %}
+        {% if is_manager %}
+          {% if unit_slug == 'carpentry' %}
+            {% url 'production_line:carpentry_section' stage.slug as stage_url %}
+          {% elif unit_slug == 'upholstery_unit' %}
+            {% url 'production_line:upholstery_section' stage.slug as stage_url %}
+          {% else %}
+            {% url 'production_line:section_dashboard' stage.slug as stage_url %}
+          {% endif %}
+        {% endif %}
+        {% if stage_url %}
+          <div class="icon-card">
+            <a href="{{ stage_url }}" class="icon-link" aria-label="{{ stage.name }}">
+              <span class="icon-wrapper">
+                <img src="{% static 'icons/' %}{{ stage.icon }}" alt="{{ stage.name }}">
+              </span>
+            </a>
+            <span class="icon-label">{{ stage.name }}</span>
+          </div>
+        {% else %}
+          <div class="icon-card">
+            <span class="icon-wrapper icon-wrapper--static">
+              <img src="{% static 'icons/' %}{{ stage.icon }}" alt="{{ stage.name }}">
+            </span>
+            <span class="icon-label">{{ stage.name }}</span>
+          </div>
+        {% endif %}
+      {% endwith %}
+    {% endfor %}
+  </div>
+</div>
+{% if not subcards %}
+  <p>هیچ مرحله‌ای برای نمایش وجود ندارد.</p>
+{% endif %}
+{% endblock %}

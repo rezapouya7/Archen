@@ -1,0 +1,278 @@
+<!-- PATH: /Archen/maintenance/templates/maintenance/maintenance.html -->
+{% extends "layout.html" %}
+
+{% load static %}
+{% block title %}نگه‌داری سیستم | صنایع چوبی آرچن{% endblock %}
+{% block page_title %}نگه‌داری سیستم{% endblock %}
+
+{% block back_button %}
+  <a href="{% url 'dashboard' %}"
+     class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-600 text-blue-700 hover:bg-blue-200">بازگشت</a>
+{% endblock %}
+{% block Breadcrumb %}
+<!-- Breadcrumb navigation -->
+<div class="mb-3 text-sm text-gray-600 rtl text-right">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">نگه‌داری سیستم</span>
+</div>
+{% endblock %}
+{% block content %}
+<style>
+  .maint-upload-input {
+    display: none;
+  }
+</style>
+
+<!-- Use the same patterned, semi-opaque main surface as headers; keep inner cards unchanged -->
+<div class="max-w-3xl mx-auto surface-pattern surface-elevated rounded-xl p-6 space-y-6">
+  <!-- Global backup/restore -->
+  <h3 class="w-full text-center sm:order-none sm:w-auto text-right text-sm font-semibold text-gray-700">پشتیبان‌گیری کامل از سیستم</h3>
+  <div class="border border-gray-200/60 rounded-lg bg-white/60 p-4 space-y-3">
+    <div class="flex flex-wrap items-center justify-end gap-2">
+      <a href="{% url 'maintenance:maintenance_backup' %}"
+         class="inline-flex items-center gap-1 px-3 py-2 text-xs sm:text-sm rounded-md border border-green-700 text-green-700 hover:bg-green-200" title="دانلود پشتیبان کامل پایگاه‌داده PostgreSQL">
+        {% include "maintenance/partials/icon_download.svg" %}
+        پشتیبان‌گیری کامل
+      </a>
+    </div>
+    <!-- Stack form items vertically to match mobile and other cards -->
+    <form method="post" action="{% url 'maintenance:maintenance_restore' %}" enctype="multipart/form-data" class="flex flex-col items-end gap-2" data-maint-upload="global">
+      {% csrf_token %}
+      <input type="file" id="global-upload" name="backup_file" accept=".dump,.backup,.tar,.sql" class="maint-upload-input">
+      <!-- Place filename text below the choose-file button (vertical) -->
+      <div class="flex flex-col items-end gap-1">
+        <label for="global-upload" class="inline-flex items-center gap-1 px-3 py-2 text-xs sm:text-sm rounded-md border border-dashed border-gray-400 text-gray-700 hover:bg-gray-100 cursor-pointer">
+          {% include "maintenance/partials/icon_file.svg" %}
+          انتخاب فایل
+        </label>
+        <span class="text-xs text-gray-500" data-file-name data-default="فایلی انتخاب نشده است">فایلی انتخاب نشده است</span>
+      </div>
+      <button type="submit" class="inline-flex items-center gap-1 px-3 py-2 text-xs sm:text-sm rounded-md border border-yellow-700 text-yellow-700 hover:bg-yellow-200" title="بارگذاری پشتیبان کامل پایگاه‌داده">
+        {% include "maintenance/partials/icon_upload.svg" %}
+        بارگذاری پشتیبان کامل
+      </button>
+    </form>
+  </div>
+
+  <!-- Per-app backup/restore actions -->
+  <div class="space-y-4">
+    <h3 class="text-sm font-semibold text-gray-700 text-right">پشتیبان‌گیری و بارگذاری داده‌ها به تفکیک اپ‌ها</h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <!-- Inventory -->
+  <div class="border border-gray-200/60 rounded-lg bg-white/60 p-4 space-y-3 shadow-none">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-700">انبار</span>
+          <a href="{% url 'maintenance:backup_inventory' %}" class="inline-flex items-center gap-1 px-3 py-2 text-xs sm:text-sm rounded-md border border-green-700 text-green-700 hover:bg-green-200" title="دانلود پشتیبان انبار">
+            {% include "maintenance/partials/icon_download.svg" %}
+            پشتیبان‌گیری
+          </a>
+        </div>
+        <!-- Stack inventory form items vertically (desktop too) -->
+        <form method="post" action="{% url 'maintenance:restore_inventory' %}" enctype="multipart/form-data" class="flex flex-col items-end gap-2" data-maint-upload="inventory">
+          {% csrf_token %}
+          <input type="file" id="inventory-upload" name="file" accept=".json" class="maint-upload-input">
+          <!-- Place filename text below the choose-file button (vertical) -->
+          <div class="flex flex-col items-end gap-1">
+            <label for="inventory-upload" class="inline-flex items-center gap-1 px-3 py-2 text-xs rounded-md border border-dashed border-gray-400 text-gray-700 hover:bg-gray-100 cursor-pointer">
+              {% include "maintenance/partials/icon_file.svg" %}
+              انتخاب فایل
+            </label>
+            <span class="text-xs text-gray-500" data-file-name data-default="فایلی انتخاب نشده است">فایلی انتخاب نشده است</span>
+          </div>
+          <button type="submit" class="inline-flex items-center gap-1 px-3 py-2 text-xs rounded-md border border-yellow-700 text-yellow-700 hover:bg-yellow-200" title="بارگذاری پشتیبان انبار">
+            {% include "maintenance/partials/icon_upload.svg" %}
+            بارگذاری
+          </button>
+        </form>
+      </div>
+
+      <!-- Accounting -->
+      <div class="border border-gray-200/60 rounded-lg bg-white/60 p-4 space-y-3 shadow-none">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-700">حسابداری</span>
+          <a href="{% url 'maintenance:backup_accounting' %}" class="inline-flex items-center gap-1 px-3 py-2 text-xs sm:text-sm rounded-md border border-green-700 text-green-700 hover:bg-green-200" title="دانلود پشتیبان حسابداری">
+            {% include "maintenance/partials/icon_download.svg" %}
+            پشتیبان‌گیری
+          </a>
+        </div>
+        <!-- Stack accounting form items vertically (desktop too) -->
+        <form method="post" action="{% url 'maintenance:restore_accounting' %}" enctype="multipart/form-data" class="flex flex-col items-end gap-2" data-maint-upload="accounting">
+          {% csrf_token %}
+          <input type="file" id="accounting-upload" name="file" accept=".json" class="maint-upload-input">
+          <!-- Place filename text below the choose-file button (vertical) -->
+          <div class="flex flex-col items-end gap-1">
+            <label for="accounting-upload" class="inline-flex items-center gap-1 px-3 py-2 text-xs rounded-md border border-dashed border-gray-400 text-gray-700 hover:bg-gray-100 cursor-pointer">
+              {% include "maintenance/partials/icon_file.svg" %}
+              انتخاب فایل
+            </label>
+            <span class="text-xs text-gray-500" data-file-name data-default="فایلی انتخاب نشده است">فایلی انتخاب نشده است</span>
+          </div>
+          <button type="submit" class="inline-flex items-center gap-1 px-3 py-2 text-xs rounded-md border border-yellow-700 text-yellow-700 hover:bg-yellow-200" title="بارگذاری پشتیبان حسابداری">
+            {% include "maintenance/partials/icon_upload.svg" %}
+            بارگذاری
+          </button>
+        </form>
+      </div>
+
+      <!-- Production line -->
+      <div class="border border-gray-200/60 rounded-lg bg-white/60 p-4 space-y-3 shadow-none">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-700">خط تولید</span>
+          <a href="{% url 'maintenance:backup_production' %}" class="inline-flex items-center gap-1 px-3 py-2 text-xs sm:text-sm rounded-md border border-green-700 text-green-700 hover:bg-green-200" title="دانلود پشتیبان خط تولید">
+            {% include "maintenance/partials/icon_download.svg" %}
+            پشتیبان‌گیری
+          </a>
+        </div>
+        <!-- Stack production form items vertically (desktop too) -->
+        <form method="post" action="{% url 'maintenance:restore_production' %}" enctype="multipart/form-data" class="flex flex-col items-end gap-2" data-maint-upload="production">
+          {% csrf_token %}
+          <input type="file" id="production-upload" name="file" accept=".json" class="maint-upload-input">
+          <!-- Place filename text below the choose-file button (vertical) -->
+          <div class="flex flex-col items-end gap-1">
+            <label for="production-upload" class="inline-flex items-center gap-1 px-3 py-2 text-xs rounded-md border border-dashed border-gray-400 text-gray-700 hover:bg-gray-100 cursor-pointer">
+              {% include "maintenance/partials/icon_file.svg" %}
+              انتخاب فایل
+            </label>
+            <span class="text-xs text-gray-500" data-file-name data-default="فایلی انتخاب نشده است">فایلی انتخاب نشده است</span>
+          </div>
+          <button type="submit" class="inline-flex items-center gap-1 px-3 py-2 text-xs rounded-md border border-yellow-700 text-yellow-700 hover:bg-yellow-200" title="بارگذاری پشتیبان خط تولید">
+            {% include "maintenance/partials/icon_upload.svg" %}
+            بارگذاری
+          </button>
+        </form>
+      </div>
+
+      <!-- Jobs -->
+      <div class="border border-gray-200/60 rounded-lg bg-white/60 p-4 space-y-3 shadow-none">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-700">کارها</span>
+          <a href="{% url 'maintenance:backup_jobs' %}" class="inline-flex items-center gap-1 px-3 py-2 text-xs sm:text-sm rounded-md border border-green-700 text-green-700 hover:bg-green-200" title="دانلود پشتیبان کارها">
+            {% include "maintenance/partials/icon_download.svg" %}
+            پشتیبان‌گیری
+          </a>
+        </div>
+        <!-- Stack jobs form items vertically (desktop too) -->
+        <form method="post" action="{% url 'maintenance:restore_jobs' %}" enctype="multipart/form-data" class="flex flex-col items-end gap-2" data-maint-upload="jobs">
+          {% csrf_token %}
+          <input type="file" id="jobs-upload" name="file" accept=".json" class="maint-upload-input">
+          <!-- Place filename text below the choose-file button (vertical) -->
+          <div class="flex flex-col items-end gap-1">
+            <label for="jobs-upload" class="inline-flex items-center gap-1 px-3 py-2 text-xs rounded-md border border-dashed border-gray-400 text-gray-700 hover:bg-gray-100 cursor-pointer">
+              {% include "maintenance/partials/icon_file.svg" %}
+              انتخاب فایل
+            </label>
+            <span class="text-xs text-gray-500" data-file-name data-default="فایلی انتخاب نشده است">فایلی انتخاب نشده است</span>
+          </div>
+          <button type="submit" class="inline-flex items-center gap-1 px-3 py-2 text-xs rounded-md border border-yellow-700 text-yellow-700 hover:bg-yellow-200" title="بارگذاری پشتیبان کارها">
+            {% include "maintenance/partials/icon_upload.svg" %}
+            بارگذاری
+          </button>
+        </form>
+      </div>
+
+      <!-- Orders -->
+      <div class="border border-gray-200/60 rounded-lg bg-white/60 p-4 space-y-3 shadow-none">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-700">سفارش‌ها</span>
+          <a href="{% url 'maintenance:backup_orders' %}" class="inline-flex items-center gap-1 px-3 py-2 text-xs sm:text-sm rounded-md border border-green-700 text-green-700 hover:bg-green-200" title="دانلود پشتیبان سفارش‌ها">
+            {% include "maintenance/partials/icon_download.svg" %}
+            پشتیبان‌گیری
+          </a>
+        </div>
+        <!-- Stack orders form items vertically (desktop too) -->
+        <form method="post" action="{% url 'maintenance:restore_orders' %}" enctype="multipart/form-data" class="flex flex-col items-end gap-2" data-maint-upload="orders">
+          {% csrf_token %}
+          <input type="file" id="orders-upload" name="file" accept=".json" class="maint-upload-input">
+          <!-- Place filename text below the choose-file button (vertical) -->
+          <div class="flex flex-col items-end gap-1">
+            <label for="orders-upload" class="inline-flex items-center gap-1 px-3 py-2 text-xs rounded-md border border-dashed border-gray-400 text-gray-700 hover:bg-gray-100 cursor-pointer">
+              {% include "maintenance/partials/icon_file.svg" %}
+              انتخاب فایل
+            </label>
+            <span class="text-xs text-gray-500" data-file-name data-default="فایلی انتخاب نشده است">فایلی انتخاب نشده است</span>
+          </div>
+          <button type="submit" class="inline-flex items-center gap-1 px-3 py-2 text-xs rounded-md border border-yellow-700 text-yellow-700 hover:bg-yellow-200" title="بارگذاری پشتیبان سفارش‌ها">
+            {% include "maintenance/partials/icon_upload.svg" %}
+            بارگذاری
+          </button>
+        </form>
+      </div>
+
+      <!-- Users -->
+  <div class="border border-gray-200/60 rounded-lg bg-white/60 p-4 space-y-3 shadow-none">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-700">کاربران</span>
+          <a href="{% url 'maintenance:backup_users' %}" class="inline-flex items-center gap-1 px-3 py-2 text-xs sm:text-sm rounded-md border border-green-700 text-green-700 hover:bg-green-200" title="دانلود پشتیبان کاربران">
+            {% include "maintenance/partials/icon_download.svg" %}
+            پشتیبان‌گیری
+          </a>
+        </div>
+        <!-- Stack users form items vertically (desktop too) -->
+        <form method="post" action="{% url 'maintenance:restore_users' %}" enctype="multipart/form-data" class="flex flex-col items-end gap-2" data-maint-upload="users">
+          {% csrf_token %}
+          <input type="file" id="users-upload" name="file" accept=".json" class="maint-upload-input">
+          <!-- Place filename text below the choose-file button (vertical) -->
+          <div class="flex flex-col items-end gap-1">
+            <label for="users-upload" class="inline-flex items-center gap-1 px-3 py-2 text-xs rounded-md border border-dashed border-gray-400 text-gray-700 hover:bg-gray-100 cursor-pointer">
+              {% include "maintenance/partials/icon_file.svg" %}
+              انتخاب فایل
+            </label>
+            <span class="text-xs text-gray-500" data-file-name data-default="فایلی انتخاب نشده است">فایلی انتخاب نشده است</span>
+          </div>
+          <button type="submit" class="inline-flex items-center gap-1 px-3 py-2 text-xs rounded-md border border-yellow-700 text-yellow-700 hover:bg-yellow-200" title="بارگذاری پشتیبان کاربران">
+            {% include "maintenance/partials/icon_upload.svg" %}
+            بارگذاری
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="space-y-3">
+    <p class="text-sm text-gray-600">
+      اقدامات زیر مخرب هستند. قبل از انجام، مطمئن شوید پشتیبان دارید.
+    </p>
+
+    <form method="post" action="{% url 'maintenance:maintenance_action' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="purge_logs">
+      <button type="submit" class="w-full rounded-lg border border-red-700 text-red-700 px-4 py-2 font-bold hover:bg-red-200">
+        حذف همهٔ گزارش‌ها (ProductionLog)
+      </button>
+    </form>
+
+    <form method="post" action="{% url 'maintenance:maintenance_action' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="purge_logs_and_zero">
+      <button type="submit" class="w-full rounded-lg border border-red-800 text-red-800 px-4 py-2 font-bold hover:bg-red-200">
+        حذف همهٔ گزارش‌ها + صفرکردن موجودی‌ها (Part &amp; ProductStock)
+      </button>
+    </form>
+
+    <form method="post" action="{% url 'maintenance:maintenance_action' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="rebuild_stocks">
+      <button type="submit" class="w-full rounded-lg border border-blue-700 text-blue-700 px-4 py-2 font-bold hover:bg-blue-200">
+        بازسازی موجودی‌ها از روی گزارش‌های فعلی
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  (function () {
+    document.querySelectorAll('[data-maint-upload]').forEach(function (wrapper) {
+      var input = wrapper.querySelector('input[type="file"]');
+      var label = wrapper.querySelector('[data-file-name]');
+      if (!input || !label) {
+        return;
+      }
+      var defaultText = label.dataset.default || label.textContent;
+      input.addEventListener('change', function () {
+        label.textContent = input.files && input.files.length ? input.files[0].name : defaultText;
+      });
+    });
+  })();
+</script>
+{% endblock %}

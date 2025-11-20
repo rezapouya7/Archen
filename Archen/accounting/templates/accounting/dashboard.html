@@ -1,0 +1,359 @@
+<!-- PATH: /Archen/accounting/templates/accounting/dashboard.html -->
+{% extends 'layout.html' %}
+
+{% load static %}
+{% block title %}حسابداری | صنایع چوبی آرچن{% endblock %}
+{% block page_title %}حسابداری{% endblock %}
+
+{% block back_button %}
+  <a href="{% url 'dashboard' %}"
+     class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-600 text-blue-700 hover:bg-blue-200">
+    بازگشت
+  </a>
+{% endblock %}
+{% block Breadcrumb %}
+<!-- Breadcrumb navigation -->
+<div class="mb-3 text-sm text-gray-600 rtl text-right">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">حسابداری</span>
+</div>
+{% endblock %}
+{% block content %}
+<div id="finance-dashboard-root"
+     class="max-w-5xl mx-auto p-4 surface-pattern surface-elevated rounded-xl"
+     data-update-url="{% url 'accounting:update_record' %}"
+     data-initial-period="{{ selected_period }}">
+  <style>
+    /* Keep date strings ordered in RTL tables */
+    .num-ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+    /*
+     * Subtle brightness/glow for top summary tiles.
+     * Uses a radial gradient overlay via ::after to avoid affecting text color.
+     */
+    .summary-tile {
+      position: relative;
+      overflow: hidden;
+      /* subtle 3D elevation: base drop shadows */
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.06), 0 6px 16px rgba(0,0,0,0.06);
+      transition: transform .15s ease, box-shadow .2s ease;
+    }
+    .summary-tile::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      /* create a gentle highlight from top center fading down */
+      background: radial-gradient(120% 80% at 50% -20%, var(--glow-color, rgba(0,0,0,0)) 0%, transparent 60%);
+      opacity: 0.18;
+      pointer-events: none;
+    }
+    /* Per-card glow hues (Tehran locale, Farsi UI) */
+    #summary-receivable { --glow-color: rgba(16,185,129,0.45); }   /* emerald-500 */
+    #summary-payable   { --glow-color: rgba(239,68,68,0.45); }    /* rose-500 */
+    #summary-net       { --glow-color: rgba(99,102,241,0.45); }   /* indigo-500 */
+    /* small inner highlight for a brighter surface */
+    /* Slight pop on hover for a 3D feel */
+    .summary-tile:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 4px 10px rgba(0,0,0,0.08), 0 12px 28px rgba(0,0,0,0.08); transform: translateY(-1px); }
+    .summary-tile:active { transform: translateY(0); }
+  </style>
+  {# Finance summary chart #}
+  <h3 class="font-bold mb-2">نمودار حساب‌های مالی</h3>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+    <div id="summary-receivable" class="summary-tile rounded-xl bg-emerald-500/10 border border-emerald-400/30 px-4 py-3 text-right">
+      <p class="text-xs font-bold text-emerald-600">بستانکاری کل</p>
+      <p class="mt-1 text-2xl font-semibold text-emerald-700"><span id="finance-total-receivable">{{ finance_totals.receivable|default:0 }}</span></p>
+    </div>
+    <div id="summary-payable" class="summary-tile rounded-xl bg-rose-500/10 border border-rose-400/30 px-4 py-3 text-right">
+      <p class="text-xs font-bold text-rose-600">بدهکاری کل</p>
+      <p class="mt-1 text-2xl font-semibold text-rose-700"><span id="finance-total-payable">{{ finance_totals.payable|default:0 }}</span></p>
+    </div>
+    <div id="summary-net" class="summary-tile rounded-xl bg-indigo-500/10 border border-indigo-400/30 px-4 py-3 text-right">
+      <p class="text-xs font-bold text-indigo-600">خالص جریان</p>
+      {% with netn=finance_totals.net|default:0 %}
+        <p id="finance-total-net-wrap" class="mt-1 text-2xl font-semibold {% if netn|add:0 >= 0 %}text-emerald-700{% else %}text-rose-700{% endif %}"><span id="finance-total-net">{{ netn }}</span></p>
+      {% endwith %}
+    </div>
+  </div>
+
+  <div class="flex flex-wrap gap-2 mb-3">
+    <a href="?period=daily"
+       class="px-3 py-1 rounded-full text-sm {% if selected_period == 'daily' %}border border-green-700 text-green-700 hover:bg-green-200{% else %}border border-gray-300 text-gray-700 hover:bg-gray-200{% endif %}">
+      روزانه
+    </a>
+    <a href="?period=weekly"
+       class="px-3 py-1 rounded-full text-sm {% if selected_period == 'weekly' %}border border-green-700 text-green-700 hover:bg-green-200{% else %}border border-gray-300 text-gray-700 hover:bg-gray-200{% endif %}">
+      هفتگی
+    </a>
+    <a href="?period=monthly"
+       class="px-3 py-1 rounded-full text-sm {% if selected_period == 'monthly' %}border border-green-700 text-green-700 hover:bg-green-200{% else %}border border-gray-300 text-gray-700 hover:bg-gray-200{% endif %}">
+      ماهانه
+    </a>
+    <a href="?period=yearly"
+       class="px-3 py-1 rounded-full text-sm {% if selected_period == 'yearly' %}border border-green-700 text-green-700 hover:bg-green-200{% else %}border border-gray-300 text-gray-700 hover:bg-gray-200{% endif %}">
+      سالانه
+    </a>
+  </div>
+
+  <div class="relative mb-6 bg-white/60 rounded-xl p-2 border border-gray-200/60">
+    <canvas id="financeTrendChart" class="w-full h-64"></canvas>
+    <div id="finance-feedback" class="hidden absolute left-4 bottom-4 rounded-lg px-3 py-2 text-sm font-medium"></div>
+  </div>
+
+  {# Finance records table #}
+  <h3 class="font-bold mb-2">حساب‌های مالی ثبت شده</h3>
+  <div class="overflow-x-auto">
+    <form method="post" action="{% url 'accounting:bulk_delete' %}" id="finance-bulk-delete-form">
+      {% csrf_token %}
+      <div class="flex items-center justify-between mb-2">
+        <div class="text-xs text-gray-600">برای حذف، ردیف‌ها را انتخاب و دکمه حذف را بزنید.</div>
+        <button type="submit" id="financeBulkDeleteBtn" class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-red-700 text-red-700 hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+          <svg class="w-4 h-4 ms-0 me-1 text-red-700" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M9 3h6a1 1 0 0 1 1 1v1h3v2H5V5h3V4a1 1 0 0 1 1-1zm-2 6h10v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9zm2 2v8h2v-8H9zm4 0v8h2v-8h-2z"/>
+          </svg>
+          حذف
+        </button>
+      </div>
+    <!-- Prevent word wrapping on mobile; restore normal on >=sm -->
+    <table class="min-w-full text-sm whitespace-nowrap sm:whitespace-normal" data-finance-table>
+      <thead class="bg-gray-50 text-gray-700">
+        <tr>
+          <th class="px-3 py-2 text-right w-8">
+            <input type="checkbox" id="finance-select-all" class="align-middle">
+          </th>
+          <th class="px-3 py-2 text-right">نام شخص/شرکت</th>
+          <th class="px-3 py-2 text-right">مبلغ</th>
+          <th class="px-3 py-2 text-right">نوع حساب</th>
+          <th class="px-3 py-2 text-right">توضیح</th>
+          <th class="px-3 py-2 text-right">تاریخ ثبت</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for fin in finance_records %}
+          <tr class="border-b last:border-b-0 finance-row" data-record-id="{{ fin.id }}">
+            <td class="px-3 py-2 align-top">
+              <input type="checkbox" name="ids" value="{{ fin.id }}" class="finance-select">
+            </td>
+            <td class="px-3 py-2 align-top whitespace-nowrap" data-field="entity_name" data-editable="true">{{ fin.entity_name }}</td>
+            <td class="px-3 py-2 align-top font-mono" data-field="amount" data-type="number" data-editable="true">{{ fin.amount }}</td>
+            <td class="px-3 py-2 align-top" data-field="record_type">
+              <button type="button"
+                      class="record-type-toggle px-2 py-1 text-xs rounded {% if fin.record_type == 'receivable' %}border border-green-700 text-green-700 hover:bg-green-200{% elif fin.record_type == 'payable' %}border border-red-700 text-red-700 hover:bg-red-200{% else %}border border-gray-300 text-gray-700 hover:bg-gray-100{% endif %}"
+                      data-value="{{ fin.record_type }}">
+                {{ fin.record_type_label }}
+              </button>
+            </td>
+            <td class="px-3 py-2 align-top" data-field="description" data-editable="true">{{ fin.description|default:'' }}</td>
+            <td class="px-3 py-2 align-top text-xs text-gray-500"><span class="num-ltr">{{ fin.created_at }}</span></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="px-3 py-4 text-center text-gray-500">حسابی ثبت نشده است.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </form>
+  </div>
+
+  {# Form for adding a new finance record #}
+  <div class="mt-6">
+    <h3 class="font-bold mb-2">ثبت حساب مالی جدید</h3>
+    <form method="post" novalidate class="grid grid-cols-1 gap-4">
+      {% csrf_token %}
+      {% if finance_form.non_field_errors %}
+        <div class="text-red-600 text-sm space-y-1">
+          {% for err in finance_form.non_field_errors %}<p>{{ err }}</p>{% endfor %}
+        </div>
+      {% endif %}
+      <div>
+        <label for="id_entity_name" class="block mb-1 text-sm font-medium">نام شخص/شرکت</label>
+        {{ finance_form.entity_name }}
+        {% if finance_form.entity_name.errors %}
+          <div class="text-xs text-red-600 mt-1">
+            {% for e in finance_form.entity_name.errors %}<p>{{ e }}</p>{% endfor %}
+          </div>
+        {% endif %}
+      </div>
+      <div>
+        <label for="id_amount" class="block mb-1 text-sm font-medium">مبلغ</label>
+        {{ finance_form.amount }}
+        {% if finance_form.amount.errors %}
+          <div class="text-xs text-red-600 mt-1">
+            {% for e in finance_form.amount.errors %}<p>{{ e }}</p>{% endfor %}
+          </div>
+        {% endif %}
+      </div>
+      <div>
+        <label for="id_record_type" class="block mb-1 text-sm font-medium">نوع حساب</label>
+        {{ finance_form.record_type }}
+        {% if finance_form.record_type.errors %}
+          <div class="text-xs text-red-600 mt-1">
+            {% for e in finance_form.record_type.errors %}<p>{{ e }}</p>{% endfor %}
+          </div>
+        {% endif %}
+      </div>
+      <div>
+        <label for="id_description" class="block mb-1 text-sm font-medium">توضیحات</label>
+        {{ finance_form.description }}
+      </div>
+      <div class="flex flex-col sm:flex-row gap-4 pt-4 justify-between">
+        <a href="{% url 'accounting:dashboard' %}"
+           class="w-full sm:w-1/2 px-4 py-2 rounded text-sm font-semibold text-center border border-red-700 text-red-700 hover:bg-red-200 transition">
+          انصراف
+        </a>
+        <button type="submit"
+                class="w-full sm:w-1/2 px-4 py-2 rounded text-sm font-semibold text-center border border-green-700 text-green-700 hover:bg-green-200 transition">
+          ذخیره
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{{ finance_initial_payload|json_script:"finance-initial-data" }}
+<script src="{% static 'js/chart.lite.v2.js' %}?v=20251016"></script>
+<script>
+  (function() {
+    const payload = JSON.parse(document.getElementById('finance-initial-data').textContent || '{}') || {};
+    const chart = payload.chart || { labels: [], receivable: [], payable: [], net: [], labels_display: [], highlight_index: -1 };
+    const labels = (chart.labels_display && chart.labels_display.length) ? chart.labels_display : (chart.labels || []);
+    const dataRec = (chart.receivable || []).map(Number);
+    const dataPay = (chart.payable || []).map(v => -Math.abs(Number(v||0)));
+    const canvas = document.getElementById('financeTrendChart');
+    const ctx = canvas.getContext('2d');
+    window.__financeChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'بستانکاری', data: dataRec, backgroundColor: '#22c55e' },
+          { label: 'بدهکاری', data: dataPay, backgroundColor: '#ef4444' },
+        ]
+      },
+      options: {
+        responsive: true,
+        darkTheme: true,
+        legend: true,
+        animationDuration: 700,
+        highlightIndex: (typeof chart.highlight_index === 'number') ? chart.highlight_index : -1,
+        // Pass selected period for mobile tilt in weekly/monthly
+        period: '{{ selected_period }}'
+      }
+    });
+
+    function updateChart(chartData) {
+      try {
+        if (!window.__financeChart || !chartData) return;
+        const cfg = window.__financeChart.config || {};
+        cfg.type = 'bar';
+        cfg.data = {
+          labels: chartData.labels || [],
+          datasets: [
+            { label: 'بستانکاری', data: (chartData.receivable||[]).map(Number), backgroundColor: '#22c55e' },
+            { label: 'بدهکاری', data: (chartData.payable||[]).map(v => -Math.abs(Number(v||0))), backgroundColor: '#ef4444' },
+          ]
+        };
+        cfg.options = {
+          responsive: true,
+          darkTheme: true,
+          legend: true,
+          animationDuration: 600,
+          highlightIndex: (typeof chartData.highlight_index === 'number') ? chartData.highlight_index : -1,
+          period: chartData.period || '{{ selected_period }}'
+        };
+        window.__financeChart.draw();
+      } catch (_) {}
+    }
+
+    // Inline editing: click-to-edit on td[data-editable]
+    const root = document.getElementById('finance-dashboard-root');
+    const updateUrl = root.getAttribute('data-update-url');
+    function postJSON(url, data) {
+      return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.querySelector('input[name=csrfmiddlewaretoken]')||{}).value || '' }, body: JSON.stringify(data) });
+    }
+    document.querySelectorAll('td[data-editable=true]').forEach((cell) => {
+      cell.addEventListener('click', () => {
+        if (cell.querySelector('input,textarea')) return;
+        const type = cell.getAttribute('data-type') || 'text';
+        const val = cell.textContent.trim();
+        const input = type === 'number' ? document.createElement('input') : document.createElement('textarea');
+        input.className = 'w-full border border-gray-300 rounded px-2 py-1 text-sm';
+        if (type === 'number') { input.type = 'text'; input.setAttribute('inputmode', 'numeric'); input.setAttribute('pattern', '[0-9,\.]+'); }
+        input.value = val;
+        cell.innerHTML = '';
+        cell.appendChild(input);
+        input.focus();
+        input.addEventListener('blur', () => saveCell(cell, input.value));
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); input.blur(); } });
+      });
+    });
+    document.querySelectorAll('.record-type-toggle').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const current = btn.getAttribute('data-value') === 'receivable' ? 'payable' : 'receivable';
+        const row = btn.closest('tr.finance-row');
+        const id = row.getAttribute('data-record-id');
+        const entity = row.querySelector('[data-field=entity_name]').textContent.trim();
+        const amount = row.querySelector('[data-field=amount]').textContent.trim();
+        const desc = row.querySelector('[data-field=description]')?.textContent.trim();
+        postJSON(updateUrl, { id, entity_name: entity, amount, description: desc, record_type: current, period: (root.getAttribute('data-initial-period')||'daily') })
+          .then(r => r.json())
+          .then(resp => { if (resp.ok) { btn.setAttribute('data-value', current); btn.textContent = (current==='receivable'?'بستانکاری':'بدهکاری'); btn.classList.remove('border-red-700','text-red-700','hover:bg-red-200','border-green-700','text-green-700','hover:bg-green-200'); if (current==='receivable'){ btn.classList.add('border-green-700','text-green-700','hover:bg-green-200'); } else { btn.classList.add('border-red-700','text-red-700','hover:bg-red-200'); } updateTotals(resp); if (resp.chart) updateChart(resp.chart); try { window.__archenBroadcast && window.__archenBroadcast({type:'data-changed', scope:'accounting'}); } catch(_){} } });
+      });
+    });
+    function isValidAmount(v) {
+      const s = String(v||'').trim();
+      if (!s) return false;
+      // Allow digits, optional commas, optional decimal
+      const ok = /^\d{1,3}(,\d{3})*(\.\d+)?$|^\d+(\.\d+)?$/.test(s);
+      if (!ok) return false;
+      // Prevent extremely large values (basic sanity, 15 digits before decimal)
+      const digits = s.replace(/[^0-9]/g, '');
+      return digits.length <= 15;
+    }
+
+    function saveCell(cell, newVal) {
+      const row = cell.closest('tr.finance-row');
+      const id = row.getAttribute('data-record-id');
+      const field = cell.getAttribute('data-field');
+      const entity = field === 'entity_name' ? newVal : row.querySelector('[data-field=entity_name]').textContent.trim();
+      let amount = field === 'amount' ? newVal : row.querySelector('[data-field=amount]').textContent.trim();
+      if (!isValidAmount(amount)) { cell.textContent = (field==='amount' ? row.querySelector('[data-field=amount]').textContent.trim() : newVal); return; }
+      const desc = field === 'description' ? newVal : (row.querySelector('[data-field=description]')?.textContent.trim() || '');
+      const rtype = row.querySelector('.record-type-toggle')?.getAttribute('data-value') || 'receivable';
+      postJSON(updateUrl, { id, entity_name: entity, amount: amount, description: desc, record_type: rtype, period: (root.getAttribute('data-initial-period')||'daily') })
+        .then(r => r.json()).then(resp => { if (resp.ok) { cell.textContent = newVal; updateTotals(resp); try { window.__archenBroadcast && window.__archenBroadcast({type:'data-changed', scope:'accounting'}); } catch(_){} } else { cell.textContent = cell.textContent || ''; } });
+    }
+    function updateTotals(resp) {
+      try {
+        document.getElementById('finance-total-receivable').textContent = resp.totals.receivable;
+        document.getElementById('finance-total-payable').textContent = resp.totals.payable;
+        var netVal = resp.totals.net;
+        var netSpan = document.getElementById('finance-total-net');
+        if (netSpan) { netSpan.textContent = netVal; }
+        var wrap = document.getElementById('finance-total-net-wrap');
+        if (wrap) {
+          // Decide color by numeric sign; handle both number and string
+          var n = (typeof netVal === 'number') ? netVal : Number(String(netVal).replace(/[^0-9\-\.]/g,'')) || 0;
+          wrap.classList.remove('text-emerald-700','text-rose-700');
+          wrap.classList.add(n >= 0 ? 'text-emerald-700' : 'text-rose-700');
+        }
+        if (resp.chart) { updateChart(resp.chart); }
+      } catch (e) {}
+    }
+    const selAll = document.getElementById('finance-select-all');
+    if (selAll) {
+      selAll.addEventListener('change', () => {
+        document.querySelectorAll('.finance-select').forEach(ch => { ch.checked = selAll.checked; });
+        const any = !!document.querySelector('.finance-select:checked');
+        const delBtn = document.getElementById('financeBulkDeleteBtn');
+        if (delBtn) delBtn.disabled = !any;
+      });
+    }
+    document.addEventListener('change', (e) => {
+      if (e.target && e.target.classList.contains('finance-select')) {
+        const any = !!document.querySelector('.finance-select:checked');
+        const delBtn = document.getElementById('financeBulkDeleteBtn');
+        if (delBtn) delBtn.disabled = !any;
+      }
+    });
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,635 @@
+<!-- PATH: /Archen/production_line/templates/production_line/work_entry.html -->
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block back_button %}
+  <a href="{{ back_url|default:'/'|urlencode }}" class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-600 text-blue-700 hover:bg-blue-200">بازگشت</a>
+{% endblock %}
+
+{% block title %}{{ title|default:page_title }} | صنایع چوبی آرچن{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+{% if sections %}
+  <div class="py-6 font-sans rtl text-right">
+    <div class="max-w-md mx-auto px-4">
+      <!-- Match header patterned surface for visual consistency with login -->
+      <div class="surface-pattern surface-elevated rounded-xl p-6">
+        <form method="post" class="space-y-4" novalidate>
+          {% csrf_token %}
+          <div class="flex flex-col">
+            <!-- Bolden primary field labels on work entry form -->
+            <label for="section-select" class="text-sm text-gray-700 mb-1 font-bold">{{ page_title|default:'انتخاب بخش برای ثبت کار روزانه' }}</label>
+            <select id="section-select" name="section" class="w-full border border-gray-300 p-2 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              {% for sec in sections %}
+                <option value="{{ sec.slug }}">{{ sec.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="pt-4 w-full flex flex-col sm:flex-row gap-3">
+            <a href="{{ back_url|default:'/' }}" class="w-full sm:w-1/2 px-4 py-2 rounded text-sm font-semibold text-center border border-red-700 text-red-700 hover:bg-red-200 transition">انصراف</a>
+            <button type="submit" class="w-full sm:w-1/2 px-4 py-2 bg-green-600 text-white rounded text-sm font-semibold text-center hover:bg-green-700 transition">ادامه</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="bg-transparent p-6 font-sans rtl text-right">
+    <!-- Use the same patterned/elevated surface as header -->
+    <div id="workEntryCard" class="w-full max-w-xl mx-auto surface-pattern surface-elevated p-6 rounded-xl">
+      <style>
+        /* Normalize dropdown colors for job number across browsers */
+        #job_number_select { background-color:#ffffff; color:#111827; font-weight:700; }
+        #job_number_select option { background-color:#ffffff; color:#111827; font-weight:700; }
+        #job_number_select option:checked { background-color:#e5e7eb; color:#111827; }
+        #job_number_select option:hover { background-color:#f3f4f6; color:#111827; }
+      </style>
+
+      {% if form.non_field_errors %}
+        <div class="text-red-600 text-sm space-y-1">
+          {% for err in form.non_field_errors %}<p>{{ err }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" novalidate class="space-y-4">
+        {% csrf_token %}
+        <div class="space-y-4">
+
+        {% if is_products_based %}
+          {% if open_jobs_data and open_jobs_data|length > 0 %}
+        <div>
+          <label for="job_number_select" class="block text-sm text-gray-700 mb-1 font-bold">شماره کار</label>
+          <div class="flex items-center gap-2">
+            <input id="job_quick_search" type="number" inputmode="numeric" pattern="\d*" autofocus
+                   class="flex-1 min-w-0 rounded-md border border-gray-300 p-2 text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="جستجوی سریع" aria-label="جستجوی سریع شماره کار" />
+
+            <select id="job_number_select" name="job_number" data-section="{{ section }}"
+                    class="flex-1 min-w-0 rounded-md border border-gray-300 p-2 text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    {% if selected_job_number %}data-initial="{{ selected_job_number }}"{% endif %}>
+              {% for job in open_jobs_data %}
+                <option value="{{ job.job_number }}"
+                        data-color="{{ job.color }}"
+                        data-text="{{ job.text_color }}"
+                        data-label="{{ job.job_label }}"
+                        {% if job.job_number == selected_job_number %}selected{% endif %}>
+                  {{ job.job_number }} ({{ job.label_display }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% if form.job_number.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.job_number.errors|striptags }}</p>
+          {% endif %}
+        </div>
+          {% else %}
+        <div>
+          <label for="job_number_select" class="block text-sm text-gray-700 mb-1 font-bold">شماره کار</label>
+          <select id="job_number_select" name="job_number"
+                  class="block w-full rounded-md border border-gray-300 p-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+                  disabled>
+            <option value="">شماره کاری موجود نیست</option>
+          </select>
+          {% if form.job_number.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.job_number.errors|striptags }}</p>
+          {% endif %}
+        </div>
+          {% endif %}
+        {% endif %}
+
+
+          <div>
+            <label class="block text-sm text-gray-700 mb-1 font-bold">مدل{% if form.model.field.required %}<span class="text-red-600">*</span>{% endif %}</label>
+            
+
+{% if is_products_based %}
+  <div class="space-y-1">
+    <!-- Read-only textbox for model (user cannot change it directly) -->
+    <input type="text" id="model_display" class="block w-full rounded-md border border-gray-300 p-2.5 text-sm bg-gray-100 cursor-not-allowed" readonly value="{{ initial_model|default:'' }}">
+    <!-- Keep original form field hidden to submit actual value -->
+    <div class="hidden">{{ form.model }}</div>
+  </div>
+{% else %}
+  {{ form.model }}
+{% endif %}
+            {% if form.model.errors %}
+              <p class="mt-1 text-xs text-red-600">{{ form.model.errors|striptags }}</p>
+            {% endif %}
+          </div>
+
+          {% if form.part.is_hidden == False %}
+          <div id="row-part">
+            <label class="block text-sm font-medium text-gray-700 mb-1">قطعه{% if form.part.field.required %}<span class="text-red-600">*</span>{% endif %}</label>
+            {{ form.part }}
+            {% if form.part.errors %}<p class="mt-1 text-xs text-red-600">{{ form.part.errors|striptags }}</p>{% endif %}
+          </div>
+          {% endif %}
+
+          {% if form.product.is_hidden == False %}
+          <div id="row-product">
+            <label class="block text-sm text-gray-700 mb-1 font-bold">محصول</label>
+            
+  
+{% if is_products_based %}
+  <!-- Read-only textbox for product -->
+  <input type="text" id="product_display" class="block w-full rounded-md border border-gray-300 p-2.5 text-sm bg-gray-100 cursor-not-allowed" readonly value="{{ initial_product|default:'' }}">
+  <!-- Keep original form field hidden to submit actual value -->
+  <div class="hidden">{{ form.product }}</div>
+{% else %}
+  {{ form.product }}
+{% endif %}
+{% if form.product.errors %}<p class="mt-1 text-xs text-red-600">{{ form.product.errors|striptags }}</p>{% endif %}
+
+{% if is_products_based and form.product.is_hidden and form.product_display %}
+          <div id="row-product">
+            <label class="block text-sm font-medium text-gray-700 mb-1">محصول</label>
+            {{ form.product_display }}
+            {% if form.product.errors %}<p class="mt-1 text-xs text-red-600">{{ form.product.errors|striptags }}</p>{% endif %}
+          </div>
+{% endif %}
+          </div>
+          {% endif %}
+
+          {% if form.produced_qty.is_hidden == False or form.scrap_qty.is_hidden == False %}
+          <div id="row-qty" class="grid grid-cols-2 gap-4">
+            {% if form.produced_qty.is_hidden == False %}
+            <div>
+              <label class="block text-sm text-gray-700 mb-1 font-bold">تعداد تولید</label>
+              {{ form.produced_qty }}
+              {% if form.produced_qty.errors %}<p class="mt-1 text-xs text-red-600">{{ form.produced_qty.errors|striptags }}</p>{% endif %}
+            </div>
+            {% endif %}
+            {% if form.scrap_qty.is_hidden == False %}
+            <div>
+              <label class="block text-sm text-gray-700 mb-1 font-bold">تعداد ضایعات</label>
+              {{ form.scrap_qty }}
+              {% if form.scrap_qty.errors %}<p class="mt-1 text-xs text-red-600">{{ form.scrap_qty.errors|striptags }}</p>{% endif %}
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          {% if form.is_scrap.is_hidden == False or form.is_external.is_hidden == False %}
+          <div class="flex items-center gap-8">
+            {% if form.is_scrap.is_hidden == False %}
+            <label class="inline-flex items-center cursor-pointer">
+              {{ form.is_scrap }} <span class="ml-1 text-sm text-gray-700">{{ form.is_scrap.label }}</span>
+            </label>
+            {% endif %}
+            {% if form.is_external.is_hidden == False %}
+            <label id="lbl_is_external" class="inline-flex items-center cursor-pointer">
+              {{ form.is_external }} <span class="ml-1 text-sm text-gray-700">کلاف بیرون</span>
+            </label>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          <div>
+            <label class="block text-sm text-gray-700 mb-1 font-bold">توضیحات (اختیاری)</label>
+            {{ form.note }}
+            {% if form.note.errors %}<p class="mt-1 text-xs text-red-600">{{ form.note.errors|striptags }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="mt-6 flex items-center justify-between gap-2">
+          <a href="{% url 'users:logout' %}" class="inline-flex items-center justify-center rounded-lg border border-red-700 text-red-700 px-4 py-2 font-bold hover:bg-red-200">خروج</a>
+          <button id="btnSubmitWork" type="submit" class="inline-flex items-center justify-center rounded-lg bg-green-600 text-white px-6 py-2 font-semibold hover:bg-green-700">ثبت</button>
+        </div>
+
+        <!-- Confirmation modal overlay: fixed to viewport and truly centered on all screens -->
+        <div id="workConfirmModal" class="fixed inset-0 z-50 hidden bg-black/50 grid place-items-center p-4">
+          <div class="bg-white rounded-xl p-4 w-11/12 max-w-sm rtl text-right shadow-lg">
+            <h3 class="text-base font-bold text-gray-800 mb-2">تایید ثبت</h3>
+            <p class="text-sm text-gray-700">آیا از ثبت اطلاعات این فرم مطمئن هستید؟</p>
+            <div class="mt-4 flex items-center justify-between gap-2">
+              <button type="button" id="confirmCancel" class="inline-flex items-center justify-center rounded-lg border border-red-700 text-red-700 px-4 py-2 font-bold hover:bg-red-200">انصراف</button>
+              <button type="button" id="confirmOk" class="inline-flex items-center justify-center rounded-lg bg-green-600 text-white px-6 py-2 font-semibold hover:bg-green-700">تایید</button>
+            </div>
+          </div>
+        </div>
+
+
+  <script>
+  // Confirm before submitting the daily work entry form.
+  // Uses a modal with buttons styled similar to the form's submit/cancel.
+  (function(){
+    const submitBtn = document.getElementById('btnSubmitWork');
+    const modal = document.getElementById('workConfirmModal');
+    const okBtn = document.getElementById('confirmOk');
+    const cancelBtn = document.getElementById('confirmCancel');
+    if(!submitBtn || !modal || !okBtn || !cancelBtn) return;
+
+    // Find the nearest form of the submit button
+    const form = submitBtn.closest('form');
+    if(!form) return;
+
+    // IMPORTANT: If any ancestor has CSS filter/transform/backdrop-filter,
+    // some browsers will treat position:fixed as if it's relative to that
+    // ancestor. To guarantee true viewport-centering, move the modal to body.
+    try {
+      if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+      }
+    } catch (_) { /* noop */ }
+
+    let bypass = false; // allow programmatic submit without re-confirm
+
+    function openModal(){
+      // Remove hidden class first
+      modal.classList.remove('hidden');
+      // Force robust centering via inline Flexbox to avoid any class/style conflicts
+      modal.style.position = 'fixed';
+      modal.style.top = '0';
+      modal.style.right = '0';
+      modal.style.bottom = '0';
+      modal.style.left = '0';
+      modal.style.display = 'flex';
+      modal.style.alignItems = 'center';
+      modal.style.justifyContent = 'center';
+      modal.style.padding = '1rem';
+      modal.style.background = 'rgba(0,0,0,0.5)';
+      modal.style.zIndex = '9999';
+      // Lock background scroll while modal is open
+      try { document.documentElement.style.overflow='hidden'; document.body.style.overflow='hidden'; } catch(_){ }
+      try{ okBtn.focus(); }catch(_){ }
+    }
+    function closeModal(){
+      // Hide reliably regardless of utility classes
+      modal.style.display = 'none';
+      modal.classList.add('hidden');
+      // Restore scroll
+      try { document.documentElement.style.overflow=''; document.body.style.overflow=''; } catch(_){ }
+    }
+
+    form.addEventListener('submit', function(e){
+      if(bypass) return; // already confirmed
+      e.preventDefault();
+      openModal();
+    });
+
+    okBtn.addEventListener('click', function(){
+      closeModal();
+      bypass = true;
+      // Submit the form programmatically after confirmation
+      try { form.requestSubmit ? form.requestSubmit() : form.submit(); } catch(_){ form.submit(); }
+    });
+    cancelBtn.addEventListener('click', function(){ closeModal(); });
+    // Close on overlay click (outside dialog)
+    modal.addEventListener('click', function(e){ if(e.target === modal) closeModal(); });
+    // Basic Esc handling
+    document.addEventListener('keydown', function(e){ if(!modal.classList.contains('hidden') && e.key === 'Escape') closeModal(); });
+  })();
+  </script>
+
+  <script>
+  /* PATCH: autofill model/product by job */
+  (function(){
+    const jobSel = document.getElementById('job_number_select');
+    if (!jobSel) return;
+
+    const modelHidden = document.getElementById('id_model');
+    const productHidden = document.getElementById('id_product');
+    const modelDisp = document.getElementById('id_model_display');
+    const productDisp = document.getElementById('id_product_display');
+
+    function fillDisplays(payload){
+      if (modelHidden && payload.model_name) modelHidden.value = payload.model_name || '';
+      if (productHidden && payload.product && payload.product.id) productHidden.value = payload.product.id;
+      if (modelDisp) modelDisp.value = payload.model_name || '';
+      if (productDisp) productDisp.value = (payload.product && payload.product.name) ? payload.product.name : '';
+    }
+
+    async function fetchAndFill(){
+      const jn = jobSel.value;
+      if (!jn) return;
+      try {
+        const resp = await fetch("{% url 'production_line:api_job_details' %}?job_number=" + encodeURIComponent(jn), {credentials: 'same-origin'});
+        const data = await resp.json();
+        if (data && data.ok) fillDisplays(data);
+      } catch(e) { /* no-op */ }
+    }
+
+    jobSel.addEventListener('change', fetchAndFill);
+    fetchAndFill();
+  })();
+  </script>
+
+      </form>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    const idModel    = document.getElementById('id_model');
+    const idPart     = document.getElementById('id_part');
+    const idProduct  = document.getElementById('id_product');
+    const rowPart    = document.getElementById('row-part');
+    const rowProduct = document.getElementById('row-product');
+
+    /**
+     * Clear all options from the given select element, insert a placeholder
+     * option with the specified text, and disable the element.  Without
+     * inserting a placeholder the select would appear blank when no
+     * options are available.  This helper keeps the UI consistent with
+     * the server-side defaults (e.g. "انتخاب محصول").
+     *
+     * @param {HTMLSelectElement} sel
+     * @param {string} placeholder The placeholder text to display.
+     */
+    function clearOptions(sel, placeholder){
+      if(!sel) return;
+      while(sel.firstChild) sel.removeChild(sel.firstChild);
+      const opt=document.createElement('option');
+      opt.value='';
+      opt.textContent=placeholder || '';
+      sel.appendChild(opt);
+      sel.setAttribute('disabled','disabled');
+    }
+
+    idModel && idModel.addEventListener('change', function() {
+      const model = this.value;
+      if (!model) {
+        // When the user clears the model selection, reset part and product
+        // dropdowns to their default placeholders.  Without this, the
+        // selects would appear empty and confusing to the user.
+        if (idPart) clearOptions(idPart, 'انتخاب قطعه');
+        if (idProduct) clearOptions(idProduct, 'انتخاب محصول');
+        return;
+      }
+
+      if (idPart && rowPart && !rowPart.classList.contains('hidden')) {
+        fetch(`/production_line/api/parts/?model=${encodeURIComponent(model)}`)
+          .then(r => r.json())
+          .then(({results}) => {
+            while (idPart.firstChild) idPart.removeChild(idPart.firstChild);
+            if (results.length === 0) { idPart.setAttribute('disabled','disabled'); return; }
+            idPart.removeAttribute('disabled');
+            results.forEach(({id,name}) => { const o=document.createElement('option'); o.value=id; o.textContent=name; idPart.appendChild(o); });
+          });
+      }
+
+      if (idProduct && rowProduct && !rowProduct.classList.contains('hidden')) {
+        fetch(`/production_line/api/products/?model=${encodeURIComponent(model)}`)
+          .then(r => r.json())
+          .then(({results}) => {
+            while (idProduct.firstChild) idProduct.removeChild(idProduct.firstChild);
+            if (results.length === 0) { idProduct.setAttribute('disabled','disabled'); return; }
+            idProduct.removeAttribute('disabled');
+            results.forEach(({id,name}) => { const o=document.createElement('option'); o.value=id; o.textContent=name; idProduct.appendChild(o); });
+          });
+      }
+    });
+  })();
+  </script>
+
+  <script>
+  // English: Auto-select numeric inputs on focus for work entry form (e.g., cut quantities).
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.querySelector('#workEntryCard form') || document.querySelector('form');
+    if (!form) return;
+    var inputs = form.querySelectorAll('input[type="number"]');
+    inputs.forEach(function (el) {
+      el.addEventListener('focus', function () {
+        try {
+          setTimeout(function () {
+            if (el.select) {
+              el.select();
+            }
+          }, 0);
+        } catch (_) {
+          // noop
+        }
+      });
+    });
+  });
+  </script>
+
+  <script>
+  // Disable "is_external" (کلاف بیرون) when selected job is deposit (امانی)
+  (function(){
+    const sel = document.getElementById('job_number_select');
+    const ext = document.getElementById('id_is_external');
+    const lbl = document.getElementById('lbl_is_external');
+    if (!sel || !ext || !lbl) return;
+
+    function syncExternalState(){
+      // Read job label from selected option's dataset
+      const opt = sel.options[sel.selectedIndex];
+      const jl = (opt && (opt.getAttribute('data-label') || '')).toLowerCase();
+      const isDeposit = jl === 'deposit';
+      if (isDeposit){
+        // Force off and disable the checkbox when job is deposit
+        ext.checked = false;
+        ext.setAttribute('disabled', 'disabled');
+        lbl.classList.add('opacity-50');
+        lbl.setAttribute('title', 'برای کار امانی امکان انتخاب کلاف بیرون وجود ندارد.');
+      } else {
+        ext.removeAttribute('disabled');
+        lbl.classList.remove('opacity-50');
+        lbl.removeAttribute('title');
+      }
+    }
+
+    sel.addEventListener('change', syncExternalState);
+    // Initialize on page load based on current selection
+    syncExternalState();
+  })();
+  </script>
+
+  <script>
+  (function() {
+    const sel = document.getElementById('job_number_select');
+    if (!sel) return;
+    function applyColours(){
+      // Standardize to project select style: white background, dark text
+      sel.style.backgroundColor = '#ffffff';
+      sel.style.color = '#111827';
+    }
+    applyColours();
+    sel.addEventListener('change', applyColours);
+  })();
+  </script>
+
+  <script>
+  // --- Auto-fill model & product when job number changes ---
+  (function(){
+    // Helper: set read-only fields and underlying hidden fields
+    function setModelProduct(modelName, productId, productName){
+      var modelDisplay = document.getElementById('model_display');
+      if (modelDisplay) modelDisplay.value = modelName || '';
+
+      var productDisplay = document.getElementById('product_display');
+      if (productDisplay) productDisplay.value = productName || '';
+
+      // Try update actual form fields if present
+      var idModel = document.getElementById('id_model');
+      if (idModel) { idModel.value = modelName || ''; }
+
+      var idProduct = document.getElementById('id_product');
+      if (idProduct) { idProduct.value = productId || ''; }
+    }
+
+    function fetchJobInfo(jobNumber){
+      if (!jobNumber) { setModelProduct('', null, ''); return; }
+      fetch(`/production_line/api/job-info/?job_number=${encodeURIComponent(jobNumber)}`)
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          if (data && data.found){
+            setModelProduct(data.model_name, data.product_id, data.product_name);
+          } else {
+            setModelProduct('', null, '');
+          }
+        })
+        .catch(() => setModelProduct('', null, ''));
+    }
+
+    var sel = document.getElementById('job_number_select');
+    if (sel){
+      sel.addEventListener('change', function(){
+        var jobNumber = this.value || '';
+        fetchJobInfo(jobNumber);
+      });
+      // Initialize from current selection (if any)
+      var init = sel.getAttribute('data-initial') || (sel.value || '');
+      if (init) fetchJobInfo(init);
+    }
+  })();
+  </script>
+
+  <script>
+  // Inject/bind a quick numeric search input to filter job list and auto-select on exact match
+  // Works with pre-rendered input or creates one if not present.
+  (function(){
+    var sel = document.getElementById('job_number_select');
+    if (!sel) return;
+
+    // Reuse existing quick search if present; otherwise create one
+    var qs = document.getElementById('job_quick_search');
+    if (!qs){
+      qs = document.createElement('input');
+      qs.type = 'number';
+      qs.id = 'job_quick_search';
+      qs.setAttribute('inputmode', 'numeric');
+      qs.setAttribute('pattern', '\\d*');
+      qs.setAttribute('aria-label', '\u062C\u0633\u062A\u062C\u0648\u06CC \u0633\u0631\u06CC\u0639 \u0634\u0645\u0627\u0631\u0647 \u06A9\u0627\u0631');
+      qs.placeholder = '\u062C\u0633\u062A\u062C\u0648\u06CC \u0633\u0631\u06CC\u0639';
+      // Equal width with the select using flex growth on all viewports
+      qs.className = 'flex-1 min-w-0 rounded-md border border-gray-300 p-2 text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500';
+      try {
+        sel.parentElement.insertBefore(qs, sel);
+      } catch(e) {
+        var container = sel.closest('div') || sel.parentElement;
+        if (container) container.insertBefore(qs, sel);
+      }
+    } else {
+      // Ensure equal width if input already exists in markup
+      qs.className = 'flex-1 min-w-0 rounded-md border border-gray-300 p-2 text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500';
+    }
+
+    // Cache original option set for filtering/restore
+    var original = Array.prototype.map.call(sel.options, function(o){
+      return {
+        value: o.value,
+        text: o.textContent,
+        color: o.getAttribute('data-color') || '',
+        textColor: o.getAttribute('data-text') || '',
+        label: o.getAttribute('data-label') || ''
+      };
+    });
+
+    // Track the latest search request to avoid race conditions where
+    // a slow response for an older term overwrites the current list.
+    var lastRequestId = 0;
+
+    function renderOptions(list, resetToFirst){
+      // Keep current selection if still present, unless we explicitly
+      // want to reset to the first (smallest) job number.
+      var prev = sel.value;
+      while (sel.firstChild) sel.removeChild(sel.firstChild);
+      list.forEach(function(o){
+        var opt = document.createElement('option');
+        opt.value = o.value;
+        opt.textContent = o.text;
+        if (o.color) opt.setAttribute('data-color', o.color);
+        if (o.textColor) opt.setAttribute('data-text', o.textColor);
+        if (o.label) opt.setAttribute('data-label', o.label);
+        sel.appendChild(opt);
+      });
+      if (resetToFirst) {
+        if (list.length) sel.value = list[0].value;
+      } else if (list.some(function(o){ return o.value === prev; })) {
+        sel.value = prev;
+      }
+    }
+
+    function onQuickSearch(){
+      var term = String(qs.value || '').trim();
+      if (!term){
+        // New logical "state" for cleared search; ignore any older responses.
+        lastRequestId++;
+        // When search is cleared, restore the full list and
+        // reset selection to the first (smallest) job number.
+        renderOptions(original, true);
+        if (sel.value) {
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        return;
+      }
+      // Remote search: keep dropdown in sync with server-side jobs and section rules
+      var section = sel.getAttribute('data-section') || '';
+      var url = '/production_line/api/jobs/search?term=' + encodeURIComponent(term) + (section ? ('&section=' + encodeURIComponent(section)) : '');
+      var requestId = ++lastRequestId;
+      fetch(url, {credentials:'same-origin'})
+        .then(function(r){ return r.ok ? r.json() : {results: []}; })
+        .then(function(data){
+          // Ignore stale responses that do not belong to the latest search term
+          if (requestId !== lastRequestId) return;
+          var list = (data && data.results) || [];
+          if (list.length) {
+            // When we have matches, show only the filtered set
+            renderOptions(list, false);
+          } else {
+            // When there is search text but no matches, keep the list empty
+            // so that the dropdown does not fall back to the first job.
+            renderOptions([], true);
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        })
+        .catch(function(){
+          if (requestId !== lastRequestId) return;
+          renderOptions(original, false);
+        });
+      // Auto-select exact match from current cached list if present
+      var exact = original.find(function(o){ return o.value === term; });
+      if (exact){
+        sel.value = exact.value;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    qs.addEventListener('input', onQuickSearch);
+  })();
+  </script>
+
+  <script>
+  // Ensure the quick search input is focused by default on page load and text is selected
+  // This enforces the UX requirement that the search box, not the job number select, receives initial focus.
+  (function(){
+    function focusQuickSearch(){
+      var qs = document.getElementById('job_quick_search');
+      if (!qs) return;
+      // Focus without scrolling the page; select existing value if any
+      try { qs.focus({ preventScroll: true }); } catch(e) { qs.focus(); }
+      try { qs.select(); } catch(e) { /* no-op: selection may fail if empty */ }
+    }
+    if (document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', focusQuickSearch);
+    } else {
+      focusQuickSearch();
+    }
+  })();
+  </script>
+
+{% endif %}
+{% endblock %}

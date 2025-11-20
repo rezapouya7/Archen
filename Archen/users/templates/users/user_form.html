@@ -1,0 +1,81 @@
+<!-- PATH: /Archen/users/templates/users/user_form.html -->
+{% extends 'layout.html' %}
+
+
+{% load static %}
+{% block title %}
+  {% if is_editing %}ویرایش کاربر{% else %}افزودن کاربر{% endif %} | صنایع چوبی آرچن
+{% endblock %}
+
+{% block page_title %}
+  {% if is_editing %}ویرایش کاربر{% else %}افزودن کاربر{% endif %}
+{% endblock %}
+
+{% block back_button %}
+  <a href="{% url 'users:user_list' %}"
+     class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-600 text-blue-700 hover:bg-blue-200">
+    بازگشت
+  </a>
+{% endblock %}
+{% block Breadcrumb %}
+<!-- Breadcrumb navigation -->
+<div class="mb-3 text-sm text-gray-600 rtl text-right">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  {# Use the correct URL name for the user list; `users:user_list` is defined in urls.py #}
+  <a href="{% url 'users:user_list' %}" class="hover:underline">کاربران</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">{% if is_editing %}ویرایش کاربر{% else %}افزودن کاربر{% endif %}</span>
+</div>
+{% endblock %}
+{% block content %}
+<div class="bg-transparent p-6 font-sans rtl text-right">
+  <!-- Match the main header's patterned look for user form -->
+  <div class="w-full max-w-xl mx-auto surface-pattern surface-elevated p-6 rounded-xl">
+
+    
+    <form method="post" novalidate class="grid grid-cols-1 gap-4">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="text-red-600 text-sm space-y-1">
+          {% for err in form.non_field_errors %}<p>{{ err }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
+      {% for field in form.visible_fields %}
+        <div class="flex flex-col">
+          <!-- Bolden input labels on user form -->
+          <label for="{{ field.id_for_label }}" class="text-sm text-gray-700 mb-1 font-bold">
+            {{ field.label }}{% if field.field.required %}<span class="text-red-600">*</span>{% endif %}
+          </label>
+
+          {{ field }}
+
+          {% if field.help_text %}
+            <p class="text-xs text-gray-500 mt-1">{{ field.help_text }}</p>
+          {% endif %}
+
+          {% if field.errors %}
+            <div class="text-xs text-red-600 mt-1">
+              {% for e in field.errors %}<p>{{ e }}</p>{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      <div class="flex flex-col sm:flex-row gap-4 pt-6 justify-between">
+        <a href="{% url 'users:user_list' %}"
+           class="w-full sm:w-1/2 px-4 py-2 rounded text-sm font-semibold text-center border border-red-700 text-red-700 hover:bg-red-200 transition">
+          انصراف
+        </a>
+        <button type="submit"
+                class="w-full sm:w-1/2 px-4 py-2 rounded text-sm font-semibold text-center border border-green-700 text-green-700 hover:bg-green-200 transition">
+                {% if is_editing %}ذخیره{% else %}ایجاد{% endif %}
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

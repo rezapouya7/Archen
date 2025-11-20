@@ -1,0 +1,113 @@
+{# PATH: /Archen/reports/templates/reports/job_details_export_xls.html #}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>گزارش شماره کار {{ job.job_number }}</title>
+  <style>
+    body { font-family: Tahoma, Arial, sans-serif; color:#111827; }
+    h1 { font-size: 18px; margin: 0 0 10px; }
+    h2 { font-size: 14px; margin: 14px 0 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: right; }
+    thead th { background: #f3f4f6; font-weight: 700; }
+    .muted { color:#6b7280; }
+    .badge { display:inline-block; padding:4px 8px; border-radius:9999px; border:1px solid #d1d5db; }
+    .grid { display: table; width: 100%; border-spacing: 10px 0; }
+    .grid .cell { display: table-cell; width: 33%; vertical-align: top; }
+    .box { border:1px solid #e5e7eb; background:#f9fafb; padding:8px; border-radius:6px; }
+  </style>
+</head>
+<body>
+  <h1>گزارش جزئیات شماره کار: {{ job.job_number }}</h1>
+
+  <div class="grid">
+    <div class="cell">
+      <div class="box"><div class="muted">محصول</div><div><strong>{{ job.product.name|default:'-' }}</strong></div></div>
+    </div>
+    <div class="cell">
+      <div class="box"><div class="muted">مدل</div><div><strong>{{ job.product.product_model.name|default:'-' }}</strong></div></div>
+    </div>
+    <div class="cell">
+      <div class="box">
+        <div class="muted">برچسب</div><div><strong>{{ job.get_job_label_display }}</strong></div>
+        <div class="muted" style="margin-top:6px;">وضعیت</div><div><strong>{{ job.get_status_display }}</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid" style="margin-top:8px;">
+    <div class="cell">
+      <div class="box"><div class="muted">تاریخ ایجاد</div><div>{{ created_jdt }}</div></div>
+    </div>
+    <div class="cell">
+      <div class="box"><div class="muted">تاریخ بسته شدن</div><div>{{ finished_jdt|default:'-' }}</div></div>
+    </div>
+    <div class="cell">
+      {% if job.deposit_account %}
+      <div class="box"><div class="muted">طرف حساب/مشتری</div><div>{{ job.deposit_account }}</div></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <h2>مصرف قطعات</h2>
+  <table>
+    <thead>
+      <tr><th>نام قطعه</th><th>تعداد مصرف</th></tr>
+    </thead>
+    <tbody>
+      {% if consumption.parts %}
+        {% for it in consumption.parts %}
+          <tr><td>{{ it.name }}</td><td>{{ it.qty }}</td></tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="2" class="muted">موردی ثبت نشده است.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <h2>مصرف مواد اولیه</h2>
+  <table>
+    <thead>
+      <tr><th>نام ماده</th><th>مقدار</th><th>واحد</th></tr>
+    </thead>
+    <tbody>
+      {% if consumption.materials %}
+        {% for it in consumption.materials %}
+          <tr><td>{{ it.name }}</td><td>{{ it.qty }}</td><td>{{ it.unit }}</td></tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="3" class="muted">موردی ثبت نشده است.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <h2>سوابق ثبت</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>تاریخ</th>
+        <th>زمان</th>
+        <th>بخش</th>
+        <th>کاربر</th>
+        <th>اسقاط</th>
+        <th>کلاف بیرون</th>
+        <th>توضیح</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in logs %}
+      <tr>
+        <td>{{ l.jdate }}</td>
+        <td>{% if l.logged_at %}{{ l.logged_at|date:'H:i' }}{% else %}-{% endif %}</td>
+        <td>{{ l.get_section_display }}</td>
+        <td>{{ l.user.full_name|default:l.user.username }}</td>
+        <td>{% if l.is_scrap %}بله{% else %}خیر{% endif %}</td>
+        <td>{% if l.is_external %}بله{% else %}خیر{% endif %}</td>
+        <td>{{ l.note|default:'-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!-- PATH: /Archen/inventory/templates/inventory/dashboard_inventory.html -->
+{% extends 'layout.html' %}
+{% load static %}
+{% block page_title %}انبار{% endblock %}
+{% block back_button %}
+  <a href="{% url 'dashboard' %}"
+     class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-600 text-blue-700 hover:bg-blue-200">بازگشت</a>
+{% endblock %}
+{% block Breadcrumb %}
+<!-- Breadcrumb navigation -->
+<div class="mb-3 text-sm text-gray-600 rtl text-right">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">انبار</span>
+</div>
+{% endblock %}
+{% block content %}
+<!-- Inventory sub-sections -->
+<div class="grid grid-cols-2 gap-6 justify-items-center">
+  <div class="icon-card">
+    <a href="{% url 'inventory:parts_list' %}" class="icon-link" aria-label="قطعات">
+      <span class="icon-wrapper">
+        <img src="{% static 'icons/inventory_parts.png' %}" alt="قطعات">
+      </span>
+    </a>
+    <div class="icon-label">قطعات</div>
+  </div>
+  <div class="icon-card">
+    <a href="{% url 'inventory:materials_list' %}" class="icon-link" aria-label="مواد اولیه">
+      <span class="icon-wrapper">
+        <img src="{% static 'icons/inventory_materials.png' %}" alt="مواد اولیه">
+      </span>
+    </a>
+    <div class="icon-label">مواد اولیه</div>
+  </div>
+  <div class="icon-card">
+    <a href="{% url 'inventory:products_list' %}" class="icon-link" aria-label="محصولات">
+      <span class="icon-wrapper">
+        <img src="{% static 'icons/inventory_products.png' %}" alt="محصولات">
+      </span>
+    </a>
+    <div class="icon-label">محصولات</div>
+  </div>
+  <div class="icon-card">
+    <a href="{% url 'inventory:models_list' %}" class="icon-link" aria-label="مدل‌ها">
+      <span class="icon-wrapper">
+        <img src="{% static 'icons/inventory_models.png' %}" alt="مدل‌ها">
+      </span>
+    </a>
+    <div class="icon-label">مدل‌ها</div>
+  </div>
+</div>
+{% endblock %}

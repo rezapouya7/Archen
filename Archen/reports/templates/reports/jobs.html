@@ -1,0 +1,165 @@
+<!-- PATH: /Archen/reports/templates/reports/jobs.html -->
+{% extends "layout.html" %}
+
+{% load static %}
+{% block title %}لیست شماره کارها | صنایع چوبی آرچن{% endblock %}
+{% block page_title %}لیست شماره کارها{% endblock %}
+{% block content %}
+<div class="rtl text-right p-4">
+  <style>
+    /* Ensure ISO-like dates render left-to-right in RTL */
+    .num-ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+  </style>
+  <h1 class="text-xl font-bold mb-4">لیست شماره کارها</h1>
+  <form method="get" class="mb-4">
+    <!-- Bolden simple label in jobs report filter -->
+    <label class="text-sm text-gray-700 font-bold mr-1">برچسب:</label>
+    <select name="status" class="border rounded p-1">
+      <option value="">همه</option>
+      {% for key,label in status_choices %}
+        <option value="{{ key }}" {% if status == key %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button class="px-3 py-1 bg-blue-600 text-white rounded">اعمال</button>
+  </form>
+  <div class="overflow-x-auto bg-white/60 rounded shadow-none p-2 border border-gray-200/60">
+    <!-- Prevent word wrapping on mobile; restore normal on >=sm -->
+    <table id="jobsReportTable" class="min-w-full whitespace-nowrap sm:whitespace-normal">
+      <thead>
+        <tr class="bg-gray-100 text-gray-700 text-xs sm:text-sm">
+          <th class="px-3 py-2 text-center">
+            <button type="button" class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                    data-col="0" data-type="num" onclick="sortByCol(this)">
+              شماره کار
+              <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                   viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+            </button>
+          </th>
+          <th class="px-3 py-2 text-center">
+            <button type="button" class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                    data-col="1" onclick="sortByCol(this)">
+              نوع
+              <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                   viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+            </button>
+          </th>
+          <th class="px-3 py-2 text-center">
+            <button type="button" class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                    data-col="2" onclick="sortByCol(this)">
+              مدل/نام
+              <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                   viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+            </button>
+          </th>
+          <th class="px-3 py-2 text-center">
+            <button type="button" class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                    data-col="3" onclick="sortByCol(this)">
+              بخش فعلی
+              <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                   viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+            </button>
+          </th>
+          <th class="px-3 py-2 text-center">
+            <button type="button" class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                    data-col="4" onclick="sortByCol(this)">
+              برچسب
+              <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                   viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+            </button>
+          </th>
+          <th class="px-3 py-2 text-center">
+            <button type="button" class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                    data-col="5" onclick="sortByCol(this)">
+              کد QR سفارش
+              <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                   viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+            </button>
+          </th>
+          <th class="px-3 py-2 text-center">
+            <button type="button" class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                    data-col="6" onclick="sortByCol(this)">
+              محصولات و تعداد
+              <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                   viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+            </button>
+          </th>
+          <th class="px-3 py-2 text-center">
+            <button type="button" class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                    data-col="7" data-type="num" onclick="sortByCol(this)">
+              شماره بیجک
+              <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                   viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+            </button>
+          </th>
+          <th class="px-3 py-2 text-center">
+            <button type="button" class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                    data-col="8" onclick="sortByCol(this)">
+              شروع
+              <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                   viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+            </button>
+          </th>
+          <th class="px-3 py-2 text-center">
+            <button type="button" class="sort-btn bg-transparent text-inherit text-xs sm:text-sm font-medium inline-flex items-center"
+                    data-col="9" onclick="sortByCol(this)">
+              پایان
+              <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150"
+                   viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+            </button>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for j in page_obj.object_list %}
+        <tr class="border-b">
+          <td class="px-3 py-2 font-mono whitespace-nowrap">{{ j.job_number }}</td>
+          <td class="px-3 py-2 whitespace-nowrap">{% if j.product %}محصول{% elif j.part %}قطعه{% else %}-{% endif %}</td>
+          <td class="px-3 py-2 whitespace-nowrap">
+            {% if j.product %}{{ j.product.product_model }} - {{ j.product.name }}{% elif j.part %}{{ j.part.name }}{% endif %}
+          </td>
+          <td class="px-3 py-2 whitespace-nowrap">{{ j.get_current_section_display }}</td>
+          <td class="px-3 py-2 whitespace-nowrap">
+            <span class="px-2 py-1 rounded"
+                  style="background-color: {{ j._label_color }}; color: {{ j._label_text_color }};">
+              {{ j.get_job_label_display }}
+            </span>
+          </td>
+          <td class="px-3 py-2 whitespace-nowrap">
+            {% if j.order %}
+              {{ j.order.qr_code|default:'-' }}
+            {% else %}-{% endif %}
+          </td>
+          <td class="px-3 py-2 whitespace-nowrap">
+            {% if j.order %}
+              {% with items=j.order.items.all %}
+                {% for it in items %}
+                  {{ it.product.name }}×{{ it.quantity }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+              {% endwith %}
+            {% else %}-{% endif %}
+          </td>
+          <td class="px-3 py-2 whitespace-nowrap">
+            {% if j.order %}
+              <span class="num-ltr">{{ j.order.badge_number|default:'-' }}</span>
+            {% else %}-{% endif %}
+          </td>
+          <td class="px-3 py-2 whitespace-nowrap"><span class="num-ltr">{{ j.created_at }}</span></td>
+          <td class="px-3 py-2 whitespace-nowrap"><span class="num-ltr">{{ j.finished_at }}</span></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="10" class="px-3 py-3 text-center text-gray-500">موردی یافت نشد.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="mt-3">
+    {% if page_obj.has_previous %}
+      <a class="px-3 py-1 border rounded" href="?page={{ page_obj.previous_page_number }}{% if status %}&status={{ status }}{% endif %}">قبلی</a>
+    {% endif %}
+    <span class="mx-2">صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a class="px-3 py-1 border rounded" href="?page={{ page_obj.next_page_number }}{% if status %}&status={{ status }}{% endif %}">بعدی</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

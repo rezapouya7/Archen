@@ -1,0 +1,877 @@
+<!-- PATH: /Archen/orders/templates/orders/orders_form.html -->
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}
+  {% if is_editing %}ویرایش سفارش{% else %}افزودن سفارش{% endif %} | صنایع چوبی آرچن
+{% endblock %}
+
+{% block page_title %}
+  {% if is_editing %}ویرایش سفارش{% else %}افزودن سفارش{% endif %}
+{% endblock %}
+
+{# Provide a back button in the greeting bar just like other views #}
+{% block back_button %}
+  <a href="{% url 'orders:list' %}"
+     class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-700 text-blue-700 hover:bg-blue-200">
+    بازگشت
+  </a>
+{% endblock %}
+{% block Breadcrumb %}
+<!-- Breadcrumb navigation -->
+<div class="mb-3 text-sm text-gray-600 rtl text-right">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  <a href="{% url 'orders:list' %}" class="hover:underline">لیست سفارش‌ها</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">{% if is_editing %}ویرایش سفارش{% else %}افزودن سفارش{% endif %}</span>
+</div>
+{% endblock %}
+{% block content %}
+<div class="bg-transparent p-6 font-sans rtl text-right">
+  <!-- Use the same patterned, semi-opaque surface as header -->
+  <div class="w-full max-w-3xl mx-auto surface-pattern surface-elevated p-6 rounded-xl order-card">
+
+    <!-- QR image container. On mobile it should appear centered before all fields. -->
+    <div id='order-qr' class='absolute left-4 top-4 w-[144px] h-[144px] rounded border border-gray-300 bg-white/50 hidden'></div>
+
+    <!-- Model filters (top) -->
+    <div class="mb-4">
+      {# Model filter group label #}
+      <label class="text-sm text-gray-700 mb-2 block font-bold">
+        انتخاب مدل<span class="text-red-600">*</span>
+      </label>
+      {# Responsive grid: mobile 4 columns, desktop 6 columns #}
+      <div id="model-filters" class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        {% for value,label in model_choices %}
+        <label class="inline-flex items-center gap-2 text-xs bg-gray-50 border border-gray-200 px-2 py-1 rounded hover:bg-gray-100">
+          <input type="checkbox" value="{{ value }}" class="model-filter h-4 w-4">
+          <span class="text-gray-700">{{ label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <style>
+        /* Force responsive grid for model filters independent of Tailwind build */
+        #model-filters{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:.5rem; }
+        @media (min-width:640px){ #model-filters{ grid-template-columns:repeat(6, minmax(0,1fr)); } }
+        #model-filters > label{ display:inline-flex !important; align-items:center; gap:.5rem; width:auto; min-width:0; }
+        #model-filters > label span{ white-space:nowrap; overflow:visible; text-overflow:clip; display:inline-block; max-width:100%; }
+        /* Hide QR in all contexts without removing it */
+        #order-qr{ display:none !important; }
+        #order-qr-mobile-anchor{ display:none !important; }
+      </style>
+    </div>
+
+    <form id="order-form" method="post" novalidate class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {% csrf_token %}
+
+      <!-- Hidden sinks that JS fills before submit -->
+      <div id="hidden-sinks" class="hidden">
+        {{ form.product_models }}
+        {{ form.requested_products }}
+        <input type="hidden" name="qr_code" value="{{ pre_qr_code|default:form.instance.qr_code|default:'' }}">
+      </div>
+
+      {% if form.non_field_errors %}
+        <div class="text-red-600 text-sm space-y-1">
+          {% for err in form.non_field_errors %}<p>{{ err }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
+      {# Render each visible field.  For long textareas (description & fabric_description) span both columns on larger screens. #}
+      
+      <!-- Mobile-only QR placement: inject a full-width row at the very top of the grid -->
+      <div class="sm:hidden col-span-1 flex justify-center">
+        <div class="w-32 h-32">
+          <!-- We reuse the same #order-qr node by moving it into this holder via JS on small screens -->
+          <div id="order-qr-mobile-anchor"></div>
+        </div>
+      </div>
+
+      {% for field in form.visible_fields %}
+        {% if field.name != 'current_stage' %}
+          {% if field.name == 'fabric_description' or field.name == 'description' %}
+            <div class="flex flex-col sm:col-span-2">
+          {% elif field.name == 'badge_number' %}
+            <div class="flex flex-col" id="badge-field">
+          {% else %}
+            <div class="flex flex-col">
+          {% endif %}
+              <label for="{{ field.id_for_label }}" class="text-sm text-gray-700 mb-1 font-bold">
+                {{ field.label }}{% if field.field.required %}<span class="text-red-600">*</span>{% endif %}
+              </label>
+              {{ field }}
+              {% if field.help_text %}
+                <p class="text-xs text-gray-500 mt-1">{{ field.help_text }}</p>
+              {% endif %}
+              {% if field.errors %}
+                <div class="text-xs text-red-600 mt-1">
+                  {% for e in field.errors %}<p>{{ e }}</p>{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+        {% endif %}
+      {% endfor %}
+
+      <div class="flex flex-col sm:col-span-2">
+        <label for="{{ form.current_stage.id_for_label }}" class="text-sm text-gray-700 mb-1 font-bold">مرحله فعلی</label>
+        <div class="border border-dashed border-gray-300 rounded-lg p-4 bg-white/70 flex flex-col gap-2">
+          <p class="text-xs text-gray-500 leading-6">در هر زمان می‌توانید مرحله فعلی سفارش را مشخص کنید تا در داشبورد نیز قابل مشاهده و ویرایش باشد.</p>
+          <div class="sm:w-64">{{ form.current_stage }}</div>
+        </div>
+        {% if form.current_stage.help_text %}
+          <p class="text-xs text-gray-500 mt-1">{{ form.current_stage.help_text }}</p>
+        {% endif %}
+        {% if form.current_stage.errors %}
+          <div class="text-xs text-red-600 mt-1">
+            {% for e in form.current_stage.errors %}<p>{{ e }}</p>{% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      {# QR UI is moved to the top-left container; no label or code text shown. #}
+      <!-- Products: checkbox list + tiny qty + scroll -->
+      <div class="flex flex-col sm:col-span-2">
+        <label class="text-sm text-gray-700 mb-1 font-bold">
+          انتخاب محصولات<span class="text-red-600">*</span>
+        </label>
+        <div id="products-list" class="border border-gray-200 rounded max-h-64 overflow-y-auto divide-y divide-gray-100"></div>
+        <p id="no-products" class="text-xs text-gray-500 mt-2 hidden">هیچ محصولی برای مدل‌های انتخاب‌شده وجود ندارد.</p>
+      </div>
+
+      <!-- Job numbers selection -->
+      <div class="flex flex-col sm:col-span-2 mt-4">
+        <label class="text-sm text-gray-700 mb-1 font-bold">انتخاب شماره کارها</label>
+        <!-- Job search box: client-side filter by job number -->
+        <input id="job-search-input" type="text" placeholder="جستجوی شماره کار..." class="mb-2 p-2 border border-gray-300 rounded text-sm" autocomplete="off">
+        <div id="jobs-list" class="border border-gray-200 rounded max-h-64 overflow-y-auto divide-y divide-gray-100">
+          {% for job in available_jobs %}
+            <label class="flex items-center gap-2 p-2 hover:bg-gray-50">
+              <input type="checkbox"
+                     name="job_numbers"
+                     value="{{ job.id }}"
+                     class="job-number h-4 w-4"
+                     data-product-id="{{ job.product_id|default:'' }}"
+                     data-product-model="{{ job.product_model|default:'' }}"
+                     {% if job.id in selected_job_ids %}checked{% endif %}>
+              <span class="flex-1 text-sm">{{ job.job_number }}{% if job.product_name %} - {{ job.product_name }}{% endif %}</span>
+              <span class="px-2 py-1 rounded text-xs {{ job.color_class }}">{{ job.label }}</span>
+            </label>
+          {% empty %}
+            <div class="p-2 text-sm text-gray-500">هیچ شماره کاری موجود نیست.</div>
+          {% endfor %}
+        </div>
+        <p id="jobs-empty-notice" class="text-xs text-gray-500 mt-1 hidden">برای مشاهده شماره کارها ابتدا مدل(های) مرتبط و سپس محصول(ات) دلخواه را انتخاب کنید؛ در صورت عدم نمایش پس از انتخاب، شماره کاری برای ترکیب انتخابی موجود نیست.</p>
+        <p class="text-xs text-gray-500 mt-1">شماره کارهای انتخاب‌شده هنگام ثبت سفارش به محصولات اختصاص داده می‌شوند.</p>
+      </div>
+
+      
+  <div class="flex flex-col sm:flex-row gap-4 pt-6 justify-between">
+    <a href="{% url 'orders:list' %}"
+       class="w-full sm:w-1/2 px-4 py-2 rounded-md text-sm font-semibold text-center whitespace-nowrap border border-red-700 text-red-700 hover:bg-red-200 transition">
+      انصراف
+    </a>
+    <button type="submit"
+            class="w-full sm:w-1/2 px-4 py-2 rounded-md text-sm font-semibold text-center whitespace-nowrap border border-green-700 text-green-700 hover:bg-green-200 transition">
+                  {% if is_editing %}ذخیره{% else %}ایجاد{% endif %}
+    </button>
+    <a href="{% url 'orders:warranty' %}{% if form.instance and form.instance.pk %}?order={{ form.instance.pk }}{% endif %}"
+       id="btn-warranty-card"
+       class="w-full sm:w-1/2 px-4 py-2 rounded-md text-sm font-semibold text-center whitespace-nowrap border border-blue-700 text-blue-700 hover:bg-blue-200 transition"
+    >
+      کارت گارانتی
+    </a>
+    {% if form.instance and form.instance.pk %}
+    <a href="{% url 'orders:label' form.instance.pk %}"
+       id="btn-print-label"
+       class="w-full sm:w-1/2 px-4 py-2 rounded-md text-sm font-semibold text-center whitespace-nowrap border transition"
+    >
+      چاپ لیبل
+    </a>
+    <a href="#"
+       id="btn-public-summary"
+       class="w-full sm:w-1/2 px-4 py-2 rounded-md text-sm font-semibold text-center whitespace-nowrap border transition"
+    >
+      نمایش جزئیات
+    </a>
+    {% endif %}
+  </div>
+</form>
+  </div>
+</div>
+
+<link rel="stylesheet" href="{% static 'orders/css/persian-datepicker.min.css' %}">
+<style>
+/* Print label button: same shape as other actions, but strong orange color */
+#btn-print-label {
+  border-color: #ea580c; /* orange-600 */
+  color: #ea580c;
+}
+#btn-print-label:hover {
+  background-color: #fed7aa; /* orange-200 */
+}
+
+/* Public summary button: purple styling similar to other buttons */
+#btn-public-summary {
+  border-color: #6d28d9; /* purple-700 */
+  color: #6d28d9;
+}
+#btn-public-summary:hover {
+  background-color: #e9d5ff; /* purple-200 */
+}
+
+/* Layering: make sure the popup sits above page chrome */
+.jalali-datepicker-container,
+.datepicker-plot-area,
+.pwt-datepicker,
+.persian-datepicker-container,
+.kama-date-picker { z-index: 9999 !important; }
+
+/* Card look and feel (rounded, soft shadow, bluish background) */
+.datepicker-plot-area {
+  /* Visual container */
+  border-radius: 16px !important;
+  background: #eef6ff !important; /* soft blue like screenshot */
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08) !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important; /* slate-400 @25% */
+  min-width: 340px !important;
+  width: 340px !important;
+  max-width: 100vw !important;
+  padding: 6px !important; /* keep library padding but a bit larger */
+}
+
+/* Header (month/year) */
+.datepicker-plot-area .datepicker-navigator {
+  border: 0 !important;
+  margin: 6px 4px 0 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+}
+.datepicker-plot-area .datepicker-navigator .pwt-btn-switch {
+  font-weight: 800 !important;
+  font-size: 20px !important;
+  color: #0f172a !important; /* slate-900 */
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  padding: 6px 10px !important;
+}
+.datepicker-plot-area .datepicker-navigator .pwt-btn-prev,
+.datepicker-plot-area .datepicker-navigator .pwt-btn-next {
+  background: transparent !important;
+  color: #475569 !important; /* slate-600 */
+  border-radius: 10px !important;
+}
+.datepicker-plot-area .datepicker-navigator .pwt-btn-prev:hover,
+.datepicker-plot-area .datepicker-navigator .pwt-btn-next:hover { background: rgba(148,163,184,0.15) !important; }
+
+/* Weekday header */
+.datepicker-plot-area .datepicker-day-view .month-grid-box .header-row th,
+.datepicker-plot-area .datepicker-day-view .table-days thead th {
+  color: #94a3b8 !important; /* slate-400 */
+  font-weight: 700 !important;
+  font-size: 12px !important;
+}
+
+/* Day cells */
+.datepicker-plot-area .datepicker-day-view .table-days td span {
+  display: inline-flex !important;
+  align-items: center; justify-content: center;
+  width: 36px !important; height: 36px !important;
+  margin: 4px !important;
+  border-radius: 10px !important;
+  color: #0f172a !important; /* slate-900 */
+  background: transparent !important;
+  transition: background-color .15s ease, box-shadow .15s ease, color .15s ease !important;
+}
+.datepicker-plot-area .datepicker-day-view .table-days td span:hover {
+  background: rgba(148,163,184,0.15) !important; /* subtle hover */
+}
+
+/* Other month days (faded) */
+.datepicker-plot-area .datepicker-day-view .table-days td span.other-month {
+  color: #cbd5e1 !important; /* slate-300 */
+}
+
+/* Today (rounded light badge) */
+.datepicker-plot-area .datepicker-day-view .table-days td.today span {
+  background: #e6eef5 !important; /* light steel */
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+/* Selected day (red badge with glow) */
+.datepicker-plot-area .datepicker-day-view .table-days td.selected span,
+.datepicker-plot-area .datepicker-year-view .year-item.selected,
+.datepicker-plot-area .datepicker-month-view .month-item.selected {
+  background: #ef4444 !important; /* red-500 */
+  color: #fff !important;
+  box-shadow: 0 10px 22px rgba(239,68,68,0.35), 0 4px 10px rgba(239,68,68,0.45) !important;
+}
+
+/* Hover (on selectable days) */
+.datepicker-plot-area .datepicker-day-view .table-days td:hover:not(.selected):not(.disabled) span,
+.datepicker-plot-area .datepicker-day-view .table-days td span:hover {
+  background: rgba(239,68,68,0.08) !important;
+}
+
+/* Stronger hover for the currently selected day
+   - Make the red background bolder and the text black as requested.
+   - Use higher specificity and !important to override library defaults. */
+.datepicker-plot-area .datepicker-day-view .table-days td.selected:hover span {
+  background: #dc2626 !important; /* red-600, bolder than red-500 */
+  color: #000 !important;         /* black text on hover */
+  box-shadow: 0 12px 26px rgba(220,38,38,0.45), 0 6px 14px rgba(220,38,38,0.55) !important;
+}
+</style>
+
+<style>
+.order-card { position: relative; }
+#order-qr svg { width: 100%; height: 100%; }
+
+/* Screen layout: reserve space at the left for the QR to avoid overlap */
+@media screen {
+  /* Default desktop/tablet: QR fixed at top-left, push badge field */
+  #order-qr { left: 16px; top: 16px; width: 144px; height: 144px; }
+  /* Keep badge field aligned like other fields */
+  #badge-field { padding-left: 0 !important; }
+}
+
+/* Mobile fix: stack QR above fields to avoid overlap */
+@media screen and (max-width: 640px) {
+  /* On small screens, put QR inside the form card header area */
+  .order-card { padding-top: 16px; }
+  #order-qr {
+    position: relative; /* put inside normal flow of the card */
+    left: auto;
+    top: auto;
+    transform: none;
+    margin: 0 auto 12px auto; /* centered at top inside card */
+    width: 128px;
+    height: 128px;
+  }
+  #badge-field { padding-left: 0 !important; }
+}
+
+/* Print layout for A4: explicit sizing/placement in millimeters */
+@media print {
+  @page { size: A4 portrait; margin: 12mm; }
+  /* No extra padding; rely on field sizing to avoid overlap */
+  .order-card { page-break-inside: avoid; }
+  #order-qr { left: 10mm !important; top: 10mm !important; width: 35mm !important; height: 35mm !important; }
+  /* Keep badge field outside QR area on paper */
+  /* In print too, align with others (QR is hidden) */
+  #badge-field { padding-left: 0 !important; }
+  #id_badge_number { width: auto !important; max-width: 100% !important; }
+}
+</style>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // QR rendering removed from form; handled in warranty card only.
+    // DOM elements
+    const productsList = document.getElementById('products-list');
+    const noProducts = document.getElementById('no-products');
+    const hiddenSinks = document.getElementById('hidden-sinks');
+    const requestedProductsInput = hiddenSinks.querySelector('input[name="requested_products"]');
+    const modelFilterCbs = Array.from(document.querySelectorAll('.model-filter'));
+    // URL for the AJAX endpoint; use Django's URL reversing for correct path
+    const productsByModelsUrl = "{% url 'orders:products_by_models' %}";
+    const jobsBySelectionUrl = "{% url 'orders:jobs_by_selection' %}";
+    const currentOrderId = {% if form.instance and form.instance.pk %}{{ form.instance.pk }}{% else %}null{% endif %};
+    let currentSelectedModels = [];
+    const jobsEmptyNotice = document.getElementById('jobs-empty-notice');
+    // Job number search input for client-side filtering
+    const jobSearchInput = document.getElementById('job-search-input');
+    if (jobSearchInput) {
+      // Filter list as the user types
+      jobSearchInput.addEventListener('input', () => updateJobFilter());
+    }
+
+    /**
+     * Remove all existing hidden inputs for product_models and append
+     * new ones for each selected model.  The server expects one
+     * input per model selected.
+     *
+     * @param {string[]} selectedModels A list of product model names
+     */
+    function updateProductModelsHidden(selectedModels) {
+      // Remove old inputs
+      hiddenSinks.querySelectorAll('input[name="product_models"]').forEach(el => el.remove());
+      // Append new inputs
+      selectedModels.forEach(val => {
+        const inp = document.createElement('input');
+        inp.type = 'hidden';
+        inp.name = 'product_models';
+        inp.value = val;
+        hiddenSinks.appendChild(inp);
+      });
+    }
+
+    /**
+     * Parse the current value of the hidden requested_products input.
+     * If the value cannot be parsed it returns an empty object.
+     *
+     * @returns {Object} Mapping of product ID to quantity
+     */
+    function getRequestedProducts() {
+      try {
+        const val = requestedProductsInput.value;
+        if (val) {
+          return JSON.parse(val);
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+      return {};
+    }
+
+    // Normalize Persian/Arabic-Indic digits to ASCII for robust text matching
+    function normalizeDigits(str) {
+      try {
+        return (String(str || '')
+          .replace(/[\u06F0-\u06F9]/g, ch => String(ch.charCodeAt(0) - 0x06F0))
+          .replace(/[\u0660-\u0669]/g, ch => String(ch.charCodeAt(0) - 0x0660))
+        ).toLowerCase();
+      } catch (e) {
+        return String(str || '').toLowerCase();
+      }
+    }
+
+    
+    function updateRequestedProducts() {
+      const map = {};
+      productsList.querySelectorAll('label').forEach(label => {
+        const cb = label.querySelector('input.product-checkbox');
+        const qtyInput = label.querySelector('input.product-qty');
+        if (cb && cb.checked) {
+          const pid = cb.value;
+          const qty = parseInt(qtyInput.value, 10);
+          if (qty && qty > 0) {
+            map[pid] = qty;
+          }
+        }
+      });
+      requestedProductsInput.value = JSON.stringify(map);
+    }
+
+    /**
+     * Filter the visible job numbers to only those jobs whose product
+     * matches one of the selected products.  Jobs without an
+     * associated product (data-product-id blank) remain visible.  When
+     * hiding a job the checkbox is unchecked to prevent stale
+     * selections.
+     */
+    function updateJobFilter() {
+      const jobsList = document.getElementById('jobs-list');
+      if (!jobsList) return;
+      const selectedIds = Object.keys(getRequestedProducts());
+      const modelsLower = currentSelectedModels.map(m => (m || '').toString().trim().toLowerCase()).filter(Boolean);
+      const hasModelFilter = modelsLower.length > 0;
+      const hasProductFilter = selectedIds.length > 0;
+      const selectedIdSet = new Set(selectedIds);
+      // Current search query for job number text (normalize digits)
+      const q = normalizeDigits((jobSearchInput && jobSearchInput.value) || '').trim();
+      let visibleCount = 0;
+      jobsList.querySelectorAll('label').forEach(lbl => {
+        const cb = lbl.querySelector('input.job-number');
+        if (!cb) return;
+        const pid = cb.dataset.productId;
+        const jobModel = (cb.dataset.productModel || '').toString().trim().toLowerCase();
+        // Compute base visibility from model/product filters independently
+        const modelMatches = Boolean(jobModel) && modelsLower.indexOf(jobModel) !== -1;
+        const productMatches = Boolean(pid) && selectedIdSet.has(pid);
+        let baseVisible = true;
+        if (hasModelFilter) baseVisible = baseVisible && modelMatches;
+        if (hasProductFilter) baseVisible = baseVisible && productMatches;
+        // Apply search filter (digits normalized) on rendered row text
+        const rowTextNorm = normalizeDigits(lbl.textContent || '');
+        let visible = baseVisible;
+        if (q && rowTextNorm.indexOf(q) === -1) {
+          visible = false;
+        }
+
+        // If a job is associated with a product not in the selected set,
+        // hide it and uncheck it.  Otherwise show it.
+        if (!visible) {
+          lbl.style.display = 'none';
+          if (!baseVisible) {
+            // Uncheck only when hidden due to model/product filters
+            cb.checked = false;
+          }
+        } else {
+          lbl.style.display = '';
+          visibleCount += 1;
+        }
+      });
+      if (jobsEmptyNotice) {
+        if (visibleCount === 0) {
+          jobsEmptyNotice.classList.remove('hidden');
+        } else {
+          jobsEmptyNotice.classList.add('hidden');
+        }
+      }
+    }
+
+    /**
+     * Render the jobs list using server-provided jobs data.
+     * Preserves any currently-checked job selections if still present.
+     *
+     * @param {Array<{id:number, job_number:string, product_id:number, product_name:string, product_model:string, label:string, color_class:string}>} jobs
+     */
+    function renderJobs(jobs) {
+      const jobsList = document.getElementById('jobs-list');
+      if (!jobsList) return;
+      // Preserve previously checked job ids
+      const prevChecked = new Set(
+        Array.from(jobsList.querySelectorAll('input.job-number:checked')).map(i => i.value)
+      );
+      jobsList.innerHTML = '';
+      if (!jobs || !jobs.length) {
+        if (jobsEmptyNotice) jobsEmptyNotice.classList.remove('hidden');
+        return;
+      }
+      if (jobsEmptyNotice) jobsEmptyNotice.classList.add('hidden');
+      jobs.forEach(job => {
+        const label = document.createElement('label');
+        label.className = 'flex items-center gap-2 p-2 hover:bg-gray-50';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.name = 'job_numbers';
+        cb.value = String(job.id);
+        cb.className = 'job-number h-4 w-4';
+        if (job.product_id != null) cb.dataset.productId = String(job.product_id);
+        if (job.product_model) cb.dataset.productModel = String(job.product_model);
+        if (prevChecked.has(String(job.id))) cb.checked = true;
+        const span = document.createElement('span');
+        span.className = 'flex-1 text-sm';
+        span.textContent = job.job_number + (job.product_name ? ' - ' + job.product_name : '');
+        const badge = document.createElement('span');
+        badge.className = 'px-2 py-1 rounded text-xs ' + (job.color_class || 'bg-gray-400 text-white');
+        badge.textContent = job.label || '';
+        label.appendChild(cb);
+        label.appendChild(span);
+        label.appendChild(badge);
+        jobsList.appendChild(label);
+      });
+      // After re-render, apply local filter to ensure consistency with current selection
+      updateJobFilter();
+    }
+
+    /**
+     * Fetch and render jobs based on current selected models and products.
+     */
+    function fetchJobs() {
+      const productsMap = getRequestedProducts();
+      const productIds = Object.keys(productsMap);
+      const params = [];
+      (currentSelectedModels || []).forEach(m => params.push('models[]=' + encodeURIComponent(m)));
+      (productIds || []).forEach(id => params.push('product_ids[]=' + encodeURIComponent(id)));
+      if (currentOrderId) params.push('order_id=' + encodeURIComponent(currentOrderId));
+      const url = jobsBySelectionUrl + (params.length ? ('?' + params.join('&')) : '');
+      fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(resp => resp.json())
+        .then(data => {
+          renderJobs(data.jobs || []);
+        })
+        .catch(() => {
+          renderJobs([]);
+        });
+    }
+
+    /**
+     * Render the product list UI for the given products.  Each entry
+     * consists of a checkbox, the product name (and model), and a
+     * quantity input.  Preselected products from the existing
+     * requested_products mapping are checked and their quantities
+     * initialised accordingly.  Event listeners are attached to each
+     * checkbox and quantity input to keep the hidden field in sync.
+     *
+     * @param {Array<{id:number, name:string, model:string}>} products
+     */
+    function renderProducts(products) {
+      // Clear current list
+      productsList.innerHTML = '';
+      // Show/hide the empty notice
+      if (!products || !products.length) {
+        noProducts.classList.remove('hidden');
+        updateRequestedProducts();
+        updateJobFilter();
+        fetchJobs();
+        return;
+      }
+      noProducts.classList.add('hidden');
+      // Existing map for preselection
+      const existing = getRequestedProducts();
+      // Render each product
+      products.forEach(prod => {
+        const label = document.createElement('label');
+        label.className = 'flex items-center gap-2 p-2 hover:bg-gray-50';
+        // Checkbox
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.classList.add('product-checkbox', 'h-4', 'w-4');
+        cb.value = prod.id;
+        // Quantity input
+        const qtyInput = document.createElement('input');
+        qtyInput.type = 'number';
+        qtyInput.min = '1';
+        qtyInput.step = '1';
+        qtyInput.value = '1';
+        qtyInput.className = 'product-qty w-16 text-sm border border-gray-300 rounded px-1 py-1';
+        // Product name
+        const span = document.createElement('span');
+        span.className = 'flex-1 text-sm';
+        span.textContent = prod.name + (prod.model ? ' - ' + prod.model : '');
+        // Preselect if present in existing map
+        if (existing && Object.prototype.hasOwnProperty.call(existing, String(prod.id))) {
+          cb.checked = true;
+          const qv = parseInt(existing[String(prod.id)], 10);
+          if (qv && qv > 0) qtyInput.value = qv;
+        }
+        label.appendChild(cb);
+        label.appendChild(span);
+        label.appendChild(qtyInput);
+        productsList.appendChild(label);
+        // Attach events
+        cb.addEventListener('change', function () {
+          updateRequestedProducts();
+          updateJobFilter();
+          fetchJobs();
+        });
+        qtyInput.addEventListener('input', function () {
+          // Ensure value is at least 1
+          let v = parseInt(this.value, 10);
+          if (!v || v < 1) {
+            v = 1;
+            this.value = '1';
+          }
+          if (cb.checked) {
+            updateRequestedProducts();
+          }
+        });
+      });
+      // Sync hidden fields after initial render
+      updateRequestedProducts();
+      updateJobFilter();
+      fetchJobs();
+    }
+
+    
+    function fetchProducts(selectedModels) {
+
+      updateProductModelsHidden(selectedModels);
+      currentSelectedModels = Array.isArray(selectedModels)
+        ? selectedModels.map(val => (val || '').toString().trim()).filter(Boolean)
+        : [];
+      updateJobFilter();
+      // If no models selected, clear products and return
+      if (!selectedModels || !selectedModels.length) {
+        renderProducts([]);
+        return;
+      }
+      // Build query string
+      const params = selectedModels.map(m => 'models[]=' + encodeURIComponent(m)).join('&');
+      // Use fetch API to call the endpoint
+      fetch(productsByModelsUrl + '?' + params, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(resp => resp.json())
+        .then(data => {
+          renderProducts(data.products || []);
+        })
+        .catch(err => {
+          console.error('Failed to fetch products:', err);
+          renderProducts([]);
+        });
+    }
+
+
+    modelFilterCbs.forEach(cb => {
+      cb.addEventListener('change', function () {
+        const selected = modelFilterCbs.filter(x => x.checked).map(x => x.value);
+        fetchProducts(selected);
+        // fetchProducts will call fetchJobs via renderProducts; extra safety:
+        // fetchJobs();
+      });
+    });
+
+    // Initialisation: determine preselected models from hidden inputs
+    const initialModels = Array.from(hiddenSinks.querySelectorAll('input[name="product_models"]')).map(el => el.value);
+    if (initialModels && initialModels.length) {
+      // Mark model checkboxes as checked for initial models
+      modelFilterCbs.forEach(cb => {
+        if (initialModels.indexOf(cb.value) !== -1) cb.checked = true;
+      });
+      fetchProducts(initialModels);
+      // fetchJobs will be triggered after products load
+    } else {
+      // No models preselected; start with an empty list
+      fetchProducts([]);
+      // ensure jobs list is cleared
+      fetchJobs();
+    }
+  });
+
+  // Short-URL navigation for warranty card to avoid very long query strings
+  // (prevents appending data-URI qr_img which caused 414 errors on server)
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('btn-warranty-card');
+    if (!btn) return;
+    btn.addEventListener('click', function (e) {
+      try {
+        e.preventDefault();
+        // Stop other click handlers on this element (including older qr_img appender)
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+
+        // Determine the QR serial to use
+        var hiddenQrInput = document.querySelector('input[name="qr_code"]');
+        var serial = hiddenQrInput ? (hiddenQrInput.value || '').trim() : '';
+        if (!serial) { serial = '{{ form.instance.qr_code|default:"" }}'; }
+
+        // Build short URL using the serial path
+        var serialBase = "{% url 'orders:warranty_serial' 'DUMMY' %}"; // '/orders/warranty/s/DUMMY/'
+        var base = serial ? serialBase.replace('DUMMY', encodeURIComponent(serial)) : "{% url 'orders:warranty' %}";
+
+        // Append small overrides only (keep URL short)
+        function val(id){ var el = document.getElementById(id); return el ? (el.value||'').trim() : ''; }
+        var url = new URL(base, window.location.origin);
+        var ex = val('id_exhibition_name');
+        var cu = val('id_customer_name');
+        var bd = val('id_badge_number');
+        var od = val('id_order_date');
+        var dd = val('id_delivery_date');
+        if (ex) url.searchParams.set('exhibition_name', ex);
+        if (cu) url.searchParams.set('customer_name', cu);
+        if (bd) url.searchParams.set('badge_number', bd);
+        if (od) url.searchParams.set('order_date', od);
+        if (dd) url.searchParams.set('delivery_date', dd);
+
+        var dest = url.pathname + (url.search || '');
+        try { btn.setAttribute('href', dest); } catch(_e) {}
+        window.location.href = dest;
+      } catch (_) {
+        // If anything goes wrong, fall back to the anchor's default
+      }
+    }, { capture: true }); // capture-phase to run before any bubbling handlers
+  });
+  // Redirect to warranty with embedded QR image from the form (exact match)
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('btn-warranty-card');
+    if (!btn) return;
+    btn.addEventListener('click', function (e) {
+      // Build base href from the anchor, then append qr_img if available
+      try {
+        var qrWrap = document.getElementById('order-qr');
+        var svg = qrWrap ? qrWrap.querySelector('svg') : null;
+        if (svg) {
+          e.preventDefault();
+          var base = this.getAttribute('href') || '{% url 'orders:warranty' %}';
+          // Serialize SVG
+          var svgText = new XMLSerializer().serializeToString(svg);
+          var dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText);
+          var sep = base.indexOf('?') === -1 ? '?' : '&';
+          var url = base + sep + 'qr_img=' + encodeURIComponent(dataUrl);
+          window.location.href = url;
+        }
+      } catch (err) {
+        // Silent fail, allow default navigation
+      }
+    });
+  });
+
+  // Public summary (گزارش وضعیت سفارش) in a new tab using QR serial
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('btn-public-summary');
+    if (!btn) return;
+    btn.addEventListener('click', function (e) {
+      try {
+        e.preventDefault();
+        var serial = '{{ form.instance.qr_code|default:"" }}';
+        if (!serial) {
+          alert('کد گارانتی برای این سفارش ثبت نشده است.');
+          return;
+        }
+        var templatePath = "{% url 'orders:public_order_summary' 'DUMMY' %}";
+        var origin = window.location && window.location.origin ? window.location.origin : 'https://archenmobl.com';
+        var url = origin + templatePath.replace('DUMMY', encodeURIComponent(serial));
+        window.open(url, '_blank');
+      } catch (err) {
+        // ignore
+      }
+    });
+  });
+
+  // Move QR into the mobile anchor when viewport is small, and return on large screens.
+  document.addEventListener('DOMContentLoaded', function () {
+    var qr = document.getElementById('order-qr');
+    var anchor = document.getElementById('order-qr-mobile-anchor');
+    if (!qr || !anchor) return;
+
+    function placeForViewport() {
+      var isMobile = window.matchMedia('(max-width: 640px)').matches;
+      if (isMobile) {
+        // Put QR as a normal block at the very top of the form
+        anchor.innerHTML = '';
+        anchor.appendChild(qr);
+        qr.style.position = 'static';
+        qr.style.width = '128px';
+        qr.style.height = '128px';
+        qr.style.margin = '0 auto';
+      } else {
+        // Return to absolute position for desktop
+        var card = document.querySelector('.order-card');
+        if (card) {
+          card.appendChild(qr);
+          qr.style.position = 'absolute';
+          qr.style.left = '16px';
+          qr.style.top = '16px';
+          qr.style.width = '144px';
+          qr.style.height = '144px';
+          qr.style.margin = '0';
+        }
+      }
+    }
+    placeForViewport();
+    window.addEventListener('resize', placeForViewport);
+  });
+</script>
+
+<script>
+  // Keep the warranty card link updated with current form values so the
+  // print view reflects unsaved edits via query parameters.
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('btn-warranty-card');
+    if (!btn) return;
+    var baseHref = btn.getAttribute('href') || '';
+    function val(id){ var el = document.getElementById(id); return el ? (el.value||'').trim() : ''; }
+    function buildHref(){
+      try {
+        var url = new URL(baseHref, window.location.origin);
+        var ex = val('id_exhibition_name');
+        var cu = val('id_customer_name');
+        var bd = val('id_badge_number');
+        var od = val('id_order_date');
+        var dd = val('id_delivery_date');
+        if (ex) url.searchParams.set('exhibition_name', ex); else url.searchParams.delete('exhibition_name');
+        if (cu) url.searchParams.set('customer_name', cu); else url.searchParams.delete('customer_name');
+        if (bd) url.searchParams.set('badge_number', bd); else url.searchParams.delete('badge_number');
+        if (od) url.searchParams.set('order_date', od); else url.searchParams.delete('order_date');
+        if (dd) url.searchParams.set('delivery_date', dd); else url.searchParams.delete('delivery_date');
+        return url.pathname + (url.search ? url.search : '');
+      } catch(_) { return baseHref; }
+    }
+    function update(){ btn.setAttribute('href', buildHref()); }
+    update();
+    ['id_exhibition_name','id_customer_name','id_badge_number','id_order_date','id_delivery_date']
+      .forEach(function(id){
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('input', update);
+        el.addEventListener('change', update);
+      });
+  });
+</script>
+
+{% endblock %}

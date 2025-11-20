@@ -1,0 +1,98 @@
+<!-- PATH: /Archen/templates/public_base.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="has-bg-pattern soften-ui">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}صنایع چوبی آرچن{% endblock %}</title>
+  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+  <link rel="icon" type="image/png" sizes="192x192" href="{% static 'icons/icon-192x192.png' %}">
+  <link rel="icon" type="image/png" sizes="512x512" href="{% static 'icons/icon-512x512.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'icons/icon-192x192.png' %}">
+  <link rel="stylesheet" href="{% static 'css/app.min.css' %}">
+  <noscript><link rel="stylesheet" href="{% static 'css/fallback.css' %}"></noscript>
+  <style>
+    :root {
+      --app-pattern-size: 220px;
+      --app-pattern-opacity: 0.08;
+      --surface-60: rgba(255, 255, 255, 0.6);
+    }
+    html.has-bg-pattern, body.has-bg-pattern {
+      background-color: #eefaf6;
+    }
+    .site-background-frame {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      display: flex;
+      justify-content: center;
+    }
+    .site-background-frame > .site-background-inner {
+      width: min(100%, 80rem);
+      margin: 0 auto;
+      height: 100vh;
+      background-image: url('{% static 'icons/archen_pattern.png' %}?v=20251012a'),
+                        repeating-linear-gradient(45deg, rgba(0,0,0,0.02) 0 2px, transparent 2px 44px);
+      background-repeat: repeat, repeat;
+      background-size: var(--app-pattern-size) var(--app-pattern-size);
+      background-position: center, center;
+      filter: brightness(1.35) opacity(0.7);
+    }
+    .surface-pattern {
+      position: relative;
+      background-image:
+        linear-gradient(90deg,
+          rgba(217,213,205,0.45) 0%,
+          rgba(230,230,223,0.45) 35%,
+          rgba(239,239,233,0.45) 65%,
+          rgba(246,246,244,0.45) 100%
+        );
+      background-repeat: no-repeat;
+      background-size: cover;
+      backdrop-filter: saturate(1.05);
+    }
+    .surface-pattern::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.072;
+      mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0.2'/></filter><rect filter='url(%23n)' width='100%' height='100%' opacity='0.9'/></svg>");
+      background-size: cover;
+    }
+    .surface-elevated {
+      box-shadow:
+        0 2px 6px rgba(0,0,0,0.08),
+        0 8px 20px rgba(0,0,0,0.06),
+        inset 0 1px 0 rgba(255,255,255,0.45);
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+    body {
+      min-height: 100vh;
+    }
+    @media print {
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #ffffff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-screen has-bg-pattern">
+  <div class="site-background-frame">
+    <div class="site-background-inner"></div>
+  </div>
+  <main class="relative z-10">
+    {% block content %}{% endblock %}
+  </main>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>
+

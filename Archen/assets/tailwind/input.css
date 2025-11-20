@@ -1,0 +1,10 @@
+/* PATH: /Archen/assets/tailwind/input.css
+ * Tailwind entry file. Build with:
+ *   npx tailwindcss -c tailwind.config.js -i assets/tailwind/input.css -o static/css/app.min.css --minify
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Project-specific overrides may go below */
+

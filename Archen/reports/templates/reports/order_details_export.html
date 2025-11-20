@@ -1,0 +1,49 @@
+{# PATH: /Archen/reports/templates/reports/order_details_export.html #}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>گزارش جزئیات سفارش: {{ order.subscription_code|default:'-' }}</title>
+  <style>
+    @page { size: A4; margin: 16mm; }
+    body { font-family: 'DejaVu Sans', 'Noto Naskh Arabic', 'Vazirmatn', Tahoma, sans-serif; }
+    .muted { color: #6b7280; font-size: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .box { background:#f3f4f6; border:1px solid #e5e7eb; padding:8px; border-radius:6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px; text-align: right; }
+    .header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+    @media print { #print { display:none; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>گزارش جزئیات سفارش: {{ order.subscription_code|default:'-' }}</h1>
+    <a id="print" href="#" onclick="window.print();return false;" style="background:#2563eb;color:#fff;border-radius:6px;padding:6px 10px;text-decoration:none;">چاپ</a>
+  </div>
+
+  <div class="grid" style="margin:10px 0;">
+    <div class="box"><div class="muted">نام مشتری</div><div><strong>{{ order.customer_name|default:'-' }}</strong></div></div>
+    <div class="box"><div class="muted">شهر</div><div><strong>{{ order.city|default:'-' }}</strong></div></div>
+    <div class="box"><div class="muted">مدل</div><div><strong>{{ order.model|default:'-' }}</strong></div></div>
+    <div class="box"><div class="muted">کد اشتراک</div><div><strong>{{ order.subscription_code|default:'-' }}</strong></div></div>
+    <div class="box"><div class="muted">نمایشگاه/فروشگاه</div><div><strong>{{ order.exhibition_name|default:'-' }}</strong></div></div>
+    <div class="box"><div class="muted">شماره رسید</div><div><strong><span class="num-ltr">{{ order.badge_number|default:'-' }}</span></strong></div></div>
+    <div class="box"><div class="muted">تاریخ سفارش</div><div><strong>{{ order_jdt }}</strong></div></div>
+    <div class="box"><div class="muted">ورود پارچه</div><div><strong>{{ fabric_entry_jdt }}</strong></div></div>
+    <div class="box"><div class="muted">تاریخ تحویل</div><div><strong>{{ delivery_jdt }}</strong></div></div>
+  </div>
+
+  <h3>اقلام سفارش</h3>
+  <table>
+    <thead><tr><th>نام</th><th>تعداد</th></tr></thead>
+    <tbody>
+    {% for it in items %}
+      <tr><td>{{ it.name }}</td><td>{{ it.qty }}</td></tr>
+    {% empty %}
+      <tr><td colspan="2" style="text-align:center;color:#6b7280;">آیتمی ثبت نشده است.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

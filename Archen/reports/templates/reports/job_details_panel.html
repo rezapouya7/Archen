@@ -1,0 +1,159 @@
+{# PATH: /Archen/reports/templates/reports/job_details_panel.html #}
+
+<div class="space-y-4 w-full overflow-x-hidden">
+  <style>
+    /* LTR islands for date/time inside RTL panels */
+    .num-ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+  </style>
+  <!-- Header + Export buttons -->
+  <div class="flex items-center justify-between flex-wrap gap-2">
+    <div class="min-w-0">
+      <div class="text-base font-bold text-gray-800">شماره کار: {{ job.job_number }}</div>
+      {# Show label • status only when they differ; otherwise show once. Comparing raw values avoids translation mismatches. #}
+      <div class="text-xs text-gray-500">
+        {% if job.job_label == job.status %}
+          {{ job.get_status_display }}
+        {% else %}
+          {{ job.get_job_label_display }} • {{ job.get_status_display }}
+        {% endif %}
+      </div>
+    </div>
+    <div class="flex items-center gap-1 sm:gap-2 shrink-0 w-full sm:w-auto">
+      <a href="/reports/job-details/{{ job.job_number }}/export/xlsx/"
+         class="px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm whitespace-nowrap rounded border font-bold border-green-700 text-green-700 hover:bg-green-200">خروجی XLSX</a>
+      <a href="/reports/job-details/{{ job.job_number }}/export/pdf/" download
+         class="px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm whitespace-nowrap rounded border font-bold border-red-700 text-red-700 hover:bg-red-200">خروجی PDF</a>
+    </div>
+  </div>
+
+  <!-- General info -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 bg-gray-50/60 rounded-lg p-3 border border-gray-200/70">
+    <div><div class="text-xs text-gray-500">محصول</div><div class="text-sm font-bold break-words">{{ job.product.name|default:'-' }}</div></div>
+    <div><div class="text-xs text-gray-500">مدل</div><div class="text-sm font-bold break-words">{{ job.product.product_model.name|default:'-' }}</div></div>
+    <div>
+      <div class="text-xs text-gray-500">تاریخ ایجاد</div>
+      <div class="text-sm"><span class="num-ltr">{{ created_jdt }}</span></div>
+      <div class="mt-1 text-xs text-gray-500">تاریخ بسته شدن</div>
+      <div class="text-sm"><span class="num-ltr">{{ finished_jdt }}</span></div>
+    </div>
+    {% if is_scrapped %}
+      <div class="col-span-2 md:col-span-1"><div class="text-xs text-gray-500">وضعیت خاص</div><div class="text-sm font-bold text-red-600">اسقاط</div></div>
+    {% endif %}
+    {% if is_deposit and job.deposit_account %}
+      <div class="col-span-2 md:col-span-1"><div class="text-xs text-gray-500">طرف حساب/مشتری</div><div class="text-sm font-bold break-words">{{ job.deposit_account }}</div></div>
+    {% endif %}
+    {% if has_external %}
+      <div class="col-span-2 md:col-span-1"><div class="text-xs text-gray-500">کلاف بیرون</div><div class="text-sm font-bold text-blue-700">دارای ثبت بیرونی</div></div>
+    {% endif %}
+  </div>
+
+  <!-- Process flow mini-visual -->
+  <div class="p-3 rounded-lg border border-gray-200/70">
+    <div class="text-sm font-bold text-gray-700 mb-2">نقشه فرآیندی</div>
+    {# Make chips horizontally scrollable on mobile to prevent layout overflow #}
+    <div class="flex items-center gap-2 overflow-x-auto w-full flex-nowrap md:flex-wrap">
+      {% for fi in flow_items %}
+        {% with s=fi.slug %}
+        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold shrink-0
+                    {% if is_closed %} bg-emerald-100 text-emerald-900 {% elif current_section == s %} bg-blue-100 text-blue-900 {% elif s in visited %} bg-gray-200 text-gray-800 {% else %} bg-gray-100 text-gray-500 {% endif %}">
+          {{ fi.label }}
+        </span>
+        {% endwith %}
+        {% if not forloop.last %}<span class="text-gray-400 shrink-0">›</span>{% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Consumption and users -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="border border-gray-200/70 rounded-lg">
+      <div class="px-3 py-2 bg-gray-50 text-sm font-bold text-gray-700">مصرف قطعات</div>
+      <div class="p-3">
+        {% if consumption.parts %}
+        <ul class="space-y-1 text-sm">
+          {% for it in consumption.parts %}
+            <li class="flex items-center justify-between"><span class="break-words">{{ it.name }}</span><span class="font-bold shrink-0">× {{ it.qty }}</span></li>
+          {% endfor %}
+        </ul>
+        {% else %}
+          <div class="text-sm text-gray-500">موردی ثبت نشده است.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="border border-gray-200/70 rounded-lg">
+      <div class="px-3 py-2 bg-gray-50 text-sm font-bold text-gray-700">مصرف مواد اولیه</div>
+      <div class="p-3">
+        {% if consumption.materials %}
+        <ul class="space-y-1 text-sm">
+          {% for it in consumption.materials %}
+            <li class="flex items-center justify-between"><span class="break-words">{{ it.name }}</span><span class="font-bold shrink-0">{{ it.qty }} {{ it.unit }}</span></li>
+          {% endfor %}
+        </ul>
+        {% else %}
+          <div class="text-sm text-gray-500">موردی ثبت نشده است.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="border border-gray-200/70 rounded-lg">
+    <div class="px-3 py-2 bg-gray-50 text-sm font-bold text-gray-700">کاربران فعال</div>
+    <div class="p-3">
+      {% if users %}
+        {# Make user chips scrollable horizontally on mobile to avoid overflow #}
+        <div class="flex gap-2 overflow-x-auto flex-nowrap md:flex-wrap w-full">
+          {% for u in users %}
+            <span class="px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs font-bold shrink-0">{{ u }}</span>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-sm text-gray-500">کاربری ثبت نشده است.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Logs compact table -->
+  <div class="border border-gray-200/70 rounded-lg">
+    <div class="px-3 py-2 bg-gray-50 text-sm font-bold text-gray-700">سوابق ثبت</div>
+    <div class="overflow-x-auto w-full">
+      {# Mobile table improvements: auto layout so table expands to content; horizontal scroll via parent #}
+      <table class="min-w-full text-xs table-auto min-w-[720px] md:min-w-0">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-2 py-2 text-right">تاریخ</th>
+            <th class="px-2 py-2 text-right">زمان</th>
+            <th class="px-2 py-2 text-right">بخش</th>
+            {# User column: no fixed width; allow content to dictate width; prevent header wrap #}
+            <th class="px-2 py-2 text-right whitespace-nowrap">کاربر</th>
+            <th class="px-2 py-2 text-right">اسقاط</th>
+            <th class="px-2 py-2 text-right">کلاف بیرون</th>
+            <th class="px-2 py-2 text-right">توضیح</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in logs %}
+          <tr class="odd:bg-white even:bg-gray-50">
+            <td class="px-2 py-1"><span class="num-ltr">{{ l.jdate }}</span></td>
+            <td class="px-2 py-1">{% if l.logged_at %}<span class="num-ltr">{{ l.logged_at|date:'H:i' }}</span>{% else %}-{% endif %}</td>
+            <td class="px-2 py-1">{{ l.get_section_display }}</td>
+            {# User cell: show full name in a single line; no ellipsis; overflow handled by horizontal scroll #}
+            <td class="px-2 py-1" title="{{ l.user.full_name|default:l.user.username }}">
+              <div class="inline-block whitespace-nowrap">
+                {{ l.user.full_name|default:l.user.username }}
+              </div>
+            </td>
+            <td class="px-2 py-1">{% if l.is_scrap %}بله{% else %}خیر{% endif %}</td>
+            <td class="px-2 py-1">{% if l.is_external %}بله{% else %}خیر{% endif %}</td>
+            <td class="px-2 py-1">{{ l.note|default:'-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# Helper map for section label; Django template lacks direct dict access, emulate via filter #}
+{% comment %}The get_section_label is referenced via a custom filter style; as a simple inline workaround, we use dict in view. If needed, move to a template tag.{% endcomment %}
+

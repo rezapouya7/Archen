@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="{{ extra_classes|default:'w-4 h-4' }}">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v4a1 1 0 001 1h4M21 21v-4a1 1 0 00-1-1h-4M21 3v4a1 1 0 01-1 1h-4M3 21v-4a1 1 0 011-1h4M9 15l3 3m0 0l3-3m-3 3V9" />
+</svg>

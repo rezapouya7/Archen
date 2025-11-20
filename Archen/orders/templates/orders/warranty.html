@@ -1,0 +1,349 @@
+<!-- PATH: /Archen/orders/templates/orders/warranty.html -->
+{% extends "layout.html" %}
+{% load static %}
+
+{% block title %}کارت گارانتی | سفارش‌ها{% endblock %}
+{% block page_title %}کارت گارانتی{% endblock %}
+
+{% block back_button %}
+  <div class="flex gap-2">
+    <a href="{% url 'orders:list' %}"
+       class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-700 text-blue-700 hover:bg-blue-200">بازگشت</a>
+  </div>
+{% endblock %}
+
+{# Use default print button from layout; it calls window.print().
+   Our print CSS limits output to the warranty card only. #}
+{% block Breadcrumb %}
+   <!-- Breadcrumb navigation -->
+  <div class="mb-3 text-sm text-gray-600 rtl text-right breadcrumb">
+    <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+    <span class="mx-1">›</span>
+    <a href="{% url 'orders:list' %}" class="hover:underline">لیست سفارش‌ها</a>
+    <span class="mx-1">›</span>
+    <a href="{% if order and order.pk %}{% url 'orders:edit' order.pk %}{% else %}{% url 'orders:create' %}{% endif %}" class="hover:underline">
+      {% if order and order.pk %}ویرایش سفارش{% else %}افزودن سفارش{% endif %}
+    </a>
+    <span class="mx-1">›</span>
+    <span class="text-gray-800 font-semibold">کارت گارانتی</span>
+  </div>
+{% endblock %}
+{% block content %}
+  <style>
+    :root { --bleed: 3mm; --card-width: 148mm; --card-height: 105mm; }
+    body.bg-watermark {
+      background-image: url('{% static 'img/archen-watermark.png' %}');
+      background-repeat: repeat;
+      background-size: 160px auto;
+      background-attachment: fixed;
+    }
+    /* Make the black border thicker and clearly printable */
+    .sheet { box-sizing: border-box; width: calc(var(--card-width) + 2 * var(--bleed)); height: calc(var(--card-height) + 2 * var(--bleed)); padding: var(--bleed); margin: 1rem auto; background:#fff; color:#111; border:5px solid #000; }
+    .card-face { position: relative; width:100%; height:100%; display:grid; grid-template-rows:auto 1fr auto; overflow:hidden; }
+    /* soft background images for front/back */
+    .card-face.bg-front::before,
+    .card-face.bg-back::before { content:""; position:absolute; inset:0; background-repeat:no-repeat; background-position:center; background-size:contain; opacity:0.14; pointer-events:none; }
+    .card-face.bg-front::before { background-image: url('{% static 'icons/BG-01.jpg' %}'); }
+    .card-face.bg-back::before  { background-image: url('{% static 'icons/BG-02.jpg' %}'); }
+    .brand { position:relative; display:block; direction:rtl; }
+    .brand img { position:absolute; top:0; right:0; height:18mm; }
+    /* place 999 badge at top-left of front */
+    .card-face.bg-front .badge-999 { left: 0.5mm; right: auto; top: 0.5mm; }
+    .brand .brand-title { text-align:center; font-weight:700; font-size:14pt; }
+    .title { font-size: 16pt; font-weight:800; margin:.4rem 0 .6rem; text-align:center; }
+    .section-title { margin-top:.6rem; font-weight:700; }
+    .small { font-size: 8pt; line-height:1.6; }
+    .two-up { display:grid; grid-template-columns:1fr 1fr; gap:12mm; }
+    /* precisely position QR on back page only */
+    .bg-back #warranty-qr { justify-self:start; align-self:start; margin:0; padding:0; }
+    .bg-back #warranty-qr img, .bg-back #warranty-qr svg { display:block; width:28mm; height:28mm; margin:0; }
+    .fields { display:grid; gap:6pt; font-size:10pt; }
+    .field { display:grid; grid-template-columns: 28mm 1fr; gap:6pt; align-items:center; }
+    /* Bold both labels and values on back side for visual consistency */
+    .bg-back .field > div:first-child { font-weight:700; }
+    .bg-back .field .line { font-weight:700; }
+    .line { border-bottom:1px solid #999; min-height:6mm; text-align:center; }
+    /* Center text inside LTR islands as well */
+    .line .num-ltr { text-align:center; }
+    .qr-wrap { position:relative; display:flex; align-items:flex-start; justify-content:flex-start; }
+    /* absolute-place QR at top-left on back page regardless of grid flow */
+    .bg-back #warranty-qr { position:absolute; top:0; left:0; right:auto; bottom:auto; width:28mm; height:28mm; margin:0; padding:0; z-index:2; }
+    .bg-back { position:relative; }
+    .bg-back #warranty-qr img, .bg-back #warranty-qr svg { display:block; width:28mm; height:28mm; margin:0; }
+    .qr-wrap img, .qr-wrap svg { width:28mm; height:28mm; display:block; }
+    .footer { font-size:8pt; color:#666; text-align:center; }
+    /* 999 badge on front, top-left (behind content) */
+    .card-face.bg-front .badge-999 { position:absolute; top:0.5mm; left:0.5mm; width:24mm; height:auto; opacity:0.9; z-index:0; }
+    /* ensure content stacks above the badge */
+    .card-face > * { position:relative; z-index:1; }
+    /* Spacer between sheets (approx two lines) */
+    .print-spacer { height: 1rem; }
+    /* LTR island for date strings to avoid bidi confusion on the warranty card */
+    .num-ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+    /* CSS fallback: 5th field on back side is the purchase date */
+    .bg-back .fields .field:nth-child(5) .line { direction: ltr; unicode-bidi: isolate; }
+    /* Force Latin/monospace look for serial; keep centered, LTR and in one line */
+    #warranty-serial { direction: ltr; unicode-bidi: isolate; text-align:center;
+      font-family: "Courier New", Consolas, Menlo, Monaco, ui-monospace, monospace !important;
+      font-weight: 700; letter-spacing: 0.02em;
+      font-variant-numeric: normal !important; font-feature-settings: "locl" 0 !important; font-language-override: "en";
+      white-space: nowrap; }
+    /* Explicitly mark serial as English to prevent font locl digit substitution */
+    .latin-serial { direction: ltr; unicode-bidi: isolate; text-align:center; display:inline-block;
+      font-family: "Courier New", Consolas, Menlo, Monaco, ui-monospace, monospace !important;
+      font-weight: 700; letter-spacing: 0.015em; font-size: 10pt; white-space: nowrap;
+      font-variant-numeric: normal !important; font-feature-settings: "locl" 0 !important; font-language-override: "en"; }
+    @media print {
+      body {
+        background:#fff;
+        margin: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      /* Hide global chrome around content, keep only the two sheets */
+      header, .header, nav, .header-actions, .breadcrumb,
+      .greeting, .action-bar, .navbar, .site-header,
+      .page-actions, .page-chrome { display:none !important; }
+
+      /* Default: hide everything, then selectively show sheets */
+      body * { visibility: hidden; }
+      .sheet, .sheet * { visibility: visible; }
+
+      /* Front and back sheets stacked on a single A4 page (portrait) */
+      .sheet {
+        position: relative !important;
+        border:5px solid #000 !important;
+        margin: 0 auto 8mm auto;
+        page-break-after: auto;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      /* Spacer no longer forces visual gap; keep minimal height */
+      .print-spacer {
+        visibility: hidden;
+        height: 0;
+      }
+
+      /* Print on a single A4 page, portrait orientation */
+      @page { size: A4 portrait; margin: 10mm; }
+    }
+  </style>
+
+  <script>
+    document.documentElement.classList.add('rtl');
+    document.body.classList.add('bg-watermark');
+  </script>
+
+  <!-- Front side -->
+  <section class="sheet" aria-label="روی کارت گارانتی">
+    <div class="card-face bg-front">
+      <img class="badge-999" src="{% static 'icons/999G.png' %}" alt="999 days">
+      <div class="brand">
+        <img src="{% static 'icons/icon-512x512.png' %}" alt="ARCHEN">
+        <div class="brand-title">مبل آرچن</div>
+      </div>
+      <div>
+        <div class="title">کارت گارانتی</div>
+        <div class="small">
+          مشتری گرامی، ضمن تقدیر و تشکر از حسن اعتماد و انتخاب شما، ورود شما را به خانواده مشتریان مبل آرچن گرامی می‌داریم.<br>
+          کلیه محصولات خریداری شده از مبل آرچن به مدت ۹۹۹ روز شامل خدمات پس از فروش می‌باشد.
+        </div>
+        <div class="section-title">شرایط عمومی گارانتی:</div>
+        <div class="small">
+          ضمانتنامه فقط شامل تعمیر مبل می‌باشد و به منزله تعویض آن نیست.<br>
+          کلیه عیوبی که حاصل از تولید باشد شامل گارانتی (ضمانت) می‌باشد.<br>
+          مشتری فقط یک بار در طول دوره گارانتی می‌تواند از گارانتی محصول استفاده نماید.
+        </div>
+        <div class="section-title">شرایط عمومی عدم گارانتی:</div>
+        <div class="small">
+          آسیب دیدگی‌های روکش مبل ناشی از ضربه، فشار غیر معمول، سقوط، شکستگی غیر طبیعی، پارگی و سوختگی.<br>
+          بریدگی‌های احتمالی پس از خرید، مجاورت بیش از حد پارچه در مقابل آب، استفاده از وایتکس و شوینده‌های غیر استاندارد و یا فرسایش‌های طبیعی و نرم شدن معمولی اسفنج، فوم، پارچه و... . صدماتی که به دلیل ضربه سخت یا خرابی که در طول مسیر حمل و نقل بعد از زمان تحویل به محصولات وارد می‌شود.<br>
+          استفاده از محصولات در سطوح غیر هموار که باعث خرابی آنها می‌گردد.<br>
+          انتخاب و تایید نهایی پارچه به عهده خریداران می‌باشد، لذا پارچه و چرم شامل ضمانت نمی‌باشد.<br>
+          در صورت نداشتن لوگوی فلزی روی مبل‌ها یا عدم مهر و امضای شرکت و نمایندگی، محصولات شامل گارانتی نمی‌باشد.<br>
+          نکته: ارائه فاکتور با مهر برای دریافت خدمات گارانتی الزامی است.
+        </div>
+      </div>
+      <div class="footer"></div>
+    </div>
+  </section>
+  
+  <!-- Spacer between front and back (approx two lines in print) -->
+  <div class="print-spacer" aria-hidden="true"></div>
+
+  <!-- Back side -->
+  <section class="sheet" aria-label="پشت کارت گارانتی">
+    <div class="card-face bg-back">
+      <div class="brand">
+        <img src="{% static 'icons/icon-512x512.png' %}" alt="ARCHEN">
+        <div class="brand-title">مبل آرچن</div>
+      </div>
+      <div class="two-up">
+        <div class="fields" style="margin-top:4mm; row-gap:4pt;">
+          <!-- Use exhibition_name as the model field for store name; template previously referenced store_name (missing) -->
+          <div class="field"><div>نام فروشگاه</div><div class="line">{% if order and order.exhibition_name %}{{ order.exhibition_name }}{% endif %}</div></div>
+          <div class="field"><div>نام خریدار</div><div class="line">{% if order and order.customer_name %}{{ order.customer_name }}{% endif %}</div></div>
+          <div class="field"><div>شماره سریال</div><div class="line" id="warranty-serial">
+            <span id="serial-text" class="num-ltr latin-serial" lang="en" translate="no"
+                  data-serial="{{ serial_display|default:'' }}"
+                  style="font-family:'Courier New',Consolas,Menlo,Monaco,ui-monospace,monospace; font-feature-settings:'locl' 0; font-variant-numeric:normal;">
+              {% if serial_display %}{{ serial_display }}{% else %}-{% endif %}
+            </span>
+          </div></div>
+          <div class="field"><div>شماره فاکتور</div><div class="line">{% if order and order.badge_number %}{{ order.badge_number }}{% endif %}</div></div>
+          <!-- Show delivery_date as purchase date; fallback to order_date if delivery is missing. -->
+          <!-- Rationale: per product requirement, the printed purchase date should reflect delivery date. -->
+          <div class="field"><div>تاریخ خرید</div><div class="line">{% if order and order.delivery_date %}{{ order.delivery_date }}{% elif order and order.order_date %}{{ order.order_date }}{% endif %}</div></div>
+        </div>
+        <div class="qr-wrap" id="warranty-qr" style="padding:0; margin:0;">
+          {% if order and order.qr_image_url %}
+            <img src="{{ order.qr_image_url }}" alt="QR Code" style="width:28mm; height:28mm; margin:0;">
+          {% elif order and order.qr_code %}
+            <img src="{% url 'orders:qr_image' order.qr_code %}" alt="QR Code" style="width:28mm; height:28mm; margin:0;">
+          {% elif pre_qr_code %}
+            <img src="{% url 'orders:qr_image' pre_qr_code %}" alt="QR Code" style="width:28mm; height:28mm; margin:0;">
+          {% else %}
+            <img src="{% static 'img/sample-qr.png' %}" alt="QR Code" style="width:28mm; height:28mm; margin:0;">
+          {% endif %}
+        </div>
+      </div>
+      <div class="footer"></div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Use qrcode-generator (window.qrcode API) for SVG output -->
+<script src="{% static 'orders/js/qrcodegen.min.js' %}"></script>
+<script>
+(function(){
+  try {
+    var code = '{% if order and order.qr_code %}{{ order.qr_code }}{% elif pre_qr_code %}{{ pre_qr_code }}{% else %}{% endif %}';
+    // Render QR only on the back side (page 2)
+    (function(){
+      var container = document.getElementById('warranty-qr');
+      if (!container) return;
+      var hasImg = container.querySelector('img') || container.querySelector('svg');
+      if (hasImg || !code) return;
+      try {
+        // Preferred: client-side SVG using qrcode-generator
+        if (typeof window.qrcode === 'function') {
+          var qr = window.qrcode(0, 'M');
+          qr.addData(code);
+          qr.make();
+          container.innerHTML = qr.createSvgTag({cellSize: 3, margin: 0});
+          return;
+        }
+      } catch(e) { /* fallback below */ }
+      try {
+        // Fallback to server-side SVG endpoint
+        var img = new Image();
+        img.alt = 'QR';
+        img.width = 300; img.height = 300;
+        img.style.width = '28mm'; img.style.height = '28mm';
+        img.src = '/orders/qr/' + encodeURIComponent(code) + '.svg';
+        container.innerHTML = '';
+        container.appendChild(img);
+      } catch(_) {
+        // Final fallback to sample image so a placeholder is visible
+        container.innerHTML = "<img src=\"{% static 'img/sample-qr.png' %}\" alt=\"QR\" style=\"width:28mm; height:28mm;\">";
+      }
+    })();
+    var serialEl = document.getElementById('warranty-serial');
+    function hexShortFrom(str){
+      var h = 0x811c9dc5 >>> 0;
+      for (var i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = (h + ((h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24))) >>> 0; }
+      var hex = (h >>> 0).toString(16).padStart(8,'0');
+      return hex.toUpperCase();
+    }
+    if (serialEl && serialEl.textContent.trim()==='' && code){ serialEl.textContent = hexShortFrom(code); }
+    // Convert Persian/Arabic-Indic digits to Latin 0-9 for the serial (English-only display)
+try {
+  if (serialEl) {
+    function toLatinDigits(s) {
+      return (s||'')
+        .replace(/[\u06F0-\u06F9]/g, function(ch){ return String.fromCharCode(ch.charCodeAt(0)-0x06F0+48); })
+        .replace(/[\u0660-\u0669]/g, function(ch){ return String.fromCharCode(ch.charCodeAt(0)-0x0660+48); });
+    }
+    serialEl.textContent = toLatinDigits(serialEl.textContent || '');
+  }
+} catch(_){}
+    // Ensure purchase/delivery date on back side renders LTR and readable in RTL context
+    try {
+      // Regex for dates with Latin or Persian/Arabic-Indic digits
+      var dnum = '[0-9\u06F0-\u06F9\u0660-\u0669]';
+      var dsep = "[\\-\\/.]"; // -, / or .
+      var dateRe = new RegExp('^\n?\t*' + dnum + '{2,4}\\n?\t*' + dsep + '\n?\t*' + dnum + '{1,2}\\n?\t*' + dsep + '\n?\t*' + dnum + '{1,2}$');
+
+      function forceLTR(el){
+        if (!el) return;
+        if (el.querySelector('.num-ltr')) return;
+        var txt = (el.textContent || '').trim();
+        if (!txt) return;
+        if (!dateRe.test(txt)) return;
+        var span = document.createElement('span');
+        span.className = 'num-ltr';
+        // Add LRM around to avoid merging with surrounding RTL
+        span.textContent = '\u200E' + txt + '\u200E';
+        el.textContent = '';
+        el.appendChild(span);
+      }
+
+      // Target the specific "تاریخ خرید" row if present
+      document.querySelectorAll('.bg-back .fields .field').forEach(function(field){
+        var label = (field.children[0] && field.children[0].innerText || '').trim();
+        if (label && label.indexOf('\u062A\u0627\u0631\u06CC\u062E') !== -1) { // contains "تاریخ"
+          forceLTR(field.querySelector('.line'));
+        }
+      });
+
+      // Fallback: also try the 5th field which is the purchase date in current layout
+      var fallback = document.querySelector('.bg-back .fields .field:nth-child(5) .line');
+      forceLTR(fallback);
+    } catch(_){}
+  } catch(e){}
+  // Final guard: enforce ASCII digits and latin font on the serial span
+  try {
+    var serialSpan = document.getElementById('serial-text');
+    if (serialSpan) {
+      var dataSerial = serialSpan.getAttribute('data-serial') || '';
+      function toLatinDigits(s){
+        return (s||'')
+          .replace(/[\u06F0-\u06F9]/g, function(ch){ return String.fromCharCode(ch.charCodeAt(0)-0x06F0+48); })
+          .replace(/[\u0660-\u0669]/g, function(ch){ return String.fromCharCode(ch.charCodeAt(0)-0x0660+48); });
+      }
+      var txt = dataSerial || serialSpan.textContent || '';
+      var ascii = toLatinDigits(txt).toUpperCase();
+      // Map ASCII letters+digits to FULLWIDTH for consistent stroke width
+      ascii = ascii.replace(/[0-9A-Z]/g, function(ch){
+        var code = ch.charCodeAt(0);
+        if (code >= 48 && code <= 57) return String.fromCharCode(code - 48 + 0xFF10);
+        if (code >= 65 && code <= 90) return String.fromCharCode(code - 65 + 0xFF21);
+        return ch;
+      });
+      serialSpan.textContent = ascii;
+      serialSpan.style.fontFamily = 'Courier New, Consolas, Menlo, Monaco, ui-monospace, monospace';
+      serialSpan.style.fontFeatureSettings = '"locl" 0';
+      serialSpan.style.fontLanguageOverride = 'en';
+      serialSpan.setAttribute('lang', 'en');
+    }
+  } catch(_){}
+})();
+</script>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

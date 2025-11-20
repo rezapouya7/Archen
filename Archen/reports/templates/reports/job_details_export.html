@@ -1,0 +1,100 @@
+{# PATH: /Archen/reports/templates/reports/job_details_export.html #}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>گزارش شماره کار {{ job.job_number }}</title>
+  <style>
+    /* Use fonts commonly available on Linux hosts that support Persian.
+       DejaVu Sans has Arabic glyphs; fall back to Noto/Vazirmatn if present. */
+    @page { size: A4; margin: 16mm; }
+    body { font-family: 'DejaVu Sans', 'Noto Naskh Arabic', 'Vazirmatn', Tahoma, sans-serif; color:#111827; }
+    .container { max-width: 900px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 18px; margin: 0 0 8px; }
+    h2 { font-size: 14px; margin: 16px 0 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px; text-align: right; }
+    thead { background: #f9fafb; }
+    .meta { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .meta div { background:#f3f4f6; border:1px solid #e5e7eb; padding:8px; border-radius:6px; }
+    .muted { color:#6b7280; }
+    @media print {
+      a#print { display: none; }
+    }
+  </style>
+  <script>window.addEventListener('load', function(){ setTimeout(()=>{ try{ window.print(); }catch(e){} }, 300); });</script>
+</head>
+<body>
+  <div class="container">
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <h1>گزارش جزئیات شماره کار: {{ job.job_number }}</h1>
+      <a id="print" href="#" onclick="window.print();return false;" style="background:#2563eb;color:#fff;border-radius:6px;padding:6px 10px;text-decoration:none;">چاپ</a>
+    </div>
+
+    <div class="meta">
+      <div><div class="muted">محصول</div><div><strong>{{ job.product.name|default:'-' }}</strong></div></div>
+      <div><div class="muted">مدل</div><div><strong>{{ job.product.product_model.name|default:'-' }}</strong></div></div>
+      <div><div class="muted">برچسب</div><div><strong>{{ job.get_job_label_display }}</strong></div></div>
+      <div><div class="muted">وضعیت</div><div><strong>{{ job.get_status_display }}</strong></div></div>
+      <div><div class="muted">تاریخ ایجاد</div><div>{{ created_jdt }}</div></div>
+      <div><div class="muted">تاریخ بسته شدن</div><div>{{ finished_jdt|default:'-' }}</div></div>
+    </div>
+
+    <h2>مصرف قطعات</h2>
+    <table>
+      <thead><tr><th>نام قطعه</th><th>تعداد مصرف</th></tr></thead>
+      <tbody>
+        {% if consumption.parts %}
+          {% for it in consumption.parts %}
+            <tr><td>{{ it.name }}</td><td>{{ it.qty }}</td></tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="2" class="muted">موردی ثبت نشده است.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <h2>مصرف مواد اولیه</h2>
+    <table>
+      <thead><tr><th>نام ماده</th><th>مقدار</th><th>واحد</th></tr></thead>
+      <tbody>
+        {% if consumption.materials %}
+          {% for it in consumption.materials %}
+            <tr><td>{{ it.name }}</td><td>{{ it.qty }}</td><td>{{ it.unit }}</td></tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="3" class="muted">موردی ثبت نشده است.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <h2>سوابق ثبت</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>تاریخ</th>
+          <th>زمان</th>
+          <th>بخش</th>
+          <th>کاربر</th>
+          <th>اسقاط</th>
+          <th>کلاف بیرون</th>
+          <th>توضیح</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in logs %}
+        <tr>
+          <td>{{ l.jdate }}</td>
+          <td>{% if l.logged_at %}{{ l.logged_at|date:'H:i' }}{% else %}-{% endif %}</td>
+          <td>{{ l.get_section_display }}</td>
+          <td>{{ l.user.full_name|default:l.user.username }}</td>
+          <td>{% if l.is_scrap %}بله{% else %}خیر{% endif %}</td>
+          <td>{% if l.is_external %}بله{% else %}خیر{% endif %}</td>
+          <td>{{ l.note|default:'-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

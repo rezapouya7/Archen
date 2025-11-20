@@ -1,0 +1,27 @@
+{# PATH: /Archen/reports/templates/reports/log_details_export_xls.html #}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>ثبت کار {{ job.job_number|default:'-' }}</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <style>
+    table { border-collapse: collapse; width:100%; }
+    th, td { border:1px solid #e5e7eb; padding:6px; text-align:right; }
+    .muted { background:#f3f4f6; }
+  </style>
+</head>
+<body>
+  <table>
+    <tr class="muted"><th colspan="4">جزئیات ثبت کار</th></tr>
+    <tr><td>شماره کار</td><td>{{ job.job_number|default:'-' }}</td><td>بخش</td><td>{{ section_label }}</td></tr>
+    <tr><td>تاریخ</td><td>{{ jdate }}</td><td>ساعت</td><td>{{ time_str }}</td></tr>
+    <tr><td>کاربر</td><td>{{ user.full_name|default:user.username }}</td><td>توضیحات گزارش</td><td>{{ report_desc|default:'-' }}</td></tr>
+    {% if is_parts %}
+      {% if produced_qty %}<tr><td>تعداد تولید قطعه</td><td>{{ produced_qty }}</td><td>تعداد ضایعات قطعه</td><td>{{ scrap_qty }}</td></tr>{% endif %}
+      {% if not produced_qty and scrap_qty %}<tr><td>تعداد ضایعات قطعه</td><td>{{ scrap_qty }}</td><td></td><td></td></tr>{% endif %}
+    {% endif %}
+    <tr><td>یادداشت</td><td colspan="3">{{ log.note|default:'-' }}</td></tr>
+  </table>
+</body>
+</html>

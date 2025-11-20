@@ -1,0 +1,257 @@
+<!-- PATH: /Archen/inventory/templates/inventory/materials_form.html -->
+{% extends 'layout.html' %}
+
+
+{% load static %}
+{% block title %}
+  {% if is_editing %}ویرایش ماده اولیه{% else %}افزودن ماده اولیه{% endif %} | مواد اولیه
+{% endblock %}
+
+{% block page_title %}
+  {% if is_editing %}ویرایش ماده اولیه{% else %}افزودن ماده اولیه{% endif %}
+{% endblock %}
+
+{% block back_button %}
+  <a href="{% url 'inventory:materials_list' %}"
+     class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-600 text-blue-700 hover:bg-blue-200">
+    بازگشت
+  </a>
+{% endblock %}
+{% block Breadcrumb %}
+<!-- Breadcrumb navigation -->
+<!-- Inject corrected breadcrumb (server-side markup) -->
+<div class="mb-3 text-sm text-gray-600 rtl text-right">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  <a href="{% url 'inventory:dashboard' %}" class="hover:underline">انبار</a>
+  <span class="mx-1">›</span>
+  <a href="{% url 'inventory:materials_list' %}" class="hover:underline">لیست مواد اولیه</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">{% if is_editing %}ویرایش ماده اولیه{% else %}افزودن ماده اولیه{% endif %}</span>
+</div>
+<!-- Rewrite breadcrumb text/links precisely and hide legacy block below -->
+{% comment %}
+<script>(function(){try{
+  var fixed=document.getElementById('breadcrumb-fixed');
+  if(fixed){
+    var urlDashboard = "{% url 'dashboard' %}";
+    var urlInventory = "{% url 'inventory:dashboard' %}";
+    var urlList = "{% url 'inventory:materials_list' %}";
+    var isEditing = {{ is_editing|yesno:"true,false" }};
+    fixed.innerHTML = ''
+      + '<a href="'+urlDashboard+'" class="hover:underline">داشبورد</a>'
+      + '<span class="mx-1">›</span>'
+      + '<a href="'+urlInventory+'" class="hover:underline">انبار</a>'
+      + '<span class="mx-1">›</span>'
+      + '<a href="'+urlList+'" class="hover:underline">لیست مواد اولیه</a>'
+      + '<span class="mx-1">›</span>'
+      + '<span class="text-gray-800 font-semibold">' + (isEditing ? 'ویرایش ماده اولیه' : 'افزودن ماده اولیه') + '</span>';
+  }
+  var sib=fixed&&fixed.nextElementSibling; if(sib&&sib.matches('div.mb-3.text-sm.text-gray-600.rtl.text-right')){sib.style.display='none';}
+}catch(_){}})();</script>
+{% endcomment %}
+{% comment %}<div class="mb-3 text-sm text-gray-600 rtl text-right">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  <a href="{% url 'inventory:materials_list' %}" class="hover:underline">مواد اولیه</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">{% if is_editing %}ویرایش ماده اولیه{% else %}افزودن ماده اولیه{% endif %}</span>
+</div>{% endcomment %}
+{% endblock %}
+{% block content %}
+<div class="bg-transparent p-6 font-sans rtl text-right">
+  <!-- Apply header-like patterned surface on materials form -->
+  <div class="w-full max-w-3xl mx-auto surface-pattern surface-elevated p-6 rounded-xl">
+
+    <form method="post" novalidate class="grid grid-cols-1 gap-4">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="text-red-600 text-sm space-y-1">
+          {% for err in form.non_field_errors %}<p>{{ err }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- نام ماده اولیه (تنها فیلد الزامی) -->
+      <div>
+        <!-- Make input field labels bold for consistency -->
+        <label for="{{ form.name.id_for_label }}" class="block mb-1 text-sm font-bold">
+          {{ form.name.label|default:"نام ماده اولیه" }}
+          {% if form.name.field.required %}
+            <span class="text-red-600" aria-hidden="true">*</span><span class="sr-only">ضروری</span>
+          {% endif %}
+        </label>
+        {{ form.name }}
+        {% if form.name.errors %}
+          <div class="text-xs text-red-600 mt-1">{% for e in form.name.errors %}<p>{{ e }}</p>{% endfor %}</div>
+        {% endif %}
+      </div>
+
+      <!-- مقدار -->
+      <div>
+        <label for="{{ form.quantity.id_for_label }}" class="block mb-1 text-sm font-bold">
+          {{ form.quantity.label|default:"مقدار" }}
+        </label>
+        {{ form.quantity }}
+        {% if form.quantity.errors %}
+          <div class="text-xs text-red-600 mt-1">{% for e in form.quantity.errors %}<p>{{ e }}</p>{% endfor %}</div>
+        {% endif %}
+      </div>
+
+      <!-- واحد -->
+      <div>
+        <label for="{{ form.unit.id_for_label }}" class="block mb-1 text-sm font-bold">
+          {{ form.unit.label|default:"واحد" }}
+        </label>
+        {{ form.unit }}
+        {% if form.unit.errors %}
+          <div class="text-xs text-red-600 mt-1">{% for e in form.unit.errors %}<p>{{ e }}</p>{% endfor %}</div>
+        {% endif %}
+      </div>
+
+      <!-- آستانه -->
+      <div>
+        <label for="{{ form.threshold.id_for_label }}" class="block mb-1 text-sm font-bold">
+          {{ form.threshold.label|default:"حد آستانه موجودی" }}
+        </label>
+        {{ form.threshold }}
+        {% if form.threshold.errors %}
+          <div class="text-xs text-red-600 mt-1">{% for e in form.threshold.errors %}<p>{{ e }}</p>{% endfor %}</div>
+        {% endif %}
+      </div>
+
+      <!-- تأمین‌کننده -->
+      <div>
+        <label for="{{ form.supplier.id_for_label }}" class="block mb-1 text-sm font-bold">
+          {{ form.supplier.label|default:"تأمین‌کننده" }}
+        </label>
+        {{ form.supplier }}
+        {% if form.supplier.errors %}
+          <div class="text-xs text-red-600 mt-1">{% for e in form.supplier.errors %}<p>{{ e }}</p>{% endfor %}</div>
+        {% endif %}
+      </div>
+
+      <!-- قیمت -->
+      <div>
+        <label for="{{ form.price.id_for_label }}" class="block mb-1 text-sm font-bold">
+          {{ form.price.label|default:"قیمت" }}
+        </label>
+        {{ form.price }}
+        {% if form.price.errors %}
+          <div class="text-xs text-red-600 mt-1">{% for e in form.price.errors %}<p>{{ e }}</p>{% endfor %}</div>
+        {% endif %}
+      </div>
+
+      <!-- دکمه‌ها: سبز/قرمز مثل فرم افزودن کاربر -->
+      <div class="flex flex-col sm:flex-row gap-4 pt-6 justify-between">
+        <a href="{% url 'inventory:materials_list' %}"
+           class="w-full sm:w-1/2 px-4 py-2 rounded-md text-sm font-semibold text-center border border-red-700 text-red-700 hover:bg-red-200 transition">
+          انصراف
+        </a>
+        <button type="submit"
+                class="w-full sm:w-1/2 px-4 py-2 rounded-md text-sm font-semibold text-center border border-green-700 text-green-700 hover:bg-green-200 transition">
+                {% if is_editing %}ذخیره{% else %}ایجاد{% endif %}
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  // Unify breadcrumb for Materials form: Dashboard › Inventory › Materials List › Add/Edit
+  // This adjusts only the visible breadcrumb text/links without changing server routes.
+  document.addEventListener('DOMContentLoaded', function(){
+    try {
+      var bc = document.querySelector('div.mb-3.text-sm.text-gray-600.rtl.text-right');
+      if (!bc) return;
+      var isEditing = {{ is_editing|yesno:"true,false" }};
+      var urlDashboard = "{% url 'dashboard' %}";
+      var urlInventory = "{% url 'inventory:dashboard' %}";
+      var urlList = "{% url 'inventory:materials_list' %}";
+      bc.innerHTML = ''
+        + '<a href="' + urlDashboard + '" class="hover:underline">داشبورد</a>'
+        + '<span class="mx-1">›</span>'
+        + '<a href="' + urlInventory + '" class="hover:underline">انبار</a>'
+        + '<span class="mx-1">›</span>'
+        + '<a href="' + urlList + '" class="hover:underline">لیست مواد اولیه</a>'
+        + '<span class="mx-1">›</span>'
+        + '<span class="text-gray-800 font-semibold">' + (isEditing ? 'ویرایش ماده اولیه' : 'افزودن ماده اولیه') + '</span>';
+    } catch(_){}
+  });
+</script>
+<script>
+  // Form-scoped hardening for number spinners on Materials form only.
+  // Guarantees one-step per click and avoids any external handler side-effects.
+  document.addEventListener('DOMContentLoaded', function(){
+    const form = document.querySelector('form');
+    if (!form) return;
+    const nums = form.querySelectorAll('input[type="number"]');
+    nums.forEach(function(input){
+      if (input.__materialsSpinnerFix) return; input.__materialsSpinnerFix = true;
+      input.addEventListener('wheel', function(e){ if (document.activeElement === input) { e.preventDefault(); } }, { passive: false });
+      input.addEventListener('keydown', function(e){
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (e.repeat) return;
+          try { if (input.value === '' || isNaN(input.valueAsNumber)) { input.value = (input.getAttribute('min') ?? '0'); } } catch(_){ input.value = input.value || '0'; }
+          try { (e.key === 'ArrowUp' ? input.stepUp(1) : input.stepDown(1)); input.dispatchEvent(new Event('change', {bubbles:true})); } catch(_){}
+        }
+      });
+      // Capture-phase spinner click fix to avoid interference; immediate single step
+      input.addEventListener('mousedown', function(e){
+        const rect = input.getBoundingClientRect();
+        const dir = (input.dir || getComputedStyle(input).direction || 'ltr').toLowerCase();
+        const w = 18; // tighter spinner hitbox
+        const onSpin = dir === 'rtl' ? (e.clientX <= rect.left + w) : (e.clientX >= rect.right - w);
+        if (!onSpin) return; // normal click
+        const hadFocus = (document.activeElement === input);
+        let sS = null, sE = null; try { sS = input.selectionStart; sE = input.selectionEnd; } catch(_){ }
+        e.preventDefault(); e.stopPropagation();
+        const up = (e.clientY - rect.top) <= rect.height/2;
+        try { if (input.value === '' || isNaN(input.valueAsNumber)) { input.value = (input.getAttribute('min') ?? '0'); } } catch(_){ input.value = input.value || '0'; }
+        try { up ? input.stepUp(1) : input.stepDown(1); input.dispatchEvent(new Event('change', {bubbles:true})); } catch(_){}
+        try { input.focus({preventScroll:true}); if (hadFocus && sS!=null && sE!=null && input.setSelectionRange) input.setSelectionRange(sS, sE); } catch(_){ }
+      }, true);
+    });
+  });
+</script>
+<script>
+  // English: Auto-select numeric values on focus in Materials form.
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.querySelector('form');
+    if (!form) return;
+    var inputs = form.querySelectorAll('input[type="number"]');
+    inputs.forEach(function (el) {
+      // First focus (e.g. via Tab) selects full value
+      el.addEventListener('focus', function () {
+        try {
+          setTimeout(function () {
+            if (el.select) {
+              el.select();
+            }
+          }, 0);
+        } catch (_) {
+          // noop
+        }
+      });
+      // For mouse click: select full value on first click while gaining focus
+      el.addEventListener('mousedown', function (e) {
+        if (document.activeElement !== el) {
+          e.preventDefault();
+          try {
+            el.focus();
+            setTimeout(function () {
+              if (el.select) {
+                el.select();
+              }
+            }, 0);
+          } catch (_) {
+            // noop
+          }
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

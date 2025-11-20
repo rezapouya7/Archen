@@ -1,0 +1,39 @@
+{# PATH: /Archen/reports/templates/reports/log_details_export.html #}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>جزئیات ثبت کار: {{ job.job_number|default:'-' }} — {{ section_label }}</title>
+  <style>
+    @page { size: A4; margin: 16mm; }
+    body { font-family: 'DejaVu Sans', 'Noto Naskh Arabic', 'Vazirmatn', Tahoma, sans-serif; }
+    .muted { color: #6b7280; font-size: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .box { background:#f3f4f6; border:1px solid #e5e7eb; padding:8px; border-radius:6px; }
+    table { width:100%; border-collapse: collapse; font-size:12px; }
+    th,td { border:1px solid #e5e7eb; padding:6px; text-align:right; }
+    .header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+    @media print { #print { display:none; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>جزئیات ثبت کار: {{ job.job_number|default:'-' }} — {{ section_label }}</h1>
+    <a id="print" href="#" onclick="window.print();return false;" style="background:#2563eb;color:#fff;border-radius:6px;padding:6px 10px;text-decoration:none;">چاپ</a>
+  </div>
+  <div class="grid" style="margin:10px 0;">
+    <div class="box"><div class="muted">شماره کار</div><div><strong>{{ job.job_number|default:'-' }}</strong></div></div>
+    <div class="box"><div class="muted">بخش</div><div><strong>{{ section_label }}</strong></div></div>
+    <div class="box"><div class="muted">کاربر</div><div><strong>{{ user.full_name|default:user.username }}</strong></div></div>
+    <div class="box"><div class="muted">تاریخ</div><div><strong>{{ jdate }}</strong></div></div>
+    <div class="box"><div class="muted">ساعت</div><div><strong>{{ time_str }}</strong></div></div>
+    <div class="box"><div class="muted">توضیحات گزارش</div><div><strong>{{ report_desc|default:'-' }}</strong></div></div>
+    {% if is_parts %}
+      {% if produced_qty %}<div class="box"><div class="muted">تعداد تولید قطعه</div><div><strong>{{ produced_qty }}</strong></div></div>{% endif %}
+      {% if scrap_qty %}<div class="box"><div class="muted">تعداد ضایعات قطعه</div><div><strong>{{ scrap_qty }}</strong></div></div>{% endif %}
+    {% endif %}
+  </div>
+  <h3>یادداشت</h3>
+  <div style="border:1px solid #e5e7eb; border-radius:6px; padding:8px;">{{ log.note|default:'-' }}</div>
+</body>
+</html>

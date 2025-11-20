@@ -1,0 +1,566 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% block title %}لیست قطعات | صنایع چوبی آرچن{% endblock %}
+{% block page_title %}لیست قطعات{% endblock %}
+{% block back_button %}
+  <a href="{% url 'inventory:dashboard' %}" class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-600 text-blue-700 hover:bg-blue-200">بازگشت</a>
+{% endblock %}
+{% block Breadcrumb %}
+<!-- Breadcrumb -->
+<div class="my-2 px-2 text-sm text-gray-600 rtl text-right breadcrumb">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  <a href="{% url 'inventory:dashboard' %}" class="hover:underline">انبار</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">لیست قطعات</span>
+</div>
+{% endblock %}
+  <!-- Shared container ensures toolbar and list have identical width -->
+  {% block list_toolbar_actions_right %}
+    <a href="{% url 'inventory:parts_add' %}" class="flex-none inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-green-700 text-green-700 hover:bg-green-200">
+      <svg class="w-4 h-4 ms-0 me-1 text-green-800" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      افزودن
+    </a>
+    <form id="bulkForm" method="post" action="{% url 'inventory:parts_bulk_delete' %}" class="flex-none">{% csrf_token %}
+      <button id="bulkDeleteBtn" type="submit" class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-red-700 text-red-700 hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+        <svg class="w-4 h-4 ms-0 me-1 text-red-700" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 3h6a1 1 0 0 1 1 1v1h3v2H5V5h3V4a1 1 0 0 1 1-1zm-2 6h10v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9zm2 2v8h2v-8H9zm4 0v8h2v-8h-2z"/></svg>
+        حذف
+      </button>
+    </form>
+  {% endblock %}
+  {% block list_toolbar_filters %}
+    <label for="modelFilter" class="sr-only">فیلتر مدل</label>
+    <select id="modelFilter" name="model" class="flex-none w-52 border border-gray-300 p-2 rounded text-sm bg-white" onchange="this.form.submit()">
+      <option value="">همه مدل‌ها</option>
+      {% for val,label in model_choices %}
+        <option value="{{ val }}" {% if current_model == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <label for="searchInput" class="sr-only">جستجو</label>
+    <input id="searchInput" type="text" name="search" value="{{ search_query }}" placeholder="جستجو در قطعات..." class="flex-1 min-w-24 max-w-full border border-gray-300 p-2 rounded text-sm me-1" onkeydown="if(event.key==='Enter')this.form.submit()">
+  {% endblock %}
+  {% block list_status %}قطعات: {{ parts|length }} | کمبود موجودی: <span id='belowCounterParts'>{{ below_threshold_count|default:0 }}</span>{% endblock %}
+{% block content %}
+  <!-- Use the same patterned, semi-opaque surface as headers for the list frame -->
+  <div class="mt-2 overflow-x-auto surface-pattern surface-elevated rounded-xl p-2">
+    <!-- Prevent word wrapping on mobile; restore normal on >=sm -->
+    <table id="partsTable" class="min-w-full text-sm text-gray-800 border whitespace-nowrap sm:whitespace-normal">
+      <thead class="bg-gray-50">
+        <tr class="text-center">
+          <th class="p-2 border">
+            <label for="selectAllParts" class="sr-only">انتخاب همه</label>
+            <input type="checkbox" id="selectAllParts">
+          </th>
+          <!-- Removed row number column and adjusted sort indices for name/model -->
+          <th class="p-2 border text-center">
+            <button type="button" class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center" data-col="1" onclick="sortByCol(this, 'partsTable')">
+              نام قطعه
+              <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150" viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+            </button>
+          </th>
+          <th class="p-2 border text-center">
+            <button type="button" class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center" data-col="2" onclick="sortByCol(this, 'partsTable')">
+              مدل
+              <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150" viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+            </button>
+          </th>
+          <th class="p-2 border">
+            <button type="button" id="bulkHeaderCut" class="bg-transparent text-inherit text-sm font-medium inline-flex items-center" title="ویرایش گروهی ستون برش">برش</button>
+          </th>
+          <th class="p-2 border">
+            <button type="button" id="bulkHeaderCnc" class="bg-transparent text-inherit text-sm font-medium inline-flex items-center" title="ویرایش گروهی ستون سی‌ان‌سی و ابزار">سی‌ان‌سی و ابزار</button>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in parts %}
+        <tr class="text-center border-b" data-id="{{ p.id }}" data-cut="{{ p.stock_cut|default_if_none:0 }}" data-cnc="{{ p.stock_cnc_tools|default_if_none:0 }}" data-thr="{{ p.threshold|default_if_none:0 }}">
+          <td class="p-2 border">
+            <input type="checkbox" form="bulkForm" name="selected_parts" value="{{ p.id }}">
+          </td>
+          <!-- removed row number cell -->
+          <td class="p-0 border text-right nowrap">
+            <a href="{% url 'inventory:parts_edit' p.pk %}" class="block w-full h-full px-2 py-2 text-black hover:bg-cyan-300 focus:bg-cyan-300 rounded transition-colors duration-100 text-sm truncate-ellipsis">{{ p.name }}</a>
+          </td>
+          <td class="p-2 border">{{ p.product_model }}</td>
+          {# Display stock_cut: show 0 instead of dash; highlight if stock is below or equal to threshold. #}
+          {% with cut=p.stock_cut|default_if_none:0 thr=p.threshold|default_if_none:0 %}
+          <td class="p-2 border text-center">
+            <span class="editable font-bold {% if cut <= thr %}text-red-700{% else %}text-green-700{% endif %}"
+                  data-id="{{ p.id }}" data-field="stock_cut" title="برای ویرایش کلیک کنید">{{ cut }}</span>
+          </td>
+          {% endwith %}
+          {# Display stock_cnc_tools: show 0 instead of dash; highlight if below or equal to threshold. #}
+          {% with cnc=p.stock_cnc_tools|default_if_none:0 thr=p.threshold|default_if_none:0 %}
+          <td class="p-2 border text-center">
+            <span class="editable font-bold {% if cnc <= thr %}text-red-700{% else %}text-green-700{% endif %}"
+                  data-id="{{ p.id }}" data-field="stock_cnc_tools" title="برای ویرایش کلیک کنید">{{ cnc }}</span>
+          </td>
+          {% endwith %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="p-4 text-center text-gray-500">موردی یافت نشد.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <!-- Strongen table borders and emphasize numeric values -->
+  <style>
+    /* Stronger borders for better legibility */
+    #partsTable, #partsTable th, #partsTable td {
+      border-color: rgba(0,0,0,0.38) !important;
+      border-width: 1.5px;
+    }
+    #partsTable thead th { border-bottom-width: 2px; }
+  </style>
+
+<!-- Simple modal dialogs for confirm and numeric input (parts list) -->
+<div id="partsConfirmModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50">
+  <div class="absolute inset-0 z-0" data-dismiss="1"></div>
+  <div class="relative z-10 bg-white rounded-lg shadow-lg w-80 max-w-[90vw] p-3 text-right">
+    <div class="font-bold mb-2 text-gray-800">پیام برنامه</div>
+    <div id="partsConfirmMessage" class="text-sm text-gray-700 mb-3"></div>
+    <div class="flex gap-2 justify-start">
+      <button id="partsConfirmOk" class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-green-700 text-green-700 hover:bg-green-200">تایید</button>
+      <button id="partsConfirmCancel" class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-gray-500 text-gray-700 hover:bg-gray-200">انصراف</button>
+    </div>
+  </div>
+</div>
+<div id="partsNumberModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50">
+  <div class="absolute inset-0 z-0" data-dismiss="1"></div>
+  <div class="relative z-10 bg-white rounded-lg shadow-lg w-80 max-w-[90vw] p-3 text-right">
+    <div class="font-bold mb-2 text-gray-800">پیام برنامه</div>
+    <label for="partsNumberInput" id="partsNumberLabel" class="block text-sm text-gray-700 mb-2">مقدار جدید را وارد کنید (اعداد غیرمنفی):</label>
+    <input id="partsNumberInput" type="number" min="0" step="1" class="w-full border rounded px-2 py-1 mb-3 ltr text-left" value="0">
+    <div class="flex gap-2 justify-start">
+      <button id="partsNumberOk" class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-green-700 text-green-700 hover:bg-green-200">تایید</button>
+      <button id="partsNumberCancel" class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-gray-500 text-gray-700 hover:bg-gray-200">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Modal helpers for parts list (returns Promises)
+  function showPartsConfirm(message){
+    return new Promise((resolve)=>{
+      const modal = document.getElementById('partsConfirmModal');
+      const msg = document.getElementById('partsConfirmMessage');
+      const ok = document.getElementById('partsConfirmOk');
+      const cancel = document.getElementById('partsConfirmCancel');
+      const close = (v)=>{ modal.classList.add('hidden'); ok.onclick = cancel.onclick = null; resolve(v); };
+      msg.textContent = message || '';
+      modal.classList.remove('hidden');
+      ok.onclick = ()=> close(true);
+      cancel.onclick = ()=> close(false);
+      modal.querySelector('[data-dismiss]')?.addEventListener('click', ()=> close(false), { once:true });
+    });
+  }
+  function showPartsNumberPrompt(label){
+    return new Promise((resolve)=>{
+      const modal = document.getElementById('partsNumberModal');
+      const lab = document.getElementById('partsNumberLabel');
+      const input = document.getElementById('partsNumberInput');
+      const ok = document.getElementById('partsNumberOk');
+      const cancel = document.getElementById('partsNumberCancel');
+      const close = (v)=>{ modal.classList.add('hidden'); ok.onclick = cancel.onclick = null; resolve(v); };
+      lab.textContent = label || 'مقدار جدید را وارد کنید (اعداد غیرمنفی):';
+      input.value = '0';
+      modal.classList.remove('hidden');
+      input.focus(); input.select();
+      ok.onclick = ()=> { const n = toNonNegativeInt(input.value, 0); close(n); };
+      cancel.onclick = ()=> close(null);
+      input.onkeydown = (e)=>{ if(e.key==='Enter') ok.click(); if(e.key==='Escape') cancel.click(); };
+      modal.querySelector('[data-dismiss]')?.addEventListener('click', ()=> close(null), { once:true });
+    });
+  }
+
+  // Robust wrappers: always use native dialogs to avoid pending Promises if custom modal DOM changed
+  function partsConfirm(message){
+    // English: Force a consistent Persian confirmation message for bulk edits when nothing is selected
+    const msg = 'هیچ ردیفی انتخاب نشده است. آیا برای همه ردیف‌های قابل‌مشاهده اعمال شود؟';
+    return Promise.resolve(window.confirm(msg));
+  }
+  function partsNumberPrompt(label){
+    // English: Force a consistent Persian prompt label for numeric input
+    const raw = window.prompt('مقدار جدید را وارد کنید (اعداد غیرمنفی)');
+    if (raw === null) return Promise.resolve(null);
+    const n = toNonNegativeInt(raw, 0);
+    return Promise.resolve(n);
+  }
+  // ---- Inline & Bulk editing script for parts list ----
+  // Minimal vanilla JS; uses fetch + CSRF cookie; Persian digits tolerated by browser number input
+
+  const inlineUpdateUrl = "{% url 'inventory:parts_inline_update' %}";
+  const bulkUpdateUrl = "{% url 'inventory:parts_bulk_update' %}";
+
+  function getCsrfToken() {
+    const name = 'csrftoken=';
+    const parts = document.cookie ? document.cookie.split(';') : [];
+    for (const part of parts) {
+      const trimmed = part.trim();
+      if (trimmed.startsWith(name)) {
+        return decodeURIComponent(trimmed.substring(name.length));
+      }
+    }
+    return '';
+  }
+
+  function applyColor(el, value, thr) {
+    const v = Number(value) || 0;
+    const t = Number(thr) || 0;
+    el.classList.remove('text-red-700', 'text-green-700');
+    el.classList.add(v <= t ? 'text-red-700' : 'text-green-700');
+  }
+
+  function updateRowData(row, cut, cnc, thr) {
+    row.setAttribute('data-cut', String(cut));
+    row.setAttribute('data-cnc', String(cnc));
+    row.setAttribute('data-thr', String(thr));
+  }
+
+  // English: Normalize Persian/Arabic-Indic digits to ASCII 0-9.
+  function normalizeDigitsToEnglish(str) {
+    const s = String(str || '');
+    let out = '';
+    for (let i = 0; i < s.length; i += 1) {
+      const ch = s[i];
+      const code = ch.charCodeAt(0);
+      // Persian digits U+06F0..U+06F9
+      if (code >= 0x06F0 && code <= 0x06F9) {
+        out += String(code - 0x06F0);
+        continue;
+      }
+      // Arabic-Indic digits U+0660..U+0669
+      if (code >= 0x0660 && code <= 0x0669) {
+        out += String(code - 0x0660);
+        continue;
+      }
+      out += ch;
+    }
+    return out;
+  }
+
+  // English: Safely parse a non-negative integer, falling back to the given default on empty/invalid input.
+  function toNonNegativeInt(raw, fallback) {
+    const normalized = normalizeDigitsToEnglish(raw);
+    const digitsOnly = normalized.replace(/[^0-9]/g, '');
+    if (!digitsOnly) {
+      const fb = Number(fallback);
+      return Number.isFinite(fb) && fb >= 0 ? fb : 0;
+    }
+    const n = parseInt(digitsOnly, 10);
+    if (!Number.isFinite(n) || Number.isNaN(n)) {
+      const fb = Number(fallback);
+      return Number.isFinite(fb) && fb >= 0 ? fb : 0;
+    }
+    return Math.max(0, n);
+  }
+
+  function makeEditableSpan(span) {
+    if (!span || span.dataset.bound === '1') return;
+    span.dataset.bound = '1';
+    span.style.cursor = 'pointer';
+    span.addEventListener('click', () => {
+      const id = Number(span.dataset.id);
+      const field = span.dataset.field;
+      const row = span.closest('tr');
+      let currentVal = 0;
+      if (row) {
+        const attr = field === 'stock_cut' ? row.getAttribute('data-cut') : row.getAttribute('data-cnc');
+        if (attr !== null && attr !== undefined) {
+          const parsed = Number(attr);
+          currentVal = Number.isFinite(parsed) ? parsed : 0;
+        }
+      }
+
+      // Create a numeric input
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = '0';
+      input.step = '1';
+      input.value = String(currentVal);
+      input.className = 'w-20 px-1 py-0.5 border rounded ltr text-left';
+
+      const parent = span.parentElement;
+      span.classList.add('hidden');
+      parent.appendChild(input);
+      input.focus();
+      input.select();
+
+      const cleanup = () => {
+        input.remove();
+        span.classList.remove('hidden');
+      };
+
+      function commit() {
+        const raw = input.value;
+        const currentAttr = row
+          ? (field === 'stock_cut' ? row.getAttribute('data-cut') : row.getAttribute('data-cnc'))
+          : null;
+        const fallbackVal = currentAttr !== null && currentAttr !== undefined ? Number(currentAttr) || 0 : 0;
+        const val = toNonNegativeInt(raw, fallbackVal);
+        fetch(inlineUpdateUrl, {
+          method: 'POST',
+          credentials: 'same-origin', // Ensure cookies/CSRF cookie are sent with request
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken(),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({ id, field, value: val })
+        }).then(r => r.ok ? r.json() : Promise.reject(r)).then(data => {
+          if (!data || !data.ok) throw new Error('update failed');
+          span.textContent = String(data.value);
+          const row = span.closest('tr');
+          updateRowData(row, data.cut, data.cnc, data.thr);
+          applyColor(span, data.value, data.thr);
+          updateBelowCounterParts();
+        }).catch(() => {
+          // noop; keep old value
+        }).finally(cleanup);
+      }
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') commit();
+        if (e.key === 'Escape') cleanup();
+      });
+      input.addEventListener('blur', commit);
+    });
+  }
+
+  function initPartsInlineUI(){
+    try {
+      document.querySelectorAll('#partsTable span.editable').forEach(makeEditableSpan);
+      const bind = function(id, field){
+        const el = document.getElementById(id);
+        if (el && !el.dataset.bound) {
+          el.dataset.bound = '1';
+          el.addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); bulkEdit(field); });
+        }
+      };
+      bind('bulkHeaderCut', 'stock_cut');
+      bind('bulkHeaderCnc', 'stock_cnc_tools');
+    } catch(e){ console.error('Init parts inline edit failed:', e); }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPartsInlineUI);
+  } else {
+    initPartsInlineUI();
+  }
+
+  // Safe global delegation as a fallback with reentrancy guard
+  if (!window.__partsHeaderDelegationBound) {
+    window.__partsHeaderDelegationBound = true;
+    document.addEventListener('click', function(e){
+      const headerBtn = e.target && e.target.closest ? e.target.closest('#bulkHeaderCut, #bulkHeaderCnc') : null;
+      if (!headerBtn) return;
+      // If direct handler was bound in initPartsInlineUI, skip fallback to avoid double trigger
+      if (headerBtn.dataset && headerBtn.dataset.bound === '1') return;
+      if (headerBtn.dataset.__firing === '1') return; // guard duplicate
+      headerBtn.dataset.__firing = '1';
+      e.preventDefault();
+      const field = headerBtn.id === 'bulkHeaderCut' ? 'stock_cut' : 'stock_cnc_tools';
+      bulkEdit(field).finally(()=>{ delete headerBtn.dataset.__firing; });
+    }, false);
+  }
+  // Extra safety: delegate clicks on numeric spans in case initial binding failed
+  if (!window.__partsCellDelegationBound) {
+    window.__partsCellDelegationBound = true;
+    document.addEventListener('click', function(e){
+      const span = e.target && e.target.closest ? e.target.closest('#partsTable span.editable') : null;
+      if (!span) return;
+      if (span.dataset.__editing === '1') return;
+      span.dataset.__editing = '1';
+      e.preventDefault();
+      // Inline edit logic (mirrors makeEditableSpan)
+      const id = Number(span.dataset.id);
+      const field = span.dataset.field;
+      const row = span.closest('tr');
+      let currentVal = 0;
+      if (row) {
+        const attr = field === 'stock_cut' ? row.getAttribute('data-cut') : row.getAttribute('data-cnc');
+        if (attr !== null && attr !== undefined) {
+          const parsed = Number(attr);
+          currentVal = Number.isFinite(parsed) ? parsed : 0;
+        }
+      }
+      const input = document.createElement('input');
+      input.type = 'number'; input.min = '0'; input.step = '1';
+      input.value = String(currentVal);
+      input.className = 'w-20 px-1 py-0.5 border rounded ltr text-left';
+      const parent = span.parentElement; span.classList.add('hidden'); parent.appendChild(input);
+      input.focus(); input.select();
+      const cleanup = () => { input.remove(); span.classList.remove('hidden'); delete span.dataset.__editing; };
+      function commit(){
+        const raw = input.value;
+        const currentAttr = row
+          ? (field === 'stock_cut' ? row.getAttribute('data-cut') : row.getAttribute('data-cnc'))
+          : null;
+        const fallbackVal = currentAttr !== null && currentAttr !== undefined ? Number(currentAttr) || 0 : 0;
+        const val = toNonNegativeInt(raw, fallbackVal);
+        fetch(inlineUpdateUrl, {
+          method: 'POST',
+          credentials: 'same-origin', // Ensure cookies/CSRF cookie are sent with request
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken(),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({ id, field, value: val })
+        }).then(r => r.ok ? r.json() : Promise.reject(r)).then(data => {
+          if (!data || !data.ok) throw new Error('update failed');
+          span.textContent = String(data.value);
+          const row = span.closest('tr');
+          updateRowData(row, data.cut, data.cnc, data.thr);
+          applyColor(span, data.value, data.thr);
+          updateBelowCounterParts();
+        }).catch(()=>{}).finally(cleanup);
+      }
+      input.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter') commit(); if(ev.key==='Escape') cleanup(); });
+      input.addEventListener('blur', commit);
+    }, true);
+  }
+  window.rebindPartsInline = initPartsInlineUI;
+
+  function collectVisibleIds() {
+    const rows = Array.from(document.querySelectorAll('#partsTable tbody tr')).filter(r => r.style.display !== 'none');
+    return rows.map(r => Number(r.getAttribute('data-id'))).filter(Boolean);
+  }
+
+  function collectSelectedIds() {
+    const cbs = Array.from(document.querySelectorAll('#partsTable tbody input[name="selected_parts"]:checked'));
+    return cbs.map(cb => Number(cb.value)).filter(Boolean);
+  }
+
+  async function bulkEdit(field) {
+    const selected = collectSelectedIds();
+    let targets = selected.length ? selected : null;
+    if (!targets) {
+      const okAll = await partsConfirm('هیچ ردیفی انتخاب نشده است. آیا برای همه ردیف‌های قابل‌مشاهده اعمال شود؟');
+      if (!okAll) return;
+      targets = collectVisibleIds();
+    }
+    const val = await partsNumberPrompt('مقدار جدید را وارد کنید (اعداد غیرمنفی):');
+    if (val === null || val === undefined) return;
+    fetch(bulkUpdateUrl, {
+      method: 'POST',
+      credentials: 'same-origin', // Ensure cookies/CSRF cookie are sent with request
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({ ids: targets, field, mode: 'set', value: Number(val) })
+    }).then(r => r.ok ? r.json() : Promise.reject(r)).then(data => {
+      if (!data || !data.ok) return;
+      // Update each affected row and cell
+      const byId = new Map();
+      (data.items || []).forEach(it => byId.set(Number(it.id), it));
+      document.querySelectorAll('#partsTable tbody tr').forEach(row => {
+        const id = Number(row.getAttribute('data-id'));
+        const it = byId.get(id);
+        if (!it) return;
+        updateRowData(row, it.cut, it.cnc, it.thr);
+        // Update cell text and colors
+        const span = row.querySelector('span.editable[data-field="' + field + '"]');
+        if (span) {
+          const newVal = field === 'stock_cut' ? it.cut : it.cnc;
+          span.textContent = String(newVal);
+          applyColor(span, newVal, it.thr);
+        }
+      });
+      updateBelowCounterParts();
+    }).catch(() => {});
+  }
+
+  // Note: header clicks are bound in initPartsInlineUI; no global delegation to avoid duplicate triggers
+  // Live filter
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.toLowerCase();
+      document.querySelectorAll('#partsTable tbody tr').forEach(row => {
+        const txt = row.textContent.toLowerCase();
+        row.style.display = txt.includes(q) ? '' : 'none';
+      });
+      updateDeleteState('partsTable', 'bulkDeleteBtn', 'selected_parts');
+      updateBelowCounterParts();
+    });
+  }
+
+  // Update shortage counter (<= threshold) for visible rows
+  function updateBelowCounterParts() {
+    const rows = Array.from(document.querySelectorAll('#partsTable tbody tr')).filter(r => r.style.display !== 'none');
+    let below = 0;
+    rows.forEach(r => {
+      const cut = Number(r.getAttribute('data-cut') || 0);
+      const cnc = Number(r.getAttribute('data-cnc') || 0);
+      const thr = Number(r.getAttribute('data-thr') || 0);
+      if (cut <= thr || cnc <= thr) below += 1;
+    });
+    const el = document.getElementById('belowCounterParts');
+    if (el) el.textContent = String(below);
+  }
+  document.addEventListener('DOMContentLoaded', updateBelowCounterParts);
+
+  function updateDeleteState(tableId, btnId, checkboxName) {
+    const any = !!document.querySelector('#' + tableId + ' tbody input[name="' + checkboxName + '"]:checked');
+    const btn = document.getElementById(btnId);
+    if (btn) btn.disabled = !any;
+  }
+  const selectAllParts = document.getElementById('selectAllParts');
+  if (selectAllParts) {
+    selectAllParts.addEventListener('click', function(){
+      document.querySelectorAll('#partsTable tbody input[name="selected_parts"]').forEach(cb => cb.checked = this.checked);
+      updateDeleteState('partsTable', 'bulkDeleteBtn', 'selected_parts');
+      updateBelowCounterParts();
+    });
+  }
+  document.addEventListener('change', function(e){
+    if(e.target && e.target.name==='selected_parts'){ updateDeleteState('partsTable', 'bulkDeleteBtn', 'selected_parts'); }
+  });
+  updateDeleteState('partsTable', 'bulkDeleteBtn', 'selected_parts');
+
+  function sortByCol(btn, tableId) {
+    const colIdx = parseInt(btn.getAttribute('data-col'), 10);
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('td'));
+    const asc = !(btn.dataset.asc === 'true');
+    btn.dataset.asc = asc ? 'true' : 'false';
+    rows.sort((a, b) => {
+      const ta = (a.children[colIdx]?.innerText || '').trim().toLowerCase();
+      const tb = (b.children[colIdx]?.innerText || '').trim().toLowerCase();
+      if (ta < tb) return asc ? -1 : 1;
+      if (ta > tb) return asc ? 1 : -1;
+      return 0;
+    });
+    rows.forEach(r => tbody.appendChild(r));
+  }
+
+  // Last-resort safety: if custom modals were changed and promises remain pending,
+  // override to native dialogs so bulk/inline editing never gets stuck.
+  if (!window.__partsNativeDialogFallback) {
+    window.__partsNativeDialogFallback = true;
+    try {
+      const nativeConfirm = (message) => Promise.resolve(window.confirm(message || ''));
+      const nativeNumber = (label) => {
+        const raw = window.prompt(label || '');
+        if (raw === null) return Promise.resolve(null);
+        return Promise.resolve(toNonNegativeInt(raw, 0));
+      };
+      const confirmRoot = document.getElementById('partsConfirmModal');
+      const numberRoot = document.getElementById('partsNumberModal');
+      const forceNative = !confirmRoot || !numberRoot;
+      if (forceNative) {
+        window.partsConfirm = nativeConfirm;
+        window.partsNumberPrompt = nativeNumber;
+      }
+    } catch (_) {
+      window.partsConfirm = (m)=>Promise.resolve(window.confirm(m||''));
+      window.partsNumberPrompt = (l)=>{ const raw = window.prompt(l||''); return Promise.resolve(raw===null?null:(parseInt(String(raw).replace(/[^0-9]/g,''),10)||0)); };
+    }
+  }
+</script>
+{% endblock %}

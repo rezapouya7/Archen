@@ -1,0 +1,17 @@
+<!-- PATH: /Archen/templates/offline.html -->
+<!-- path: Archen/templates/offline.html -->
+{% extends "layout.html" %}
+
+{% load static %}
+{% block page_title %}حالت آفلاین{% endblock %}
+{% block back_button %}
+  
+  <a href="{% url 'dashboard' %}"
+     class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-600 text-blue-700 hover:bg-blue-200">بازگشت</a>
+{% endblock %}
+{% block content %}
+  <div class="max-w-md mx-auto bg-white/60 rounded-xl shadow-none p-6 text-center border border-gray-200/60">
+    <h1 class="text-xl font-bold mb-2">شما آفلاین هستید</h1>
+    <p class="text-gray-700">برخی قابلیت‌ها در دسترس نیست. به محض اتصال، به‌روزرسانی می‌شود.</p>
+  </div>
+{% endblock %}

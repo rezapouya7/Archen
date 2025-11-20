@@ -1,0 +1,51 @@
+###############################################
+# Archen — minimal runtime requirements (Django)
+#
+# English: This list contains only the top‑level, runtime
+# dependencies actually used by the project. Transitive
+# packages (asgiref, sqlparse, tinycss2, etc.) are resolved
+# by pip automatically. Extraneous system/desktop/dev tools
+# removed to keep installs fast and reliable.
+#
+# زبان: فارسی (fa), منطقه: Asia/Tehran
+###############################################
+
+# Django core (LTS)
+Django==4.2.23
+
+# Installed apps used in settings.py
+django-csp==4.0            # Content Security Policy middleware
+django-jalali==7.4.0       # Jalali date fields/models
+django-widget-tweaks==1.5.0
+django-pwa==2.0.1          # PWA integration (manifest + SW routes)
+
+# Jalali datetime helper used across the codebase
+jdatetime==5.2.0
+
+# PDF generation used in reports (ReportLab only)
+reportlab==4.0.9
+arabic-reshaper==3.0.0
+python-bidi==0.4.2
+
+# Server-side QR code generation (SVG, no Pillow required)
+qrcode==7.4.2
+
+# Production serving utilities
+whitenoise==6.6.0          # Static files in production
+gunicorn==21.2.0           # WSGI server (scripts/serve_gunicorn*.sh)
+
+psycopg2-binary==2.9.11
+
+# Excel export helper (used for jobs list XLSX)
+openpyxl==3.1.5
+
+
+# Notes:
+# - PDF generation is ReportLab-only and supports Persian via
+#   arabic-reshaper + python-bidi. Ensure TTF fonts are available in
+#   static/fonts/Vazirmatn/ and run collectstatic on deploy.
+# - Dev tools like mypy/django-stubs can live in a separate
+#   requirements-dev.txt if needed.
+
+
+

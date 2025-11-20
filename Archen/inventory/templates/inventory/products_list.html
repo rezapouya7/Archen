@@ -1,0 +1,250 @@
+<!-- PATH: /Archen/inventory/templates/inventory/products_list.html -->
+{% extends 'layout.html' %}
+
+{% load static %}
+{% block title %}لیست محصولات | صنایع چوبی آرچن{% endblock %}
+{% block page_title %}لیست محصولات{% endblock %}
+{% block back_button %}
+  <a href="{% url 'inventory:dashboard' %}" class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-600 text-blue-700 hover:bg-blue-200">بازگشت</a>
+{% endblock %}
+{% block Breadcrumb %}
+<!-- Breadcrumb: adjusted spacing to sit centered between greeting header and list frame -->
+<div class="my-2 px-2 text-sm text-gray-600 rtl text-right breadcrumb">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  <a href="{% url 'inventory:dashboard' %}" class="hover:underline">انبار</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">لیست محصولات</span>
+</div>
+{% endblock %}
+{# Toolbar is global in layout.html; do not add extra container here. #}
+
+{% block list_toolbar_actions_right %}
+  <a href="{% url 'inventory:products_add' %}" class="flex-none inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-green-700 text-green-700 hover:bg-green-200">
+    <svg class="w-4 h-4 ms-0 me-1 text-green-800" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    افزودن
+  </a>
+  <form id="bulkForm" method="post" action="{% url 'inventory:products_bulk_delete' %}" class="flex-none">{% csrf_token %}
+    <button id="bulkDeleteBtn" type="submit" class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-red-700 text-red-700 hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+      <svg class="w-4 h-4 ms-0 me-1 text-red-700" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 3h6a1 1 0 0 1 1 1v1h3v2H5V5h3V4a1 1 0 0 1 1-1zm-2 6h10v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9zm2 2v8h2v-8H9zm4 0v8h2v-8h-2z"/></svg>
+      حذف
+    </button>
+  </form>
+{% endblock %}
+{% block list_toolbar_filters %}
+  <label for="modelFilter" class="sr-only">فیلتر مدل</label>
+  <select id="modelFilter" name="model" class="flex-none w-48 md:w-52 border border-gray-300 p-2 rounded text-sm bg-white" onchange="this.form.submit()">
+    <option value="">همه مدل‌ها</option>
+    {% for val,label in model_choices %}
+      <option value="{{ val }}" {% if current_model == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <label for="searchInput" class="sr-only">جستجو</label>
+  <input id="searchInput" type="text" name="search" value="{{ search_query }}" placeholder="جستجو..." class="flex-1 min-w-0 max-w-full border border-gray-300 p-2 rounded text-sm me-1">
+{% endblock %}
+{% block list_status %}محصولات: <span id='productsCount'>{{ products|length }}</span> | کمبود موجودی: <span id='belowCounterProducts'>{{ below_threshold_count|default:0 }}</span>{% endblock %}
+
+{% block content %}
+
+
+
+  <!-- Use header-like patterned surface for the list frame -->
+  <div class="mt-2 overflow-x-auto surface-pattern surface-elevated rounded-xl p-2">
+    <!-- Prevent word wrapping on mobile; restore normal on >=sm -->
+    <table id="productsTable" class="min-w-full text-sm text-gray-800 border whitespace-nowrap sm:whitespace-normal">
+      <thead class="bg-gray-50">
+        <tr class="text-center">
+          <th class="p-2 border"><input type="checkbox" id="selectAll"></th>
+          <!-- Removed row number column; adjust sort indices accordingly -->
+          <th class="p-2 border text-center">
+            <button type="button" class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center" data-col="1" onclick="sortByCol(this, 'productsTable')">
+              نام محصول
+              <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150" viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+            </button>
+          </th>
+          <th class="p-2 border text-center">
+            <button type="button" class="sort-btn bg-transparent text-inherit text-sm font-medium inline-flex items-center" data-col="2" onclick="sortByCol(this, 'productsTable')">
+              مدل
+              <svg class="sort-indicator ms-1 w-3 h-3 text-gray-500 opacity-40 transition-all duration-150" viewBox="0 0 20 20" fill="currentColor"><path d="M10 14l-5-7h10l-5 7z"/></svg>
+            </button>
+          </th>
+          <th class="p-2 border">مونتاژ</th>
+          <th class="p-2 border">صفحه‌کاری</th>
+          <th class="p-2 border">رنگ زیرکار</th>
+          <th class="p-2 border">رنگ</th>
+          <th class="p-2 border">خیاطی</th>
+          <th class="p-2 border">رویه‌کوبی</th>
+          <th class="p-2 border">بسته‌بندی</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+        <tr class="text-center border-b" data-assembly="{{ p.assembly|default_if_none:0 }}" data-paneling="{{ p.paneling|default_if_none:0 }}" data-undercoat="{{ p.undercoat_color|default_if_none:0 }}" data-color="{{ p.color|default_if_none:0 }}" data-sewing="{{ p.sewing|default_if_none:0 }}" data-upholstery="{{ p.upholstery|default_if_none:0 }}" data-packing="{{ p.packing|default_if_none:0 }}" data-thr="{{ p.thr|default_if_none:0 }}">
+          <td class="p-2 border"><input type="checkbox" form="bulkForm" name="selected_products" value="{{ p.id }}"></td>
+          <!-- removed row number cell -->
+          <td class="p-0 border text-right nowrap"><a href="{% url 'inventory:products_edit' p.pk %}" class="block w-full h-full px-2 py-2 text-black hover:bg-cyan-300 focus:bg-cyan-300 rounded transition-colors duration-100 text-sm truncate-ellipsis">{{ p.name }}</a></td>
+          <td class="p-2 border">{{ p.product_model }}</td>
+          <td class="p-2 border">
+            {% if p.assembly|default_if_none:0 <= p.thr %}
+              <span class="font-bold text-red-700">{{ p.assembly|default_if_none:0 }}</span>
+            {% else %}
+              <span class="font-bold text-green-700">{{ p.assembly|default_if_none:0 }}</span>
+            {% endif %}
+          </td>
+          <td class="p-2 border">
+            {% if p.paneling|default_if_none:0 <= p.thr %}
+              <span class="font-bold text-red-700">{{ p.paneling|default_if_none:0 }}</span>
+            {% else %}
+              <span class="font-bold text-green-700">{{ p.paneling|default_if_none:0 }}</span>
+            {% endif %}
+          </td>
+          <td class="p-2 border">
+            {% if p.undercoat_color|default_if_none:0 <= p.thr %}
+              <span class="font-bold text-red-700">{{ p.undercoat_color|default_if_none:0 }}</span>
+            {% else %}
+              <span class="font-bold text-green-700">{{ p.undercoat_color|default_if_none:0 }}</span>
+            {% endif %}
+          </td>
+          <td class="p-2 border">
+            {% if p.color|default_if_none:0 <= p.thr %}
+              <span class="font-bold text-red-700">{{ p.color|default_if_none:0 }}</span>
+            {% else %}
+              <span class="font-bold text-green-700">{{ p.color|default_if_none:0 }}</span>
+            {% endif %}
+          </td>
+          <td class="p-2 border">
+            {% if p.sewing|default_if_none:0 <= p.thr %}
+              <span class="font-bold text-red-700">{{ p.sewing|default_if_none:0 }}</span>
+            {% else %}
+              <span class="font-bold text-green-700">{{ p.sewing|default_if_none:0 }}</span>
+            {% endif %}
+          </td>
+          <td class="p-2 border">
+            {% if p.upholstery|default_if_none:0 <= p.thr %}
+              <span class="font-bold text-red-700">{{ p.upholstery|default_if_none:0 }}</span>
+            {% else %}
+              <span class="font-bold text-green-700">{{ p.upholstery|default_if_none:0 }}</span>
+            {% endif %}
+          </td>
+          <td class="p-2 border">
+            {% if p.packing|default_if_none:0 <= p.thr %}
+              <span class="font-bold text-red-700">{{ p.packing|default_if_none:0 }}</span>
+            {% else %}
+              <span class="font-bold text-green-700">{{ p.packing|default_if_none:0 }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10" class="p-4 text-center text-gray-500">موردی یافت نشد.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Strongen table borders and emphasize numeric values -->
+  <style>
+    /* Stronger borders for better legibility */
+    #productsTable, #productsTable th, #productsTable td {
+      border-color: rgba(0,0,0,0.38) !important;
+      border-width: 1.5px;
+    }
+    #productsTable thead th { border-bottom-width: 2px; }
+  </style>
+
+</div>
+
+<script>
+  (function(){
+    const productsTable = document.getElementById('productsTable');
+    const selectAll = document.getElementById('selectAll');
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    const searchInput = document.getElementById('searchInput');
+
+    const rowCheckboxes = () => {
+      return productsTable ? productsTable.querySelectorAll('tbody input[name="selected_products"]') : [];
+    };
+
+    const updateDeleteState = () => {
+      if (!bulkDeleteBtn) return;
+      const anyChecked = Array.from(rowCheckboxes()).some(cb => cb.checked);
+      bulkDeleteBtn.disabled = !anyChecked;
+    };
+
+    const getVisibleRows = () => {
+      if (!productsTable) return [];
+      return Array.from(productsTable.querySelectorAll('tbody tr')).filter(row => {
+        return row.style.display !== 'none' && Object.prototype.hasOwnProperty.call(row.dataset, 'thr');
+      });
+    };
+
+    const updateProductsCount = () => {
+      const countEl = document.getElementById('productsCount');
+      if (countEl) countEl.textContent = String(getVisibleRows().length);
+    };
+
+    const updateBelowCounterProducts = () => {
+      const rows = getVisibleRows();
+      let below = 0;
+      rows.forEach(row => {
+        const thr = Number(row.dataset.thr || 0);
+        const checkpoints = ['assembly','paneling','undercoat','color','sewing','upholstery','packing'];
+        if (checkpoints.some(key => Number(row.dataset[key] || 0) <= thr)) {
+          below += 1;
+        }
+      });
+      const belowEl = document.getElementById('belowCounterProducts');
+      if (belowEl) belowEl.textContent = String(below);
+    };
+
+    if (selectAll) {
+      selectAll.addEventListener('change', function(){
+        rowCheckboxes().forEach(cb => { cb.checked = this.checked; });
+        updateDeleteState();
+      });
+    }
+
+    document.addEventListener('change', (e) => {
+      if (e.target && e.target.name === 'selected_products') {
+        updateDeleteState();
+      }
+    });
+
+    if (searchInput && productsTable) {
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim().toLowerCase();
+        productsTable.querySelectorAll('tbody tr').forEach(row => {
+          const matches = row.textContent.toLowerCase().includes(query);
+          row.style.display = matches ? '' : 'none';
+        });
+        updateDeleteState();
+        updateProductsCount();
+        updateBelowCounterProducts();
+      });
+    }
+
+    updateDeleteState();
+    updateProductsCount();
+    updateBelowCounterProducts();
+  })();
+
+  function sortByCol(btn, tableId) {
+    const colIdx = parseInt(btn.getAttribute('data-col'), 10);
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const asc = !(btn.dataset.asc === 'true');
+    btn.dataset.asc = asc ? 'true' : 'false';
+    rows.sort((a, b) => {
+      const ta = (a.children[colIdx]?.innerText || '').trim().toLowerCase();
+      const tb = (b.children[colIdx]?.innerText || '').trim().toLowerCase();
+      if (ta < tb) return asc ? -1 : 1;
+      if (ta > tb) return asc ? 1 : -1;
+      return 0;
+    });
+    rows.forEach(r => tbody.appendChild(r));
+  }
+</script>
+{% endblock %}
+
+

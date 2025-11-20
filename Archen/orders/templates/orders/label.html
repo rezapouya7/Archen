@@ -1,0 +1,386 @@
+<!-- PATH: /Archen/orders/templates/orders/label.html -->
+{% extends "layout.html" %}
+{% load static %}
+
+{% block title %}لیبل سفارش | سفارش‌ها{% endblock %}
+{% block page_title %}لیبل سفارش{% endblock %}
+
+{% block back_button %}
+  <div class="flex gap-2">
+    <a href="{% url 'orders:list' %}"
+       class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-700 text-blue-700 hover:bg-blue-200">بازگشت</a>
+  </div>
+{% endblock %}
+
+{% block Breadcrumb %}
+  <!-- Breadcrumb navigation for label page -->
+  <div class="mb-3 text-sm text-gray-600 rtl text-right breadcrumb">
+    <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+    <span class="mx-1">›</span>
+    <a href="{% url 'orders:list' %}" class="hover:underline">لیست سفارش‌ها</a>
+    <span class="mx-1">›</span>
+    <span class="text-gray-800 font-semibold">لیبل سفارش</span>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <style>
+    :root {
+      /* Label physical size: 100mm x 100mm (screen و چاپ) */
+      --label-width: 100mm;
+      --label-height: 100mm;
+    }
+
+    .label-page-root {
+      max-width: 100%;
+      margin: 0 auto;
+    }
+
+    .label-intro {
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      background-color: rgba(249, 250, 251, 0.9);
+      border-radius: 0.75rem;
+      border: 1px solid rgba(209, 213, 219, 0.9);
+      font-size: 0.875rem;
+      line-height: 1.7;
+    }
+
+    .label-intro strong {
+      font-weight: 700;
+    }
+
+    .label-footer {
+      margin-top: 0.4rem;
+      font-size: 0.7rem;
+      line-height: 1.6;
+      color: #4b5563;
+      direction: rtl;
+      text-align: justify;
+      text-align-last: right;
+      -moz-text-align-last: right;
+    }
+
+    .label-footer strong {
+      font-weight: 700;
+    }
+
+    .labels-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: flex-start;
+    }
+
+    .label-sheet {
+      box-sizing: border-box;
+      width: var(--label-width);
+      min-height: var(--label-height);
+      padding: 4mm 6mm;
+      border-radius: 3mm;
+      border: 2px solid #000;
+      background: #fff;
+      color: #111827;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow:
+        0 2px 6px rgba(0,0,0,0.15),
+        inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+
+    .label-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .label-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .label-brand img {
+      width: 14mm;
+      height: 14mm;
+      object-fit: contain;
+    }
+
+    .label-brand-title {
+      font-weight: 800;
+      font-size: 0.95rem;
+    }
+
+    .label-meta {
+      text-align: center;
+      font-size: 0.7rem;
+      color: #4b5563;
+    }
+
+    .label-meta img {
+      display: block;
+      width: 20mm;
+      height: 20mm;
+      object-fit: contain;
+      margin: 0 auto 2px auto;
+    }
+
+    .label-meta-handle {
+      font-size: 0.65rem;
+      direction: ltr;
+      unicode-bidi: isolate;
+      font-weight: 600;
+    }
+
+    .label-fields {
+      border-top: 1px dashed rgba(156, 163, 175, 0.9);
+      border-bottom: 1px dashed rgba(156, 163, 175, 0.9);
+      padding: 0.4rem 0;
+      margin-bottom: 0.35rem;
+      font-size: 0.8rem;
+    }
+
+    .label-row {
+      display: grid;
+      grid-template-columns: 26mm 1fr;
+      column-gap: 4mm;
+      row-gap: 2mm;
+      align-items: center;
+    }
+
+    .label-row + .label-row {
+      margin-top: 2mm;
+    }
+
+    .label-row-label {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .label-row-value {
+      border-bottom: 1px solid rgba(156, 163, 175, 0.9);
+      min-height: 5mm;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0 2mm;
+      font-weight: 700;
+    }
+
+    .label-row-value.num-ltr {
+      direction: ltr;
+      unicode-bidi: isolate;
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .label-row-value.code-value {
+      white-space: nowrap;
+    }
+
+    @media print {
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #ffffff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      /* فقط کروم سایت پنهان شود؛ نه محتویات خود لیبل‌ها */
+      .header, nav, .header-actions, .breadcrumb,
+      .greeting, .action-bar, .navbar, .site-header,
+      .page-actions, .page-chrome {
+        display: none !important;
+      }
+
+      /* هیچ پترن/سطح نرم در چاپ نمایش داده نشود */
+      .surface-pattern,
+      .surface-pattern::before,
+      .surface-elevated {
+        background: #ffffff !important;
+        background-image: none !important;
+        box-shadow: none !important;
+      }
+
+      /* کانتینر اصلی در چاپ هیچ قاب/بک‌گراندی نداشته باشد */
+      .label-page-root {
+        margin: 0 auto !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+        background: #ffffff !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        border: 0 !important;
+      }
+
+      /* چاپ روی A4 افقی: ۲ ستون × ۲ ردیف در هر صفحه
+         هر لیبل دقیقاً ۱۰۰×۱۰۰ میلی‌متر است. */
+      .labels-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 100mm);
+        grid-auto-rows: 100mm;
+        column-gap: 20mm;
+        row-gap: 0;
+        justify-content: center;
+      }
+
+      /* خود لیبل فقط با همان قاب داخلی (border)؛ بدون سایه اضافی */
+      .label-sheet {
+        box-shadow: none !important;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      /* تضمین چاپ لوگو و QR (همه img های داخل لیبل‌ها) */
+      .label-sheet img {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
+
+      @page {
+        size: A4 landscape;
+        margin: 5mm;
+      }
+    }
+  </style>
+
+  <div class="label-page-root surface-pattern surface-elevated rounded-xl p-4">
+    {% if order %}
+      <div class="labels-grid">
+        {% if label_items %}
+        {% for label in label_items %}
+          {% with item=label.item %}
+          <section class="label-sheet" aria-label="لیبل محصول">
+            <header class="label-header">
+              <div class="label-brand">
+                <img src="{% static 'icons/icon-192x192.png' %}" alt="ARCHEN">
+                <div class="label-brand-title">مبل آرچن</div>
+              </div>
+              <div class="label-meta">
+                <img src="{% static 'icons/archen_instagram_qr.png' %}" alt="@ARCHEN_MOBL QR">
+                <div class="label-meta-handle">@ARCHEN_MOBL</div>
+              </div>
+            </header>
+
+            <div class="label-fields">
+              <div class="label-row">
+                <div class="label-row-label">کد اشتراک</div>
+                <div class="label-row-value num-ltr">
+                  {{ order.subscription_code|default:"-" }}
+                </div>
+              </div>
+              <div class="label-row">
+                <div class="label-row-label">نام مشتری</div>
+                <div class="label-row-value">
+                  {{ order.customer_name|default:"-" }}
+                </div>
+              </div>
+              <div class="label-row">
+                <div class="label-row-label">شماره سفارش</div>
+                <div class="label-row-value num-ltr">
+                  {{ order.badge_number|default:order.id }}
+                </div>
+              </div>
+              <div class="label-row">
+                <div class="label-row-label">نام محصول</div>
+                <div class="label-row-value">
+                  {{ item.product.name|default:"-" }}
+                </div>
+              </div>
+              <div class="label-row">
+                <div class="label-row-label">کد محصول</div>
+                <div class="label-row-value num-ltr code-value">
+                  {% if label.code %}
+                    {{ label.code }}
+                  {% elif item.job_number %}
+                    {{ item.job_number }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="label-footer">
+              مشتری گرامی، این برچسب جهت استفاده از خدمات پس از فروش مبل آرچن است.
+              جهت فعال‌سازی ، <strong>شماره سفارش</strong> و <strong>کد محصول</strong> را به شماره همراه
+              <strong>۰۹۰۰۴۰۴۵۱۰۴</strong> ارسال نمایید.
+            </div>
+
+          </section>
+          {% endwith %}
+        {% empty %}
+          <p class="text-center text-gray-500 w-full">
+            محصولی برای این سفارش ثبت نشده است.
+          </p>
+        {% endfor %}
+        {% else %}
+          {% for item in order.items.all %}
+          <section class="label-sheet" aria-label="لیبل محصول">
+            <header class="label-header">
+              <div class="label-brand">
+                <img src="{% static 'icons/icon-192x192.png' %}" alt="ARCHEN">
+                <div class="label-brand-title">مبل آرچن</div>
+              </div>
+              <div class="label-meta">
+                <img src="{% static 'icons/archen_instagram_qr.png' %}" alt="@ARCHEN_MOBL QR">
+                <div class="label-meta-handle">@ARCHEN_MOBL</div>
+              </div>
+            </header>
+
+            <div class="label-fields">
+              <div class="label-row">
+                <div class="label-row-label">کد اشتراک</div>
+                <div class="label-row-value num-ltr">
+                  {{ order.subscription_code|default:"-" }}
+                </div>
+              </div>
+              <div class="label-row">
+                <div class="label-row-label">نام مشتری</div>
+                <div class="label-row-value">
+                  {{ order.customer_name|default:"-" }}
+                </div>
+              </div>
+              <div class="label-row">
+                <div class="label-row-label">شماره سفارش</div>
+                <div class="label-row-value num-ltr">
+                  {{ order.badge_number|default:order.id }}
+                </div>
+              </div>
+              <div class="label-row">
+                <div class="label-row-label">نام محصول</div>
+                <div class="label-row-value">
+                  {{ item.product.name|default:"-" }}
+                </div>
+              </div>
+              <div class="label-row">
+                <div class="label-row-label">کد محصول</div>
+                <div class="label-row-value num-ltr code-value">
+                  {{ item.job_number|default:"-" }}
+                </div>
+              </div>
+            </div>
+            <div class="label-footer">
+              مشتری گرامی، این برچسب جهت استفاده از خدمات پس از فروش مبل آرچن است.
+              جهت فعال‌سازی ، <strong>شماره سفارش</strong> و <strong>کد محصول</strong> را به شماره همراه
+              <strong>۰۹۰۰۴۰۴۵۱۰۴</strong> ارسال نمایید.
+            </div>
+          </section>
+          {% empty %}
+          <p class="text-center text-gray-500 w-full">
+            محصولی برای این سفارش ثبت نشده است.
+          </p>
+          {% endfor %}
+        {% endif %}
+      </div>
+    {% else %}
+      <p class="text-center text-gray-500">
+        سفارشی برای نمایش لیبل یافت نشد.
+      </p>
+    {% endif %}
+  </div>
+{% endblock %}

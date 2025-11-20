@@ -1,0 +1,136 @@
+<!-- PATH: /Archen/inventory/templates/inventory/part_form.html -->
+{% extends 'layout.html' %}
+{% load static %}
+{% load static widget_tweaks %}
+{% block back_button %}
+  <a href="{% url 'inventory:parts_list' %}"
+     class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-blue-600 text-blue-700 hover:bg-blue-200">
+    بازگشت
+  </a>
+{% endblock %}
+{% block title %}{% if is_editing %}ویرایش قطعه{% else %}افزودن قطعه{% endif %} | انبار{% endblock %}
+{% block page_title %}{% if is_editing %}ویرایش قطعه{% else %}افزودن قطعه{% endif %}{% endblock %}
+{% block Breadcrumb %}
+<!-- Breadcrumb navigation -->
+<div class="mb-3 text-sm text-gray-600 rtl text-right">
+  <a href="{% url 'dashboard' %}" class="hover:underline">داشبورد</a>
+  <span class="mx-1">›</span>
+  <a href="{% url 'inventory:dashboard' %}" class="hover:underline">انبار</a>
+  <span class="mx-1">›</span>
+  <a href="{% url 'inventory:parts_list' %}" class="hover:underline">لیست قطعات</a>
+  <span class="mx-1">›</span>
+  <span class="text-gray-800 font-semibold">{% if is_editing %}ویرایش قطعه{% else %}افزودن قطعه{% endif %}</span>
+</div>
+{% endblock %}
+{% block content %}
+<div class="py-6 font-sans rtl text-right">
+  <div class="max-w-xl mx-auto px-4">
+    <!-- Match header patterned surface for form card -->
+    <div class="surface-pattern surface-elevated rounded-xl p-6">
+      <form method="post" novalidate class="space-y-4">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="text-red-600 text-sm space-y-1">
+            {% for err in form.non_field_errors %}<p>{{ err }}</p>{% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Name -->
+        <div class="flex flex-col">
+          <!-- Make input field labels bold for better readability across forms -->
+          <label for="{{ form.name.id_for_label }}" class="text-sm text-gray-700 mb-1 font-bold">{{ form.name.label }}<span class="text-red-600">*</span></label>
+          {{ form.name|add_class:'w-full border border-gray-300 p-2 rounded text-sm' }}
+          {% if form.name.errors %}
+            <div class="text-xs text-red-600 mt-1">{% for e in form.name.errors %}<p>{{ e }}</p>{% endfor %}</div>
+          {% endif %}
+        </div>
+        <!-- Product Model (required) -->
+        <div class="flex flex-col">
+          <label for="{{ form.product_model.id_for_label }}" class="text-sm text-gray-700 mb-1 font-bold">
+            {{ form.product_model.label }}<span class="text-red-600">*</span>
+          </label>
+          {{ form.product_model|add_class:'w-full border border-gray-300 p-2 rounded text-sm bg-white' }}
+          {% if form.product_model.errors %}
+            <div class="text-xs text-red-600 mt-1">{% for e in form.product_model.errors %}<p>{{ e }}</p>{% endfor %}</div>
+          {% endif %}
+        </div>
+
+        {# Threshold: optional warning threshold for inventory.  Displayed only in settings page #}
+        <div class="flex flex-col">
+          <label for="{{ form.threshold.id_for_label }}" class="text-sm text-gray-700 mb-1 font-bold">
+            {{ form.threshold.label }}
+          </label>
+          {{ form.threshold|add_class:'w-full border border-gray-300 p-2 rounded text-sm' }}
+          {% if form.threshold.errors %}
+            <div class="text-xs text-red-600 mt-1">{% for e in form.threshold.errors %}<p>{{ e }}</p>{% endfor %}</div>
+          {% endif %}
+        </div>
+
+        <!-- Stock: cut -->
+        <div class="flex flex-col">
+          <label for="{{ form.stock_cut.id_for_label }}" class="text-sm text-gray-700 mb-1 font-bold">{{ form.stock_cut.label }}</label>
+          {{ form.stock_cut|add_class:'w-full border border-gray-300 p-2 rounded text-sm ltr text-left' }}
+          {% if form.stock_cut.errors %}
+            <div class="text-xs text-red-600 mt-1">{% for e in form.stock_cut.errors %}<p>{{ e }}</p>{% endfor %}</div>
+          {% endif %}
+        </div>
+
+        <!-- Stock: CNC/Tools -->
+        <div class="flex flex-col">
+          <label for="{{ form.stock_cnc_tools.id_for_label }}" class="text-sm text-gray-700 mb-1 font-bold">{{ form.stock_cnc_tools.label }}</label>
+          {{ form.stock_cnc_tools|add_class:'w-full border border-gray-300 p-2 rounded text-sm ltr text-left' }}
+          {% if form.stock_cnc_tools.errors %}
+            <div class="text-xs text-red-600 mt-1">{% for e in form.stock_cnc_tools.errors %}<p>{{ e }}</p>{% endfor %}</div>
+          {% endif %}
+        </div>
+
+        
+        <div class="flex flex-col">
+          <label for="{{ form.description.id_for_label }}" class="text-sm text-gray-700 mb-1 font-bold">
+            {{ form.description.label }}
+          </label>
+          {{ form.description|add_class:'w-full border border-gray-300 p-2 rounded text-sm' }}
+          {% if form.description.errors %}
+            <div class="text-xs text-red-600 mt-1">{% for e in form.description.errors %}<p>{{ e }}</p>{% endfor %}</div>
+          {% endif %}
+        </div>
+        <!-- Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 pt-4 justify-between">
+          <a href="{% url 'inventory:parts_list' %}" class="w-full sm:w-1/2 px-4 py-2 rounded text-sm font-semibold text-center border border-red-700 text-red-700 hover:bg-red-200 transition">
+            انصراف
+          </a>
+          <button type="submit" class="w-full sm:w-1/2 px-4 py-2 rounded text-sm font-semibold text-center border border-green-700 text-green-700 hover:bg-green-200 transition">
+            {% if is_editing %}ذخیره{% else %}ایجاد{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  // English: Auto-select existing numeric values on focus for key inventory fields.
+  (function () {
+    function bindSelectOnFocus(selector) {
+      var el = document.querySelector(selector);
+      if (!el) return;
+      el.addEventListener('focus', function () {
+        try {
+          // Delay selection slightly so it works reliably on click/tab focus.
+          setTimeout(function () {
+            if (el.select) {
+              el.select();
+            }
+          }, 0);
+        } catch (e) {
+          // noop
+        }
+      });
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+      bindSelectOnFocus('#{{ form.threshold.id_for_label }}');
+      bindSelectOnFocus('#{{ form.stock_cut.id_for_label }}');
+      bindSelectOnFocus('#{{ form.stock_cnc_tools.id_for_label }}');
+    });
+  })();
+</script>
+{% endblock %}

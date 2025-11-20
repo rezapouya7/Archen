@@ -1,0 +1,141 @@
+{# PATH: /Archen/reports/templates/reports/order_details_panel.html #}
+
+<div class="space-y-4 w-full overflow-x-hidden">
+  <style>
+    .num-ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+  </style>
+  <!-- Header -->
+  <div class="flex items-center justify-between flex-wrap gap-2">
+    <div class="min-w-0">
+      <div class="text-base font-bold text-gray-800">شماره بیجک: <span class="num-ltr">{{ order.badge_number|default:'-' }}</span></div>
+      <div class="text-xs text-gray-500 flex flex-wrap gap-2 mt-0.5">
+        <span>کد اشتراک: {{ order.subscription_code|default:'-' }}</span>
+        <span class="hidden sm:inline">•</span>
+        <span>وضعیت: {{ order.get_status_display }}</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-1 sm:gap-2 shrink-0 w-full sm:w-auto">
+      <a href="/reports/order-details/{{ order.id }}/export/xlsx/"
+         class="px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm whitespace-nowrap rounded border font-bold border-green-700 text-green-700 hover:bg-green-200">خروجی XLSX</a>
+      <a href="/reports/order-details/{{ order.id }}/export/pdf/" download
+         class="px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm whitespace-nowrap rounded border font-bold border-red-700 text-red-700 hover:bg-red-200">خروجی PDF</a>
+    </div>
+  </div>
+
+  <!-- General info -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 bg-gray-50/60 rounded-lg p-3 border border-gray-200/70">
+    <div><div class="text-xs text-gray-500">نام مشتری</div><div class="text-sm font-bold break-words">{{ order.customer_name|default:'-' }}</div></div>
+    <div><div class="text-xs text-gray-500">شهر</div><div class="text-sm font-bold break-words">{{ order.city|default:'-' }}</div></div>
+    <div><div class="text-xs text-gray-500">مدل</div><div class="text-sm font-bold break-words">{{ order.model|default:'-' }}</div></div>
+    <div><div class="text-xs text-gray-500">شماره بیجک</div><div class="text-sm font-bold break-words"><span class="num-ltr">{{ order.badge_number|default:'-' }}</span></div></div>
+    <div><div class="text-xs text-gray-500">نمایشگاه/فروشگاه</div><div class="text-sm font-bold break-words">{{ order.exhibition_name|default:'-' }}</div></div>
+    <div><div class="text-xs text-gray-500">کد اشتراک</div><div class="text-sm font-bold break-words">{{ order.subscription_code|default:'-' }}</div></div>
+    <div><div class="text-xs text-gray-500">تولیدکننده</div><div class="text-sm font-bold break-words">{{ order.producer|default:'-' }}</div></div>
+    <div><div class="text-xs text-gray-500">منطقه</div><div class="text-sm font-bold break-words">{{ order.region|default:'-' }}</div></div>
+    <div><div class="text-xs text-gray-500">تلفن مشتری</div><div class="text-sm font-bold break-words">{{ order.customer_phone|default:'-' }}</div></div>
+    <div><div class="text-xs text-gray-500">تلفن راننده</div><div class="text-sm font-bold break-words">{{ order.driver_phone|default:'-' }}</div></div>
+    <div><div class="text-xs text-gray-500">فرستنده</div><div class="text-sm font-bold break-words">{{ order.sender|default:'-' }}</div></div>
+    <div><div class="text-xs text-gray-500">نام راننده</div><div class="text-sm font-bold break-words">{{ order.driver_name|default:'-' }}</div></div>
+    <div><div class="text-xs text-gray-500">کد رنگ</div><div class="text-sm font-bold break-words">{{ order.color_code|default:'-' }}</div></div>
+    <div class="sm:col-span-2 md:col-span-3"><div class="text-xs text-gray-500">توضیحات پارچه</div><div class="text-sm break-words">{{ order.fabric_description|default:'-' }}</div></div>
+    <div>
+      <div class="text-xs text-gray-500">تاریخ سفارش</div>
+      <div class="text-sm"><span class="num-ltr">{{ order_jdt }}</span></div>
+      <div class="mt-1 text-xs text-gray-500">تاریخ ورود پارچه</div>
+      <div class="text-sm"><span class="num-ltr">{{ fabric_entry_jdt }}</span></div>
+    </div>
+    <div>
+      <div class="text-xs text-gray-500">تاریخ تحویل</div>
+      <div class="text-sm"><span class="num-ltr">{{ delivery_jdt }}</span></div>
+    </div>
+  </div>
+
+  <div class="border border-gray-200/70 rounded-lg p-3 bg-white">
+    <div class="text-xs text-gray-500 mb-1">توضیحات سفارش</div>
+    <div class="text-sm text-gray-700 leading-relaxed">{{ order.description|default:'توضیحی ثبت نشده است.'|linebreaksbr }}</div>
+  </div>
+
+  <!-- Items -->
+  <div class="border border-gray-200/70 rounded-lg">
+    <div class="px-3 py-2 bg-gray-50 text-sm font-bold text-gray-700">اقلام سفارش</div>
+    <div class="p-3">
+      {% if items %}
+        <ul class="space-y-1 text-sm">
+          {% for it in items %}
+            <li class="flex items-center justify-between"><span class="break-words">{{ it.name }}</span><span class="font-bold shrink-0">× {{ it.qty }}</span></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="text-sm text-gray-500">برای این سفارش آیتمی ثبت نشده است.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Related jobs -->
+  <div class="border border-gray-200/70 rounded-lg">
+    <div class="px-3 py-2 bg-gray-50 text-sm font-bold text-gray-700">شماره‌کارهای مرتبط</div>
+    <div class="p-3 space-y-4">
+      {% if jobs %}
+        <div class="flex gap-2 overflow-x-auto flex-nowrap md:flex-wrap w-full">
+          {% for j in jobs %}
+            <a href="#" class="px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs font-bold shrink-0 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-500 js-related-job-link" data-job-number="{{ j.job_number|default:'' }}">
+              <span class="font-mono">{{ j.job_number|default:'-' }}</span>
+              <span class="text-gray-500 text-[11px] font-normal">{{ j.get_status_display }}</span>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-sm text-gray-500">شماره‌کار مرتبطی ثبت نشده است.</div>
+      {% endif %}
+
+      <div class="space-y-3 pt-4 border-t border-gray-100">
+        <div>
+          <div class="text-xs text-gray-500 mb-1">نقشه فرایندی</div>
+          <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+            {% if status_flow_disabled %}
+              <span class="px-3 py-1 rounded-full border text-xs font-bold {{ status_badge_classes }}">
+                {{ order.get_status_display }}
+              </span>
+              {% if status_flow_steps %}
+                <span class="text-gray-300 text-lg leading-none" aria-hidden="true">•</span>
+              {% endif %}
+            {% endif %}
+            {% for step in status_flow_steps %}
+              <span class="px-3 py-1 rounded-full border text-xs font-bold transition {{ step.class }}" {% if step.is_current %}aria-current="step"{% endif %}>{{ step.label }}</span>
+              {% if not forloop.last %}
+                <span class="text-gray-300 text-lg leading-none" aria-hidden="true">•</span>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
+          <div class="text-xs text-gray-500 mb-1">خلاصه وضعیت</div>
+          <div class="text-sm text-gray-700 leading-relaxed space-y-2">
+            <div>{{ status_summary_text }}</div>
+            {% if job_status_badges %}
+              <div class="text-xs text-gray-500 font-bold">تقسیم وضعیت شماره‌کارها</div>
+              <div class="flex flex-wrap gap-2 text-xs">
+                {% for label,count in job_status_badges %}
+                  <span class="px-2 py-0.5 rounded border border-gray-200 bg-white text-gray-700">{{ label }}: {{ count }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+            {% if job_summary_lines %}
+              <div class="text-xs text-gray-500 font-bold">جزئیات شماره‌کارها</div>
+              <ul class="text-sm text-gray-700 leading-relaxed space-y-1 pr-4 list-disc">
+                {% for info in job_summary_lines %}
+                  <li>
+                    <span class="font-mono font-semibold">{{ info.job_number|default:'-' }}</span>
+                    <span class="text-gray-500">— {{ info.status }}</span>
+                    {% if info.product %}<span class="text-gray-500"> ({{ info.product }})</span>{% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+

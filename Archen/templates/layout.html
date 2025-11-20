@@ -1,0 +1,1067 @@
+<!-- PATH: /Archen/templates/layout.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="has-bg-pattern soften-ui">
+<head>
+  {% load pwa %}
+  {% progressive_web_app_meta %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}صنایع چوبی آرچن{% endblock %}</title>
+
+  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+  <link rel="icon" type="image/png" sizes="192x192" href="{% static 'icons/icon-192x192.png' %}">
+  <link rel="icon" type="image/png" sizes="512x512" href="{% static 'icons/icon-512x512.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'icons/icon-192x192.png' %}">
+
+  <!-- Use local Tailwind build in production/offline; keep minimal fallback -->
+  <link rel="stylesheet" href="{% static 'css/app.min.css' %}">
+  <noscript><link rel="stylesheet" href="{% static 'css/fallback.css' %}"></noscript>
+
+  <style>
+    /* Shrink common font sizes on very small screens */
+    @media (max-width: 640px) {
+      /* Tailwind's text-xs is already small; leave it alone */
+      .text-sm {
+        font-size: 0.75rem; /* 12px */
+      }
+      .text-base {
+        font-size: 0.875rem; /* 14px */
+      }
+      /* Table cells default font size reduction */
+      table th, table td {
+        font-size: 0.75rem;
+      }
+    }
+    /* Make header sort buttons bold */
+    button.sort-btn {
+      font-weight: 700;
+    }
+
+    
+    select:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Unified icon cards ------------------------------------------------ */
+    .icon-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0.75rem;
+    }
+
+    .icon-card .icon-label {
+      font-weight: 700;
+      color: #1f2937;
+      margin-top: 0.75rem;
+      cursor: default;
+    }
+
+    .icon-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+    }
+
+    .icon-wrapper {
+      position: relative; /* enable ::before overlay positioning */
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14rem;
+      height: 12rem;
+      padding: 0;
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.35);
+      /* Header-like paper gradient for icon backgrounds (matches header-pattern) */
+      background-image:
+        linear-gradient(90deg,
+          rgba(217,213,205,0.45) 0%,
+          rgba(230,230,223,0.45) 35%,
+          rgba(239,239,233,0.45) 65%,
+          rgba(246,246,244,0.45) 100%
+        );
+      background-repeat: no-repeat;
+      background-size: cover;
+      transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+      cursor: pointer;
+    }
+
+    /* Subtle paper-like noise overlay just like header/surface */
+    .icon-wrapper::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.072;
+      mix-blend-mode: multiply;
+      border-radius: inherit;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0.2'/></filter><rect filter='url(%23n)' width='100%' height='100%' opacity='0.9'/></svg>");
+      background-size: cover;
+    }
+
+    .icon-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: inherit;
+      display: block;
+    }
+
+    .icon-wrapper--static {
+      cursor: default;
+    }
+
+    .icon-wrapper--static:hover,
+    .icon-wrapper--static:focus {
+      transform: none;
+      background-color: transparent;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.3);
+    }
+
+    .icon-link:hover .icon-wrapper,
+    .icon-link:focus-visible .icon-wrapper {
+      background-color: #40E0D0; /* neon */
+      --tw-bg-opacity: 1;
+      transform: translateY(-4px);
+      /* brighter outer + inner glow for consistent neon look */
+      box-shadow: 0 0 18px rgba(64,224,208,0.75), 0 14px 22px rgba(0,0,0,0.25), inset 0 0 12px rgba(64,224,208,0.6);
+      filter: saturate(1.2);
+    }
+    /* Hide paper noise layer on hover neon to avoid color mixing */
+    .icon-link:hover .icon-wrapper::before,
+    .icon-link:focus-visible .icon-wrapper::before {
+      opacity: 0;
+    }
+
+    @media (max-width: 1024px) {
+      .icon-wrapper {
+        width: 12rem;
+        height: 10rem;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .icon-wrapper {
+        width: 9rem;
+        height: 7.5rem;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3);
+      }
+      .icon-card .icon-label {
+        font-size: 0.95rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .icon-wrapper {
+        width: 7.5rem;
+        height: 6.2rem;
+      }
+      .icon-card .icon-label {
+        font-size: 0.85rem;
+      }
+    }
+</style>
+</head>
+<body class="min-h-screen has-bg-pattern">
+<div class="site-background-frame"><div class="site-background-inner"></div></div>
+<style>
+  /* Global repeating background pattern (requires static/icons/archen_pattern.png) */
+  :root {
+    --app-pattern-size: 220px;   /* tile size */
+    --app-pattern-opacity: 0.08; /* slightly stronger default */
+    --app-pattern-overlay-opacity: 0.6; /* not used; kept for reference */
+    --surface-60: rgba(255, 255, 255, 0.6);
+  }
+  /* Apply pattern directly on html/body backgrounds so it’s always visible
+     without relying on pseudo-elements or stacking contexts */
+  html.has-bg-pattern, body.has-bg-pattern {
+    background-color: #eefaf6; /* visibly lighter base */
+  }
+
+  /* Constrain the visible patterned background to header width */
+  .site-background-frame {
+    position: fixed;
+    inset: 0; /* full viewport for centering */
+    pointer-events: none; /* click-through */
+    z-index: 0;
+    display: flex;
+    justify-content: center;
+  }
+  .site-background-frame > .site-background-inner {
+    width: min(100%, 80rem); /* ~max-w-7xl (1280px) */
+    margin: 0 auto;
+    height: 100vh;
+    /* Cache-bust and visibly lighten */
+    background-image: url('{% static 'icons/archen_pattern.png' %}?v=20251012a'),
+                      repeating-linear-gradient(45deg, rgba(0,0,0,0.02) 0 2px, transparent 2px 44px);
+    background-repeat: repeat, repeat;
+    background-size: var(--app-pattern-size) var(--app-pattern-size);
+    background-position: center, center;
+    /* Lighten pattern and tiles decisively */
+    filter: brightness(1.35) opacity(0.7);
+  }
+  /* Maintain layout stacking for header/content */
+  .page-chrome, main { position: relative; z-index: 1; }
+
+  /* Fixed overlay above everything (click-through) to guarantee visibility with a simple refresh */
+  /* Removed global overlays to avoid double-transparency on frames */
+
+  /* Header patterned surface ---------------------------------------------
+     Replace previous blue/lilac with a warm neutral paper-like gradient
+     (left->right) and a very subtle noise overlay to mimic the provided
+     reference image. Kept inline SVG (no extra requests, PWA-friendly).
+     Apply by adding `header-pattern` class to header wrappers.
+  */
+  .header-pattern {
+    position: relative; /* required for the ::before noise overlay */
+    /* 50% transparent gradient so underlying page background stays visible */
+    background-image:
+      linear-gradient(90deg,
+        rgba(217,213,205,0.45) 0%,   /* soft warm gray (left) */
+        rgba(230,230,223,0.45) 35%,  /* light neutral */
+        rgba(239,239,233,0.45) 65%,  /* very light */
+        rgba(246,246,244,0.45) 100%  /* near-white (right) */
+      );
+    background-repeat: no-repeat;
+    background-size: cover;
+    /* Keep borders readable over the pattern */
+    backdrop-filter: saturate(1.05);
+  }
+  /* Subtle elevation for headers: adds depth with soft outer shadow
+     and a faint inner highlight for a 3D-ish surface. */
+  .header-elevated {
+    box-shadow:
+      0 2px 6px rgba(0,0,0,0.08),
+      0 8px 20px rgba(0,0,0,0.06),
+      inset 0 1px 0 rgba(255,255,255,0.45);
+    border-color: rgba(0,0,0,0.06) !important; /* keep borders subtle */
+  }
+  .header-pattern::before {
+    /* Noise overlay using SVG turbulence for a paper-like texture */
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    opacity: 0.072; /* 10% less noise intensity */
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0.2'/></filter><rect filter='url(%23n)' width='100%' height='100%' opacity='0.9'/></svg>");
+    background-size: cover;
+  }
+
+  /* Reusable patterned surface for content frames/cards ------------------
+     Mirrors the header look for main white frames and dashboard/report cards.
+     Use together with .surface-elevated for consistent depth. */
+  .surface-pattern {
+    position: relative; /* required for the ::before noise overlay */
+    background-image:
+      linear-gradient(90deg,
+        rgba(217,213,205,0.45) 0%,
+        rgba(230,230,223,0.45) 35%,
+        rgba(239,239,233,0.45) 65%,
+        rgba(246,246,244,0.45) 100%
+      );
+    background-repeat: no-repeat;
+    background-size: cover;
+    backdrop-filter: saturate(1.05);
+  }
+  .surface-pattern::before {
+    /* Same paper-like noise overlay used in header */
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    opacity: 0.072;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0.2'/></filter><rect filter='url(%23n)' width='100%' height='100%' opacity='0.9'/></svg>");
+    background-size: cover;
+  }
+  .surface-elevated {
+    /* Reuse header depth for content surfaces */
+    box-shadow:
+      0 2px 6px rgba(0,0,0,0.08),
+      0 8px 20px rgba(0,0,0,0.06),
+      inset 0 1px 0 rgba(255,255,255,0.45);
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+
+  /* --- Global soft UI surfaces (50% white) --- */
+  .soften-ui input[type="text"],
+  .soften-ui input[type="search"],
+  .soften-ui input[type="number"],
+  .soften-ui input[type="tel"],
+  .soften-ui input[type="email"],
+  .soften-ui input[type="url"],
+  .soften-ui input[type="date"],
+  .soften-ui input[type="time"],
+  .soften-ui input[type="password"],
+  .soften-ui textarea,
+  .soften-ui select {
+    background-color: var(--surface-60) !important;
+  }
+  .soften-ui option, .soften-ui optgroup { background-color: var(--surface-60) !important; color: inherit; }
+
+  /* Buttons: default soft surface; operational colored buttons keep their color at 60% */
+  .soften-ui button:not([class*="bg-"]),
+  .soften-ui a.button:not([class*="bg-"]) {
+    background-color: var(--surface-60) !important;
+    font-weight: 700;
+  }
+  /* Tailwind sets background via --tw-bg-opacity variable; normalize all bg-* buttons to 0.6 */
+  .soften-ui button[class*="bg-"],
+  .soften-ui a[class*="bg-"] {
+    --tw-bg-opacity: 0.6 !important;
+    font-weight: 700;
+  }
+
+  /* Table headers slightly stronger */
+  .soften-ui table thead,
+  .soften-ui table thead tr,
+  .soften-ui table thead th { background-color: var(--surface-60) !important; }
+
+  /* Pills/toggles that used gray backgrounds */
+  .soften-ui .bg-gray-50,
+  .soften-ui .bg-gray-100 { background-color: var(--surface-60) !important; }
+
+  /* Inputs and blocks with explicit bg-white classes from Tailwind */
+  .soften-ui .bg-white { background-color: var(--surface-60) !important; }
+
+  /* Third header (greeting/action bar) explicit hover colors (≈40% stronger) */
+  /* Print button: neutral gray hover, ~40% darker than gray-200 */
+  .header-actions button[onclick*="window.print"]:hover {
+    background-color: #8A8E91; /* ~60% of #e5e7eb luminance */
+    border-color: #4b5563;      /* gray-600 */
+    color: #1f2937;             /* gray-800 for contrast */
+  }
+  /* Back link/button: treat as neutral (if not the red logout) */
+  .header-actions a:hover,
+  .header-actions button:hover:not(.text-red-700):not([onclick*="window.print"]) {
+    background-color: #368fe7ff;  /* darker neutral hover */
+    border-color: #08397eff;
+    color: #1f2937;
+  }
+  /* Logout button: stronger red hover (≈red-400) */
+  .header-actions button.text-red-700:hover {
+    background-color: #f87171; /* Tailwind red-400 */
+    border-color: #c53636ff;     /* Tailwind red-700 border */
+    color: #741717ff;            /* deeper text for contrast */
+  }
+</style>
+
+<!-- Header / Navbar (same width as secondary bar; not full-width) -->
+<div class="sticky top-0 z-50 bg-transparent page-chrome">
+  <div class="max-w-7xl mx-auto px-2 sm:px-4 md:px-6">
+    <div class="shadow-sm rounded-b-xl border-b border-gray-200/60 header-pattern header-elevated">
+      <div class="flex items-center justify-between py-2">
+        <!-- Left: brand/logo + page title (RTL UI) -->
+        <div class="flex items-center gap-2 text-gray-800">
+          <a href="{% url 'dashboard' %}" class="block shrink-0" title="خانه">
+            <img src="{% static 'icons/icon-192x192.png' %}"
+                 alt="Archen Logo"
+                 class="h-12 w-12 md:h-16 md:w-16 lg:h-20 lg:w-20 rounded" />
+          </a>
+          <span class="font-bold text-lg sm:text-xl">صنایع چوبی آرچن</span>
+          <span class="mx-2 inline-block w-px h-6 bg-gray-300"></span>
+          <span class="text-sm sm:text-base font-bold text-gray-700 align-middle">{% block page_title %}{% endblock %}</span>
+        </div>
+        <!-- Right: optional header actions (extensible) -->
+        <div class="flex items-center gap-2">
+          {% block header_right %}{% endblock %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Secondary info bar: live clock and Persian date (global) -->
+<!-- Swapped to appear above greeting per request -->
+<div class="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 mt-2 page-chrome">
+  <div class="border border-gray-200/60 rounded-md text-sm md:text-base text-gray-700 py-2 px-2 sm:px-4 md:px-6 flex items-center justify-between header-pattern header-elevated">
+    <div class="flex items-center">
+      <!-- Live Tehran time and Persian date moved to secondary header -->
+      <span id="archen-clock" class="clock-badge sevenseg font-bold" dir="ltr" aria-label="time"></span>
+    </div>
+    <div id="archen-date-fa" class="font-bold date-badge"></div>
+  </div>
+  <!-- This bar matches the greeting bar’s size, color and opacity. -->
+</div>
+<!-- Greeting and action bar (shows full name, back and logout) -->
+<!-- Swapped to appear below the clock/date bar -->
+<div class="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 mt-2 page-chrome">
+  <div class="border border-gray-200/60 rounded-md text-sm md:text-base text-gray-700 py-2 px-2 sm:px-4 md:px-6 flex items-center justify-between header-pattern header-elevated">
+    <div>
+      {% if full_name %}
+        {{ full_name }} ،خوش آمدید
+      {% endif %}
+    </div>
+    <div class="flex items-center gap-2 header-actions">
+      {# Optional print button: most pages should show a print action next to the back button.  Templates may override this block with empty content to hide the button. #}
+      {% block print_button %}
+      <button type="button"
+              class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-gray-600 text-gray-700 hover:bg-gray-200"
+              onclick="window.print()">
+        چاپ
+      </button>
+      {% endblock %}
+      {# Render back button if defined in the extending template; dashboard omits it by leaving the block empty #}
+      {% block back_button %}{% endblock %}
+      <!-- Prefer POST for logout; view accepts GET as fallback -->
+      <form method="post" action="{% url 'users:logout' %}">
+        {% csrf_token %}
+        <button type="submit"
+                class="inline-flex items-center px-2 py-1 text-sm font-bold rounded border border-red-700 text-red-700 hover:bg-red-200"
+                >خروج</button>
+      </form>
+    </div>
+  </div>
+</div>
+<div class="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 mt-2 page-chrome">
+  {% block Breadcrumb %}{% endblock %}
+</div>{% if messages %}
+  <!-- Django messages wrapper with an ID for auto-dismiss behaviour -->
+  <div id="django-messages" class="my-4 space-y-2 max-w-7xl mx-auto px-2 sm:px-4 md:px-6">
+    {% for message in messages %}
+      <div class="px-4 py-3 rounded
+           {% if message.tags == 'success' %}bg-green-100 text-green-800
+           {% elif message.tags == 'error' %}bg-red-100 text-red-800
+           {% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-800
+           {% elif message.tags == 'info' %}bg-gray-100 text-gray-800
+           {% else %}bg-blue-100 text-blue-800{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+<!-- Main content -->
+<main class="max-w-7xl mx-auto p-2 sm:p-4 md:p-6">
+  {% block content_wrapper %}
+  <!-- Unified list layout blocks: list_toolbar_actions_right, list_toolbar_filters, list_status -->
+  {% block list_wrapper %}
+    <!-- Single-frame list container: toolbar + status + content in one surface -->
+      {% block list_toolbar %}
+      <!-- Unified toolbar row (RTL) inside the content frame -->
+      <div id="toolbar" class="flex items-center gap-2 overflow-x-auto overflow-y-hidden" dir="rtl">
+          <!-- Actions (Add/Delete) stay fixed; never shrink -->
+        <div class="flex-none flex items-center gap-2">
+          {% block list_toolbar_actions_right %}{% endblock %}
+        </div>
+          <!-- Filters + Search in one form so they sit on a single row and expand -->
+        <form id="filtersForm" method="get" class="flex-1 flex items-center gap-2 min-w-0">
+          {% block list_toolbar_filters %}{% endblock %}
+        </form>
+      </div>
+      {% endblock %}
+      {% block list_status_bar %}
+      <div class="mt-2 text-xs text-gray-500"><span id="listStatus">{% block list_status %}{% endblock %}</span></div>
+      {% endblock %}
+      {% block content %}{% endblock %}
+  {% endblock %}
+  {% endblock %}
+</main>
+
+<!-- Scripts (keep project standards) -->
+<script src="{% static 'js/jquery.min.js' %}"></script>
+<script src="{% static 'js/jquery-ui.min.js' %}"></script>
+<script src="{% static 'orders/js/persian-date.min.js' %}"></script>
+<script src="{% static 'orders/js/persian-datepicker.min.js' %}"></script>
+<!-- Tom Select -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+<script src="{% static 'js/sort.js' %}?v=20251115a"></script>
+
+<!-- Disable empty select boxes by default.  If a select element only contains
+     one option (the placeholder), it is greyed out to prevent accidental
+     selection.  Dynamic scripts on individual pages will remove the disabled
+     attribute when options are loaded. -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('select').forEach(function(sel) {
+      try {
+        
+        var hasValidOption = Array.from(sel.options).some(function(opt) {
+          return opt.value && opt.value.trim() !== '';
+        });
+        if (!hasValidOption) {
+          sel.setAttribute('disabled', 'disabled');
+        }
+      } catch (e) {
+        // ignore errors
+      }
+    });
+  });
+</script>
+
+<!-- Auto-hide Django messages after 5 seconds -->
+<script>
+  (function() {
+    const messagesDiv = document.getElementById('django-messages');
+    if (messagesDiv) {
+      setTimeout(() => {
+        // Fade out the container
+        messagesDiv.style.transition = 'opacity 0.5s ease';
+        messagesDiv.style.opacity = '0';
+        // Remove from DOM after fade-out
+        setTimeout(() => { if (messagesDiv.parentNode) messagesDiv.parentNode.removeChild(messagesDiv); }, 500);
+      }, 5000);
+    }
+  })();
+</script>
+
+<script>
+  // Notify SW to flush queued requests when connection restores
+  (function(){
+    function reqSync(){
+      try {
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({type:'sync-queue'});
+        }
+      } catch(e){}
+    }
+    window.addEventListener('online', reqSync);
+    // Also attempt once on load to catch warm starts
+    window.addEventListener('load', function(){ if (navigator.onLine) reqSync(); });
+  })();
+</script>
+  
+  <script>
+  (function() {
+    try {
+      if (window.persianDate) {
+        if (typeof persianDate.utc === 'function') { persianDate.utc(false); }
+        if (typeof persianDate.toLocale === 'function') { persianDate.toLocale('fa'); }
+        if (typeof persianDate.toCalendar === 'function') { persianDate.toCalendar('persian'); }
+      }
+    } catch (e) { /* ignore */ }
+    if (window.jQuery) {
+      jQuery(function($) {
+        var $inputs = $('.persian-date-picker');
+        if (!$inputs.length) return;
+
+        // If plugin is available, initialize Persian datepicker normally
+        if ($.fn && typeof $.fn.persianDatepicker === 'function') {
+          $inputs.each(function () {
+            try {
+              $(this).persianDatepicker({
+                format: 'YYYY/MM/DD',
+                initialValue: false,
+                initialValueType: 'persian',
+                observer: true,
+                autoClose: true,
+                persianDigit: true,
+                calendar: { persian: { locale: 'fa', leapYearMode: 'astronomical' } },
+                toolbox: { todayButton: { enabled: true }, calendarSwitch: { enabled: false } },
+                timePicker: { enabled: false }
+              });
+            } catch (e) {
+              console.error('Persian datepicker init failed for:', this, e);
+            }
+          });
+        } else {
+          // Fallback: use native date input so the form remains usable
+          console.warn('Persian datepicker scripts not loaded; falling back to <input type="date">');
+          $inputs.each(function(){
+            try {
+              var $el = $(this);
+              if ($el.attr('type') !== 'date') {
+                $el.attr('type', 'date');
+                // Accept both YYYY/MM/DD and YYYY-MM-DD on backend; adjust placeholder
+                if (!$el.attr('placeholder')) $el.attr('placeholder', 'yyyy-mm-dd');
+                // Keep LTR for numbers
+                $el.attr('dir','ltr');
+              }
+            } catch(e) {}
+          });
+        }
+      });
+    }
+  })();
+  </script>
+  
+  <script>
+// --- Project-wide UI normalizer ---
+// Ensures dropdowns show Persian placeholders and are disabled when only placeholder exists.
+(function() {
+  function labelAndDisable(select, labelMap) {
+    // If first option has empty value, set its text via a mapping by name/id
+    if (!select) return;
+    const opts = select.options;
+    if (!opts || opts.length === 0) return;
+    const first = opts[0];
+    const key = (select.id || select.name || '').toLowerCase();
+    const lbl = labelMap[key] || labelMap['*'];
+    if (first && first.value === '') {
+      // Only override if it is visually blank
+      if (!first.textContent.trim()) first.textContent = lbl;
+    }
+    // Disable if only the placeholder exists
+    let nonPlaceholderCount = 0;
+    for (let i=0; i<opts.length; i++) {
+      if (opts[i].value !== '') nonPlaceholderCount++;
+    }
+    if (nonPlaceholderCount === 0) {
+      select.setAttribute('disabled', 'disabled');
+    } else {
+      select.removeAttribute('disabled');
+    }
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    const labelMap = {
+      // Filters (lists)
+      'modelfilter': 'همه مدل‌ها',
+      'rolefilter': 'همه نقش‌ها',
+      'labelfilter': 'همه وضعیت‌ها',
+      // Create/Edit forms
+      'id_product_model': 'انتخاب مدل',
+      'id_model': 'انتخاب مدل',
+      'id_product': 'انتخاب محصول',
+      'id_status': 'انتخاب وضعیت',
+      'record_type': 'انتخاب نوع حساب',
+      // Fallback
+      '*': 'انتخاب'
+    };
+    document.querySelectorAll('select').forEach(function(sel){
+      try { labelAndDisable(sel, labelMap); } catch(e){}
+    });
+  });
+})();
+</script>
+  <script src="{% static 'js/validation-fa.js' %}" defer></script>
+  {% block extra_scripts %}{% endblock %}
+  <style>
+    /* Digital clock typography: fixed-width numerals for smooth ticking */
+    .digital-clock { font-variant-numeric: tabular-nums; letter-spacing: 0.03em; }
+    /* Modern badge style for the clock (glass/gradient) */
+    .clock-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, rgba(64,224,208,0.18), rgba(0,0,0,0.06));
+      border: 1px solid rgba(64,224,208,0.35);
+      box-shadow: 0 4px 12px rgba(64,224,208,0.18), inset 0 1px 0 rgba(255,255,255,0.35);
+      font-weight: 800;
+      /* Reduce overall clock size to one third of previous */
+      font-size: calc(1.125rem / 3);
+      color: #0f172a; /* slate-900 */
+      backdrop-filter: blur(4px);
+      direction: ltr; /* keep time order left-to-right inside RTL page */
+      unicode-bidi: isolate;
+    }
+    /* Keep responsive step but at one third scale */
+    @media (min-width: 640px) { .clock-badge { font-size: calc(1.25rem / 3); } }
+    @keyframes blink { 50% { opacity: 0.25; } }
+
+    /* Seven-segment clock styling */
+    /* Seven-segment theme: use integer px thickness to avoid subpixel rounding on small font-size */
+    /* Using px ensures horizontal and vertical segments render with identical weight on all screens. */
+    .sevenseg { --seg-thick: 2px; --seg-on: 1; --seg-off: .16; --seg-color: #111827; --seg-glow: rgba(0,0,0,0.28); gap: .15rem; }
+    .sevenseg .digit { position: relative; width: 1.6em; height: 2.8em; margin: 0 .08em; display: inline-block; }
+    .sevenseg .seg {
+      position: absolute; background: var(--seg-color);
+      box-shadow: 0 0 8px var(--seg-glow), inset 0 0 1px rgba(255,255,255,0.5);
+      opacity: var(--seg-off); border-radius: .2em;
+      transition: opacity .15s ease;
+    }
+    .sevenseg .seg.on { opacity: var(--seg-on); }
+    /* Horizontal segments: a (top), g (middle), d (bottom) */
+    .sevenseg .a, .sevenseg .g, .sevenseg .d { height: var(--seg-thick); left: calc(var(--seg-thick) * 0.9); right: calc(var(--seg-thick) * 0.9); }
+    .sevenseg .a { top: 0; }
+    .sevenseg .g { top: calc(50% - (var(--seg-thick) / 2)); }
+    .sevenseg .d { bottom: 0; }
+    /* Vertical segments: b (top-right), c (bottom-right), f (top-left), e (bottom-left) */
+    .sevenseg .b, .sevenseg .c, .sevenseg .f, .sevenseg .e { width: var(--seg-thick); }
+    .sevenseg .b { top: calc(var(--seg-thick) * 0.9); right: 0; height: calc(50% - (var(--seg-thick) * 1.4)); }
+    .sevenseg .c { bottom: calc(var(--seg-thick) * 0.9); right: 0; height: calc(50% - (var(--seg-thick) * 1.4)); }
+    .sevenseg .f { top: calc(var(--seg-thick) * 0.9); left: 0; height: calc(50% - (var(--seg-thick) * 1.4)); }
+    .sevenseg .e { bottom: calc(var(--seg-thick) * 0.9); left: 0; height: calc(50% - (var(--seg-thick) * 1.4)); }
+    /* Colon */
+    /* Stop blinking: remove animation on colon */
+    .sevenseg .colon { width: .5em; display: inline-flex; flex-direction: column; align-items: center; justify-content: space-between; margin: 0 .15em; }
+    .sevenseg .colon span { width: var(--seg-thick); height: var(--seg-thick); background: var(--seg-color); border-radius: 50%; box-shadow: 0 0 8px var(--seg-glow), inset 0 0 1px rgba(255,255,255,0.5); opacity: 1; }
+    /* Date badge visual style (same surface as clock badge, normal font size) */
+    .date-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, rgba(64,224,208,0.18), rgba(0,0,0,0.06));
+      border: 1px solid rgba(64,224,208,0.35);
+      box-shadow: 0 4px 12px rgba(64,224,208,0.18), inset 0 1px 0 rgba(255,255,255,0.35);
+      color: #0f172a; /* slate-900 */
+      backdrop-filter: blur(4px);
+    }
+  </style>
+  <script>
+    // Live Tehran time clock and Persian (Jalali) date under the greeting header.
+    // Show Persian digits everywhere.
+    (function() {
+      const tz = 'Asia/Tehran';
+      const clockEl = document.getElementById('archen-clock');
+      const dateEl = document.getElementById('archen-date-fa');
+      if (!clockEl || !dateEl) return;
+
+      // Digit conversion helper: Latin → Persian
+      const faDigits = { '0':'۰','1':'۱','2':'۲','3':'۳','4':'۴','5':'۵','6':'۶','7':'۷','8':'۸','9':'۹' };
+      function toFa(str){ return String(str).replace(/[0-9]/g, d => faDigits[d] || d); }
+
+      // --- Seven-segment helpers ---
+      // Map of digits to active segments (a,b,c,d,e,f,g)
+      const segMap = {
+        '0': ['a','b','c','d','e','f'],
+        '1': ['b','c'],
+        '2': ['a','b','g','e','d'],
+        '3': ['a','b','g','c','d'],
+        '4': ['f','g','b','c'],
+        '5': ['a','f','g','c','d'],
+        '6': ['a','f','g','e','c','d'],
+        '7': ['a','b','c'],
+        '8': ['a','b','c','d','e','f','g'],
+        '9': ['a','b','c','d','f','g']
+      };
+      function digitHTML(ch) {
+        const on = segMap[ch] || [];
+        function seg(cls) { return '<span class="seg '+cls+(on.includes(cls)?' on':'')+'"></span>'; }
+        return '<span class="digit" aria-hidden="true">'
+          + seg('a')+seg('b')+seg('c')+seg('d')+seg('e')+seg('f')+seg('g')
+          + '</span>';
+      }
+      function colonHTML() {
+        return '<span class="colon" aria-hidden="true"><span></span><span></span></span>';
+      }
+      // Render only HH:MM (seconds removed per latest requirement)
+      function renderSevenSeg(hh, mm) {
+        return (
+          digitHTML(hh[0]) + digitHTML(hh[1]) +
+          colonHTML() +
+          digitHTML(mm[0]) + digitHTML(mm[1])
+        );
+      }
+
+      function update() {
+        try {
+          const now = new Date();
+          // Time via Intl parts to preserve Tehran TZ and control order
+          // Use Latin digits for seven-seg logic to keep mapping working
+          const tparts = new Intl.DateTimeFormat('fa-IR-u-nu-latn', {
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: tz
+          }).formatToParts(now);
+          const tdict = {};
+          for (var i = 0; i < tparts.length; i++) { tdict[tparts[i].type] = tparts[i].value; }
+          const hh = String(tdict.hour || '00').padStart(2, '0');
+          const mm = String(tdict.minute || '00').padStart(2, '0');
+          clockEl.innerHTML = renderSevenSeg(hh, mm);
+
+          // Date: Persian calendar with explicit order => weekday day month year
+          // We use formatToParts to control ordering regardless of locale defaults.
+          const parts = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: tz
+          }).formatToParts(now);
+          // Build a quick lookup map of parts
+          const dict = {};
+          for (var i = 0; i < parts.length; i++) { dict[parts[i].type] = parts[i].value; }
+          dateEl.textContent = toFa((dict.weekday || '') + ' ' + (dict.day || '') + ' ' + (dict.month || '') + ' ' + (dict.year || ''));
+        } catch (e) {
+          // Fallback: simple ISO-like date/time if Intl is unavailable
+          const now = new Date();
+          const pad = (n) => String(n).padStart(2, '0');
+          const fb = pad(now.getHours()) + ':' + pad(now.getMinutes());
+          const [fh, fm] = fb.split(':');
+          clockEl.innerHTML = renderSevenSeg(fh, fm);
+          // Gregorian fallback; still better than empty
+          dateEl.textContent = toFa(now.getFullYear() + '/' + pad(now.getMonth()+1) + '/' + pad(now.getDate()));
+        }
+      }
+      update();
+      setInterval(update, 1000);
+    })();
+  </script>
+  <script>
+  // --- Normalize number input interactions project-wide ---
+  // 1) Disable mouse wheel value changes on focused number inputs
+  // 2) Make ArrowUp/ArrowDown change value once per key press (no auto-repeat)
+  // 3) Make spin buttons (up/down) change value only once per click
+  (function(){
+    function initNumberInput(input){
+      if (!input || input.__normInit) return; input.__normInit = true;
+      // Stop mouse wheel from changing values
+      input.addEventListener('wheel', function(e){ try { if (document.activeElement === input) { e.preventDefault(); } } catch(_){} }, { passive: false });
+      // Single-step on ArrowUp/ArrowDown without repeat
+      input.addEventListener('keydown', function(e){
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (e.repeat) return; // ignore auto-repeat
+          try { (e.key === 'ArrowUp' ? input.stepUp(1) : input.stepDown(1)); input.dispatchEvent(new Event('change', {bubbles:true})); } catch(_){}
+        }
+      });
+      // Single-step on spinner mousedown (immediate) while preserving selection/caret
+      input.addEventListener('mousedown', function(e){
+        const rect = input.getBoundingClientRect();
+        const dirComputed = (input.dir || getComputedStyle(input).direction || 'rtl').toLowerCase();
+        const spinnerWidth = 24; // heuristic
+        const onSpinner = dirComputed === 'rtl' ? (e.clientX <= rect.left + spinnerWidth) : (e.clientX >= rect.right - spinnerWidth);
+        if (!onSpinner) return; // normal click inside field
+
+        // Preserve current focus/selection state
+        const hadFocus = (document.activeElement === input);
+        let selStart = null, selEnd = null;
+        try { selStart = input.selectionStart; selEnd = input.selectionEnd; } catch(_){ /* type=number may not support */ }
+
+        // Prevent native auto-repeat behaviour and native spinner handling
+        e.preventDefault();
+        const goingUp = (e.clientY - rect.top) <= rect.height/2;
+        // Ensure a numeric base value exists before stepping
+        try { if (input.value === '' || isNaN(input.valueAsNumber)) { input.value = (input.getAttribute('min') ?? '0'); } } catch(_){ input.value = input.value || '0'; }
+        try { goingUp ? input.stepUp(1) : input.stepDown(1); input.dispatchEvent(new Event('change', {bubbles:true})); } catch(_){ }
+        // Restore focus and selection as much as possible
+        try {
+          input.focus({ preventScroll: true });
+          if (hadFocus && selStart != null && selEnd != null && typeof input.setSelectionRange === 'function') {
+            input.setSelectionRange(selStart, selEnd);
+          }
+        } catch(_){ }
+      });
+    }
+    function scan(){ document.querySelectorAll('input[type="number"]').forEach(initNumberInput); }
+    document.addEventListener('DOMContentLoaded', scan);
+    // Also catch late-rendered inputs
+    const mo = new MutationObserver(() => scan());
+    document.addEventListener('DOMContentLoaded', () => { try { mo.observe(document.body, {childList:true, subtree:true}); } catch(_){} });
+  })();
+  </script>
+  <script>
+  // --- Threshold coloring ---
+  // Elements can declare data-threshold (number). Value is taken from
+  //  - input value for <input>, otherwise textContent parsed as number.
+  // If value <= threshold => red bold; if value > threshold => green normal.
+  (function(){
+    const fa2en = {'۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};
+    function toEnDigits(s){ return String(s).replace(/[۰-۹]/g, d => fa2en[d]||d); }
+    function parseNum(s){
+      if (s == null) return NaN; s = String(s);
+      s = toEnDigits(s);
+      s = s.replace(/[\u2212\u200f\u200e]/g,'-').replace(/[٬,\s]/g,'');
+      // Convert decimal slash used in display to a dot
+      s = s.replace(/(\d)\/(\d)/g, '$1.$2');
+      const n = parseFloat(s);
+      return isNaN(n) ? NaN : n;
+    }
+    function apply(el){
+      const thrAttr = el.getAttribute('data-threshold');
+      if (thrAttr == null || thrAttr === '') return;
+      const thr = parseNum(thrAttr);
+      let val;
+      if ('value' in el) val = parseNum(el.value);
+      else val = parseNum(el.textContent);
+      if (isNaN(thr) || isNaN(val)) return;
+      // Reset
+      el.style.fontWeight = '';
+      el.style.color = '';
+      if (val <= thr) { el.style.color = '#b91c1c'; el.style.fontWeight = '800'; }
+      else { el.style.color = '#15803d'; el.style.fontWeight = '600'; }
+    }
+    function scan(){ document.querySelectorAll('[data-threshold]').forEach(apply); }
+    document.addEventListener('DOMContentLoaded', function(){
+      scan();
+      // Dynamic updates
+      document.body.addEventListener('input', function(e){ const t = e.target; if (t && t.matches('[data-threshold]')) apply(t); });
+      const mo = new MutationObserver(muts => { for (const m of muts) { m.addedNodes && m.addedNodes.forEach(n => { if (n.nodeType===1) { if (n.hasAttribute('data-threshold')) apply(n); n.querySelectorAll && n.querySelectorAll('[data-threshold]').forEach(apply); } }); } });
+      try { mo.observe(document.body, {childList:true, subtree:true}); } catch(_){}
+    });
+  })();
+  </script>
+  <script>
+  // Global digit localization: convert visible Latin digits to Persian across the app
+  // without touching inputs, textareas, contenteditable, script/style tags.
+  (function(){
+    const map = { '0':'۰','1':'۱','2':'۲','3':'۳','4':'۴','5':'۵','6':'۶','7':'۷','8':'۸','9':'۹' };
+    const rx = /[0-9]/g;
+    const LRI = '\u2066', PDI='\u2069', MINUS='\u2212';
+    function toFa(s){ return String(s).replace(rx, d => map[d] || d); }
+    function normalizeDecimalFa(s){
+      // Replace decimal point between Persian digits with a forward slash
+      // Supports both '.' and Arabic decimal separator '٫'
+      return s.replace(/([۰-۹])[\.٫]([۰-۹])/g, '$1/$2');
+    }
+    function normalizeNegativesFa(s){
+      // Case 1: minus before digits (ensure Unicode minus and LTR isolation)
+      s = s.replace(/-\s*([۰-۹][۰-۹٬‌,\.\/]*)/g, function(_m, num){ return LRI + MINUS + num + PDI; });
+      // Case 2: trailing minus after digits (common in RTL renderings)
+      s = s.replace(/([۰-۹][۰-۹٬‌,\.\/]*)\s*-/g, function(_m, num){ return LRI + MINUS + num + PDI; });
+      return s;
+    }
+    function shouldSkip(node){
+      if (!node) return true;
+      if (node.nodeType !== 3) return false; // only text nodes processed
+      const p = node.parentElement;
+      if (!p) return true;
+      const tn = p.tagName;
+      if (tn === 'SCRIPT' || tn === 'STYLE') return true;
+      if (p.hasAttribute('contenteditable')) return true;
+      if (p.matches && p.matches('input, textarea, [role="textbox"]')) return true;
+      // Do not touch the seven-seg clock subtree to keep its logic unaltered
+      if (p.closest && p.closest('#archen-clock')) return true;
+      return false;
+    }
+    function walk(root){
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+      let n; while ((n = walker.nextNode())) {
+        if (!shouldSkip(n)) {
+          let val = n.nodeValue;
+          const hadLatin = rx.test(val);
+          if (hadLatin) val = toFa(val);
+          // Normalize decimal separators (dot/Arabic-decimal) to '/'
+          val = normalizeDecimalFa(val);
+          // Also normalize negatives even if digits are already Persian
+          const norm = normalizeNegativesFa(val);
+          if (norm !== n.nodeValue) n.nodeValue = norm;
+        }
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function(){
+      try { walk(document.body); } catch(e){}
+      // Observe mutations and convert newly added text
+      const mo = new MutationObserver(list => {
+        for (const m of list) {
+          if (m.type === 'childList') {
+            m.addedNodes && m.addedNodes.forEach(node => { try { if (node.nodeType === 3) { let v = node.nodeValue; if (rx.test(v)) v = toFa(v); v = normalizeDecimalFa(v); v = normalizeNegativesFa(v); if (v !== node.nodeValue) node.nodeValue = v; } else if (node.nodeType === 1) { walk(node); } } catch(e){} });
+          } else if (m.type === 'characterData') {
+            const t = m.target; if (t && t.nodeType === 3 && !shouldSkip(t)) {
+              let v = t.nodeValue; if (rx.test(v)) v = toFa(v); v = normalizeDecimalFa(v); v = normalizeNegativesFa(v); if (v !== t.nodeValue) t.nodeValue = v;
+            }
+          }
+        }
+      });
+      try { mo.observe(document.body, { childList: true, characterData: true, subtree: true }); } catch(e){}
+    });
+  })();
+  </script>
+  <style>
+    /* Prevent text wrapping in list/table headers and cells across project */
+    .no-wrap, table th, .table th, .list-header, .list-row th { white-space: nowrap; }
+    /* Also prevent wrapping for common table cells that should stay on one line */
+    table td.nowrap, .nowrap, .list-row td.nowrap { white-space: nowrap; }
+    /* Prefer horizontal scrolling over wrapping on constrained screens */
+    .table-container, .overflow-x-auto, .list-scroll { overflow-x: auto; }
+    /* Toolbars: ensure horizontal scroll shows all controls including search */
+    #toolbar, .list-toolbar {
+      /* Standardized toolbar container */
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 0.25rem; /* unified compact spacing */
+      overflow-x: hidden; /* no horizontal scroll by default (desktop) */
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      white-space: nowrap; /* keep items on one line */
+      --tb-h: 2rem; /* unified control height (desktop & mobile) */
+    }
+    /* Show horizontal scroll only on small screens */
+    @media (max-width: 768px) {
+      #toolbar, .list-toolbar { overflow-x: auto; }
+    }
+    /* Prevent shrinking of primary action buttons; let forms/search grow */
+    #toolbar > .flex-none, .list-toolbar > .flex-none { flex: 0 0 auto; }
+    /* Remove any margins that create visual gutters; then set a tiny, consistent gap */
+    #toolbar > *, .list-toolbar > * { margin: 0 !important; }
+    #toolbar > a + form, #toolbar > button + form, #toolbar > .flex-none + form,
+    .list-toolbar > a + form, .list-toolbar > button + form, .list-toolbar > .flex-none + form {
+      margin-right: 0.25rem !important;
+    }
+
+    /* Unify heights for all toolbar controls to match the Add button */
+    #toolbar a,
+    #toolbar button,
+    #toolbar select,
+    #toolbar input[type="text"],
+    .list-toolbar a,
+    .list-toolbar button,
+    .list-toolbar select,
+    .list-toolbar input[type="text"] {
+      height: var(--tb-h) !important;
+      line-height: calc(var(--tb-h) - 2px) !important; /* account for 1px borders */
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      box-sizing: border-box;
+    }
+    /* Let filter/search form take remaining space but avoid artificial gaps */
+    /* Make the filter/search form truly flexible and prevent wrapping */
+    #toolbar form, .list-toolbar form { min-width: 0; display:flex; align-items:center; gap:.5rem; width:100%; }
+    #toolbar input[type="text"], .list-toolbar input[type="text"] { min-width: 6rem; flex: 1 1 auto; max-width: 100%; }
+    /* Ensure search input left border is visible when flexed to the edge */
+    /* Removed: prefer Tailwind utility class 'border-l' on the input itself */
+    #toolbar select, .list-toolbar select { flex: 0 0 auto; }
+    /* Prevent accidental line breaks caused by inline whitespace */
+    #toolbar form > * { white-space: nowrap; }
+    /* Reduce internal paddings on small screens to save space */
+    @media (max-width: 640px) {
+      /* Harmonize inner paddings so visual gaps are even */
+      #toolbar a, #toolbar button, #toolbar select, #toolbar input[type="text"],
+      .list-toolbar a, .list-toolbar button, .list-toolbar select, .list-toolbar input[type="text"] {
+        padding-left: 0.4rem !important;
+        padding-right: 0.4rem !important;
+      }
+    }
+
+    /* Rows: prevent wrapping for first column cells (common: name/title) */
+    table td:first-child, .list-row td:first-child { white-space: nowrap; }
+    /* Allow truncation with ellipsis when necessary in constrained layouts */
+    .truncate-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Breadcrumb: keep items on one line and scroll horizontally when long */
+    .breadcrumb, .breadcrumb * { white-space: nowrap; }
+    .breadcrumb-scroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+    /* Ensure default breadcrumb containers adopt scrolling behavior */
+    .rtl.text-right.breadcrumb, .mb-3.text-sm.text-gray-600.rtl.text-right { overflow-x: auto; white-space: nowrap; }
+  </style>
+  <!-- Auto-select text in inputs/textareas across project -->
+  <script src="{% static 'js/select-all-on-focus.js' %}" defer></script>
+  <script>
+  // Ensure latest Service Worker policy (HTML network-first) takes effect promptly
+  (function(){
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function(){
+        navigator.serviceWorker.getRegistration().then(function(reg){ try { if (reg) reg.update(); } catch(_){} });
+      });
+      // Reload once when the new controller takes control (avoid loops)
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function(){ if (!reloaded) { reloaded = true; window.location.reload(); } });
+    }
+  })();
+  </script>
+  <script>
+  // Lightweight cross-tab update propagation. Any page can broadcast
+  // {type:'data-changed', scope:'*'|'accounting'|...}. Default behavior:
+  // reload the page to reflect most recent aggregates/charts.
+  (function(){
+    if (!('BroadcastChannel' in window)) return;
+    try {
+      const ch = new BroadcastChannel('archen-updates');
+      ch.onmessage = function(ev){
+        try {
+          const d = ev && ev.data || {};
+          if (d && d.type === 'data-changed') {
+            // If tab hidden، رفرش را بعد از بازگشت انجام بده
+            if (document.hidden) {
+              sessionStorage.setItem('archen-pending-reload','1');
+            } else {
+              window.location.reload();
+            }
+          }
+        } catch(_){}
+      };
+      document.addEventListener('visibilitychange', function(){
+        if (!document.hidden && sessionStorage.getItem('archen-pending-reload') === '1'){
+          sessionStorage.removeItem('archen-pending-reload');
+          window.location.reload();
+        }
+      });
+      // Expose a helper for pages to broadcast
+      window.__archenBroadcast = function(payload){ try { ch.postMessage(payload); } catch(_){} };
+    } catch(_){}
+  })();
+  </script>
+</body>
+</html>
+

@@ -45,6 +45,7 @@
     {% endif %}
     <form method="post" novalidate class="space-y-4">
       {% csrf_token %}
+      <input type="hidden" name="inventory_ack" id="inventoryAckFlag" value="0">
 
       <!-- Job number -->
       <div class="flex flex-col">
@@ -175,6 +176,26 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+
+{% if inventory_shortages %}
+  {{ inventory_shortages|json_script:"inventoryShortagesData" }}
+{% endif %}
+<div id="inventoryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
+  <div class="bg-white rounded-xl shadow-2xl max-w-xl w-full p-6 space-y-4 rtl text-right">
+    <div>
+      <h3 class="text-lg font-bold text-red-700 mb-1">کمبود موجودی</h3>
+      <p class="text-sm text-gray-700">برای ساخت این کار موجودی کافی نیست. جزئیات زیر را بررسی کنید و در صورت تایید می‌توانید ادامه دهید.</p>
+    </div>
+    <div class="max-h-56 overflow-auto border border-dashed border-red-200 rounded-lg p-3 bg-red-50">
+      <ul id="inventoryShortageList" class="space-y-2 text-sm text-red-800"></ul>
+    </div>
+    <div class="flex flex-col sm:flex-row gap-3">
+      <button type="button" id="inventoryDownloadBtn" class="flex-1 px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm">دانلود کمبودها (فایل متنی)</button>
+      <button type="button" id="inventoryCancelBtn" class="flex-1 px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm">انصراف</button>
+      <button type="button" id="inventoryConfirmBtn" class="flex-1 px-4 py-2 rounded border border-green-700 text-green-700 hover:bg-green-100 text-sm font-semibold">تایید و ادامه</button>
+    </div>
   </div>
 </div>
 
@@ -405,6 +426,102 @@
     if (label === 'in_progress' && pid) {
       setDefaultsForProduct(pid);
     }
+  });
+})();
+
+// Inventory shortage modal (shown when backend detects missing stock)
+(function() {
+  const dataScript = document.getElementById('inventoryShortagesData');
+  const modal = document.getElementById('inventoryModal');
+  const list = document.getElementById('inventoryShortageList');
+  const confirmBtn = document.getElementById('inventoryConfirmBtn');
+  const cancelBtn = document.getElementById('inventoryCancelBtn');
+  const downloadBtn = document.getElementById('inventoryDownloadBtn');
+  const ackField = document.getElementById('inventoryAckFlag');
+  const form = document.querySelector('form');
+
+  function resetAck() {
+    if (ackField) { ackField.value = '0'; }
+  }
+
+  if (!dataScript || !modal || !list || !confirmBtn || !cancelBtn || !downloadBtn || !ackField || !form) {
+    return;
+  }
+
+  let shortages = [];
+  try {
+    shortages = JSON.parse(dataScript.textContent) || [];
+  } catch (_) {
+    shortages = [];
+  }
+  if (!Array.isArray(shortages) || shortages.length === 0) {
+    return;
+  }
+
+  function renderList(items) {
+    list.innerHTML = '';
+    items.forEach((item, idx) => {
+      const miss = (item.missing ?? item.required) || '';
+      const unit = item.unit ? ` ${item.unit}` : '';
+      const li = document.createElement('li');
+      li.className = 'flex items-start gap-2';
+      li.innerHTML = `
+        <span class="mt-0.5 text-xs text-red-500">${idx + 1}.</span>
+        <div class="flex-1">
+          <div class="font-semibold">${item.name || '—'}</div>
+          <div class="text-xs text-red-700">کمبود: ${miss}${unit} | موردنیاز: ${item.required ?? '—'}${unit} | موجود: ${item.available ?? 0}${unit}</div>
+        </div>
+      `;
+      list.appendChild(li);
+    });
+  }
+
+  function showModal() {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    resetAck();
+  }
+
+  function hideModal() {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+
+  function downloadText() {
+    const lines = shortages.map((item, idx) => {
+      const unit = item.unit ? ` ${item.unit}` : '';
+      return `${idx + 1}. ${item.name || ''} | کمبود: ${item.missing ?? item.required}${unit} | موردنیاز: ${item.required ?? ''}${unit} | موجود: ${item.available ?? 0}${unit}`;
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'inventory_shortages.txt';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  renderList(shortages);
+  showModal();
+
+  confirmBtn.addEventListener('click', () => {
+    ackField.value = '1';
+    form.submit();
+  });
+  cancelBtn.addEventListener('click', () => {
+    hideModal();
+    resetAck();
+  });
+  downloadBtn.addEventListener('click', downloadText);
+
+  // Reset confirmation when key fields change
+  const resetSelectors = ['input[name="allowed_sections"]', '#create_job_product', 'input[name="job_label"]'];
+  resetSelectors.forEach(sel => {
+    document.querySelectorAll(sel).forEach(el => {
+      el.addEventListener('change', resetAck);
+    });
   });
 })();
 </script>

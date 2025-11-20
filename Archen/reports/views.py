@@ -1174,10 +1174,11 @@ def job_details_export(request, job_number: str, fmt: str):
         return HttpResponse(html)
 
     if fmt == 'xlsx':
-        wb, ws, styles, set_cell, add_title = _prepare_detail_sheet("گزارش جزئیات سفارش", max_cols=6)
+        created_jdt = _to_jalali(getattr(job, 'created_at', None))
+        finished_jdt = _to_jalali(getattr(job, 'finished_at', None))
+        wb, ws, styles, set_cell, add_title = _prepare_detail_sheet("جزئیات شماره کار", max_cols=7)
         row_idx = 1
-        code = (order.subscription_code or str(order.id)).replace('/', '_')
-        add_title(row_idx, f"گزارش جزئیات سفارش - {code}")
+        add_title(row_idx, f"گزارش جزئیات شماره کار - {job.job_number}")
         row_idx += 2
 
         def add_kv_row(pairs):
@@ -1188,27 +1189,71 @@ def job_details_export(request, job_number: str, fmt: str):
                 set_cell(row_idx, col, v); col += 1
             row_idx += 1
 
-        add_kv_row([("نام مشتری", order.customer_name or '-'), ("شهر", order.city or '-')])
-        add_kv_row([("مدل", order.model or '-'), ("وضعیت", order.get_status_display())])
-        add_kv_row([("کد اشتراک", order.subscription_code or '-'), ("نمایشگاه/فروشگاه", order.exhibition_name or '-')])
-        add_kv_row([("تاریخ سفارش", ctx['order_jdt'] or '-'), ("ورود پارچه", ctx['fabric_entry_jdt'] or '-')])
-        add_kv_row([("تاریخ تحویل", ctx['delivery_jdt'] or '-')])
+        add_kv_row([("محصول", getattr(job.product, 'name', '') or '-'), ("مدل", getattr(getattr(job.product, 'product_model', None), 'name', '') or '-')])
+        add_kv_row([("برچسب", job.get_job_label_display()), ("وضعیت", job.get_status_display())])
+        add_kv_row([("تاریخ ایجاد", created_jdt), ("تاریخ بسته شدن", finished_jdt or '-')])
+        if getattr(job, 'deposit_account', None):
+            add_kv_row([("طرف حساب/مشتری", job.deposit_account)])
         row_idx += 1
 
         ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=2)
-        set_cell(row_idx, 1, "اقلام سفارش", is_label=True, alignment=styles['center_header'])
+        set_cell(row_idx, 1, "مصرف قطعات", is_label=True, alignment=styles['center_header'])
         row_idx += 1
-        item_rows = [[it.get('name') or '', it.get('qty') or ''] for it in items]
+        parts_rows = [
+            [it.get('name') or '', it.get('qty') or '']
+            for it in (consumption.get('parts', []) or [])
+        ]
+        _, end_row = write_table(
+            ws,
+            headers=["نام قطعه", "تعداد مصرف"],
+            rows=parts_rows,
+            start_row=row_idx,
+            column_widths=[32, 16],
+            table_name="JobParts",
+        )
+        row_idx = end_row + 2
+
+        ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=3)
+        set_cell(row_idx, 1, "مصرف مواد اولیه", is_label=True, alignment=styles['center_header'])
+        row_idx += 1
+        material_rows = [
+            [it.get('name') or '', it.get('qty') or '', it.get('unit') or '']
+            for it in (consumption.get('materials', []) or [])
+        ]
+        _, end_row = write_table(
+            ws,
+            headers=["نام ماده", "مقدار", "واحد"],
+            rows=material_rows,
+            start_row=row_idx,
+            column_widths=[28, 14, 14],
+            table_name="JobMaterials",
+        )
+        row_idx = end_row + 2
+
+        ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=7)
+        set_cell(row_idx, 1, "سوابق ثبت", is_label=True, alignment=styles['center_header'])
+        row_idx += 1
+        log_rows = []
+        for l in logs:
+            log_rows.append([
+                getattr(l, 'jdate', '') or '',
+                (getattr(l.logged_at, 'strftime', lambda f: '-')('%H:%M') if getattr(l, 'logged_at', None) else '-'),
+                dict(SectionChoices.choices).get(l.section, l.section),
+                getattr(l.user, 'full_name', None) or getattr(l.user, 'username', ''),
+                bool(getattr(l, 'is_scrap', False)),
+                bool(getattr(l, 'is_external', False)),
+                getattr(l, 'note', '') or '',
+            ])
         write_table(
             ws,
-            headers=["نام آیتم", "تعداد"],
-            rows=item_rows,
+            headers=["تاریخ", "زمان", "بخش", "کاربر", "اسقاط", "کلاف بیرون", "توضیح"],
+            rows=log_rows,
             start_row=row_idx,
-            column_widths=[32, 14],
-            table_name="OrderItems",
+            column_widths=[14, 12, 18, 22, 10, 12, 28],
+            table_name="JobLogs",
         )
 
-        return _xlsx_response_from_workbook(wb, f"order_{code}.xlsx")
+        return _xlsx_response_from_workbook(wb, f"job_{job.job_number}.xlsx")
 
     # Print-friendly HTML for PDF (render to real PDF if engine is available)
     html = render_to_string('reports/job_details_export.html', {

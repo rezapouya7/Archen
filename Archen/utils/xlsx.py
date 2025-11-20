@@ -61,12 +61,14 @@ def base_styles():
     header_fill = PatternFill("solid", fgColor="FFF9FAFB")
     thin_side = Side(style="thin", color="FFE5E7EB")
     border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+    center_cell = Alignment(horizontal="center", vertical="center", wrap_text=True)
     return {
         "title_font": title_font,
         "header_font": header_font,
         "cell_font": cell_font,
         "center_header": center_header,
         "right_cell": right_cell,
+        "center_cell": center_cell,
         "header_fill": header_fill,
         "border": border,
     }
@@ -100,6 +102,11 @@ def write_table(
     styles = base_styles()
     header_row_idx = start_row
 
+    def is_name_desc(label: str) -> bool:
+        """Identify name/description columns to keep RTL alignment."""
+        needle = str(label)
+        return ("نام" in needle) or ("توضیح" in needle) or ("description" in needle.lower()) or ("name" in needle.lower())
+
     # Header
     for col_idx, label in enumerate(headers, start=1):
         c = ws.cell(row=header_row_idx, column=col_idx, value=label)
@@ -115,7 +122,11 @@ def write_table(
             value = sanitize_value(raw_value)
             c = ws.cell(row=row_idx, column=col_idx, value=value)
             c.font = styles["cell_font"]
-            c.alignment = styles["right_cell"]
+            # Center all cells except name/description columns
+            if is_name_desc(headers[col_idx - 1]):
+                c.alignment = styles["right_cell"]
+            else:
+                c.alignment = styles["center_cell"]
             c.border = styles["border"]
         row_idx += 1
 
@@ -132,7 +143,15 @@ def write_table(
 
     data_end = row_idx - 1
     if add_table and data_end >= header_row_idx:
-        existing = {t.displayName for t in ws._tables}  # type: ignore[attr-defined]
+        # openpyxl stores tables differently across versions (_tables may be dict or list)
+        raw_tables = getattr(ws, "_tables", [])  # type: ignore[attr-defined]
+        if isinstance(raw_tables, dict):
+            existing = set(raw_tables.keys())
+        else:
+            existing = {
+                getattr(t, "displayName", str(t))  # type: ignore[attr-defined]
+                for t in raw_tables
+            }
         name = table_name or f"Table{len(existing) + 1}"
         name = _safe_table_name(name, existing)
         ref = f"A{header_row_idx}:{get_column_letter(len(headers))}{data_end}"

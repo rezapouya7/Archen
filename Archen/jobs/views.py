@@ -19,15 +19,16 @@ from django.contrib import messages
 from django.utils import timezone
 import re
 from typing import Iterable
+from decimal import Decimal
 import jdatetime
 
 from production_line.views import is_manager_or_accountant
 from .models import ProductionJob
 from jobs.forms import CreateJobForm
 from jobs.services import delete_job_completely, rewind_job_progress
-from production_line.models import SectionChoices
+from production_line.models import SectionChoices, get_components_for_product, get_materials_for_product
 from production_line.utils import product_contains_mdf_page
-from inventory.models import Product
+from inventory.models import Product, Part, Material
 
 
 def _infer_default_allowed_sections(product: Product | None) -> list[str]:
@@ -71,6 +72,118 @@ PRODUCT_SECTION_FLOW = [
 ]
 
 SECTION_LABEL_MAP = {str(slug): label for slug, label in SectionChoices.choices}
+# Map first allowed section to the stock bucket that should feed it
+PREV_STOCK_FIELD_MAP = {
+    str(SectionChoices.WORKPAGE): ('stock_assembly', str(SectionChoices.ASSEMBLY)),
+    str(SectionChoices.UNDERCOATING): ('stock_workpage', str(SectionChoices.WORKPAGE)),
+    str(SectionChoices.PAINTING): ('stock_undercoating', str(SectionChoices.UNDERCOATING)),
+    str(SectionChoices.SEWING): ('stock_painting', str(SectionChoices.PAINTING)),
+    str(SectionChoices.UPHOLSTERY): ('stock_sewing', str(SectionChoices.SEWING)),
+    str(SectionChoices.PACKAGING): ('stock_upholstery', str(SectionChoices.UPHOLSTERY)),
+}
+
+
+def _calculate_job_shortages(product: Product | None, allowed_sections: Iterable[str] | None) -> list[dict]:
+    """Return a list of missing inventory items for creating an in-progress job."""
+    if not product:
+        return []
+    flow = _ordered_allowed_sections(allowed_sections)
+    if not flow:
+        return []
+    first_section = str(flow[0]).lower()
+    shortages: list[dict] = []
+
+    # Assembly needs component parts (CNC stock) and materials
+    if first_section == str(SectionChoices.ASSEMBLY):
+        components = get_components_for_product(product)
+        product_model = getattr(product, 'product_model', None)
+        part_ids = [c.get('part_id') or c.get('part_pk') or c.get('part') for c in components if c.get('part_id') or c.get('part_pk') or c.get('part')]
+        parts_map = {}
+        if part_ids:
+            try:
+                parts_map = {p.id: p for p in Part.objects.filter(pk__in=part_ids)}
+            except Exception:
+                parts_map = {}
+
+        for comp in components:
+            pname = (comp.get('part_name') or '').strip()
+            qty = int(comp.get('qty') or 0)
+            if not pname or qty <= 0:
+                continue
+            part_obj = None
+            part_id = comp.get('part_id') or comp.get('part_pk') or comp.get('part')
+            try:
+                part_id_int = int(part_id) if part_id else None
+            except (TypeError, ValueError):
+                part_id_int = None
+            if part_id_int:
+                part_obj = parts_map.get(part_id_int) or Part.objects.filter(pk=part_id_int).first()
+            elif product_model:
+                part_obj = Part.objects.filter(name=pname, product_model=product_model).first()
+            else:
+                part_obj = Part.objects.filter(name=pname).first()
+            available = int(getattr(part_obj, 'stock_cnc_tools', 0) or 0)
+            missing = qty - available
+            if missing > 0:
+                shortages.append({
+                    'name': pname,
+                    'required': qty,
+                    'available': available,
+                    'missing': missing,
+                    'type': 'part',
+                })
+
+        materials = get_materials_for_product(product)
+        mat_ids = [m.get('material_id') for m in materials if m.get('material_id')]
+        mats_map = {}
+        if mat_ids:
+            try:
+                mats_map = {m.id: m for m in Material.objects.filter(id__in=mat_ids)}
+            except Exception:
+                mats_map = {}
+        for mat in materials:
+            try:
+                req = Decimal(mat.get('qty') or 0)
+            except Exception:
+                continue
+            mat_obj = mats_map.get(mat.get('material_id'))
+            available_raw = getattr(mat_obj, 'quantity', 0) if mat_obj else 0
+            unit = getattr(mat_obj, 'unit', '') if mat_obj else ''
+            try:
+                available = Decimal(available_raw or 0)
+            except Exception:
+                available = Decimal('0')
+            missing = req - available
+            if missing > 0:
+                shortages.append({
+                    'name': (mat.get('material_name') or getattr(mat_obj, 'name', '') or 'ماده اولیه').strip(),
+                    'required': float(req),
+                    'available': float(available),
+                    'missing': float(missing),
+                    'unit': unit,
+                    'type': 'material',
+                })
+        return shortages
+
+    # For later sections, ensure prior-stage product stock exists
+    stock_field, prev_section = PREV_STOCK_FIELD_MAP.get(first_section, (None, None))
+    if stock_field:
+        try:
+            stock_obj = getattr(product, 'stock', None)
+        except Exception:
+            stock_obj = None
+        available = int(getattr(stock_obj, stock_field, 0) or 0)
+        required = 1
+        missing = required - available
+        if missing > 0:
+            shortages.append({
+                'name': f"موجودی بخش {SECTION_LABEL_MAP.get(prev_section, prev_section)}",
+                'required': required,
+                'available': available,
+                'missing': missing,
+                'type': 'product',
+            })
+    return shortages
 
 
 def _ordered_allowed_sections(raw_sections: Iterable[str] | None) -> list[str]:
@@ -266,6 +379,7 @@ def jobs_list_export_xlsx(request):
 @user_passes_test(is_manager_or_accountant)
 def job_add_view(request):
     """Create a new job using the generic CreateJobForm."""
+    inventory_shortages: list[dict] = []
     if request.method == 'POST':
         form = CreateJobForm(request.POST)
         if form.is_valid():
@@ -275,6 +389,7 @@ def job_add_view(request):
             allowed_sections_slugs = [str(sec) for sec in allowed_sections]
             job_label = form.cleaned_data.get('job_label') or 'in_progress'
             deposit_account = (form.cleaned_data.get('deposit_account') or '').strip()
+            inventory_ack = (request.POST.get('inventory_ack') or '').strip() == '1'
 
             # Prevent duplicate job numbers while the original row exists.
             # English: If a job with this number already exists (not deleted),
@@ -290,6 +405,25 @@ def job_add_view(request):
                     'section_progress_length': progress_payload['flow_length'],
                     'section_progress_highlight': progress_payload['highlight_slug'],
                 })
+
+            # For in-progress jobs, check inventory before creation and require explicit confirmation.
+            if job_label == 'in_progress':
+                try:
+                    inventory_shortages = _calculate_job_shortages(product, allowed_sections_slugs)
+                except Exception:
+                    inventory_shortages = []
+                if inventory_shortages and not inventory_ack:
+                    progress_payload = _build_progress_state(None, form['allowed_sections'].value())
+                    messages.warning(request, "موجودی کافی نیست. کمبودها را بررسی و در صورت تایید مجدداً ثبت کنید.")
+                    return render(request, 'jobs/job_form.html', {
+                        'form': form,
+                        'is_editing': False,
+                        'section_progress_items': progress_payload['items'],
+                        'section_progress_cursor': progress_payload['cursor'],
+                        'section_progress_length': progress_payload['flow_length'],
+                        'section_progress_highlight': progress_payload['highlight_slug'],
+                        'inventory_shortages': inventory_shortages,
+                    })
 
             # Determine the initial status based on the label
             # English: 'repaired' is a label for repair-type jobs, but they are still in progress
@@ -345,6 +479,7 @@ def job_add_view(request):
         'section_progress_cursor': progress_payload['cursor'],
         'section_progress_length': progress_payload['flow_length'],
         'section_progress_highlight': progress_payload['highlight_slug'],
+        'inventory_shortages': inventory_shortages,
     })
 
 

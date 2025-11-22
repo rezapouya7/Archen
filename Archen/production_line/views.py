@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 from django.db import transaction, IntegrityError
 
 from inventory.models import Product, Part
-from .models import ProductionLog, SectionChoices
+from .models import ProductionLog, SectionChoices, today_jdate
 from jobs.models import ProductionJob
 from .forms import WorkEntryForm
 from .utils import (
@@ -429,6 +429,84 @@ def work_entry_view(request):
             except Exception:
                 pass
 
+    # Today's logs for this section (for inline display below the form)
+    try:
+        today_val = today_jdate() or jdatetime.date.today()
+    except Exception:
+        today_val = jdatetime.date.today()
+    try:
+        today_val_str = today_val.strftime("%Y/%m/%d")
+    except Exception:
+        today_val_str = str(today_val)
+    logs_qs = (
+        ProductionLog.objects.filter(section=section, jdate=today_val)
+        .select_related('product', 'part', 'user', 'job')
+        .order_by('-logged_at', '-id')
+    )
+    tehran_tz = None
+    try:
+        tehran_tz = ZoneInfo("Asia/Tehran")
+    except Exception:
+        tehran_tz = None
+
+    today_logs: list[dict] = []
+    for log in logs_qs:
+        time_str = "-"
+        if getattr(log, 'logged_at', None):
+            try:
+                dt = log.logged_at
+                if timezone.is_aware(dt):
+                    dt_local = timezone.localtime(dt, tehran_tz) if tehran_tz else timezone.localtime(dt)
+                else:
+                    dt = timezone.make_aware(dt, timezone.utc)
+                    dt_local = timezone.localtime(dt, tehran_tz) if tehran_tz else timezone.localtime(dt)
+                time_str = dt_local.strftime("%H:%M")
+            except Exception:
+                time_str = "-"
+
+        item_name = None
+        if getattr(log, 'part_id', None):
+            item_name = getattr(log.part, 'name', None)
+        if not item_name and getattr(log, 'product_id', None):
+            item_name = getattr(log.product, 'name', None)
+        if not item_name:
+            item_name = getattr(log, 'item_name', None) or "-"
+
+        user_obj = getattr(log, 'user', None)
+        user_name = getattr(user_obj, 'full_name', None) or getattr(user_obj, 'username', "-")
+
+        qty_produced = int(getattr(log, 'produced_qty', 0) or 0)
+        qty_scrap = int(getattr(log, 'scrap_qty', 0) or 0)
+        if qty_produced or qty_scrap:
+            produced_count = qty_produced
+            scrap_count = qty_scrap
+        else:
+            produced_count = 0 if getattr(log, 'is_scrap', False) else 1
+            scrap_count = 1 if getattr(log, 'is_scrap', False) else 0
+
+        today_logs.append({
+            "jdate": str(getattr(log, 'jdate', "") or ""),
+            "time": time_str,
+            "model": getattr(log, 'model', "") or "-",
+            "name": item_name,
+            "job_number": getattr(getattr(log, 'job', None), 'job_number', None),
+            "produced": produced_count,
+            "scrap": scrap_count,
+            "user": user_name,
+            "note": getattr(log, 'note', "") or "",
+        })
+
+    name_column_label = "محصول"
+    if is_parts_based(section):
+        name_column_label = "قطعه"
+    scrap_column_label = "ضایعات"
+    if section not in {
+        SectionChoices.CUTTING,
+        SectionChoices.CNC_TOOLS,
+        SectionChoices.ASSEMBLY,
+    }:
+        scrap_column_label = "اسقاط"
+
     section_label = dict(SectionChoices.choices).get(section, "بخش تولید")
     context = {
         "form": form,
@@ -443,6 +521,10 @@ def work_entry_view(request):
         "label_text_colors": label_text_colors,
         "selected_job_number": selected_job_number,
         "is_products_based": is_products_based(section),
+        "today_logs": today_logs,
+        "name_column_label": name_column_label,
+        "scrap_column_label": scrap_column_label,
+        "today_jdate": today_val_str,
     }
     return render(request, "production_line/work_entry.html", context)
 

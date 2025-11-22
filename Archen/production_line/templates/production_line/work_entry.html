@@ -316,11 +316,48 @@
   </script>
 
       </form>
-    </div>
   </div>
+</div>
 
-  <script>
-  (function() {
+{% if today_logs %}
+<div class="w-full max-w-3xl mx-auto mt-6 surface-pattern surface-elevated p-4 rounded-xl">
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="text-sm font-bold text-gray-800">ثبت‌های امروز</h3>
+    <span class="text-xs text-gray-500">{{ today_jdate|default:"" }}</span>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-xs border border-gray-200 rounded-lg overflow-hidden ltr">
+      <thead class="bg-gray-100 text-gray-700">
+        <tr>
+          <th class="px-2 py-2 text-right">زمان</th>
+          {% if is_products_based %}<th class="px-2 py-2 text-right">شماره کار</th>{% endif %}
+          <th class="px-2 py-2 text-right">{{ name_column_label }}</th>
+          <th class="px-2 py-2 text-right">تعداد تولید</th>
+          <th class="px-2 py-2 text-right">{{ scrap_column_label }}</th>
+          <th class="px-2 py-2 text-right">ثبت‌کننده</th>
+          <th class="px-2 py-2 text-right">توضیح</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        {% for log in today_logs %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-2 py-2 whitespace-nowrap ltr">{{ log.time }}</td>
+          {% if is_products_based %}<td class="px-2 py-2 whitespace-nowrap ltr">{{ log.job_number|default:'-' }}</td>{% endif %}
+          <td class="px-2 py-2">{{ log.name }}</td>
+          <td class="px-2 py-2 text-center">{{ log.produced }}</td>
+          <td class="px-2 py-2 text-center">{{ log.scrap }}</td>
+          <td class="px-2 py-2 whitespace-nowrap">{{ log.user }}</td>
+          <td class="px-2 py-2 text-gray-600">{{ log.note }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<script>
+(function() {
     const idModel    = document.getElementById('id_model');
     const idPart     = document.getElementById('id_part');
     const idProduct  = document.getElementById('id_product');

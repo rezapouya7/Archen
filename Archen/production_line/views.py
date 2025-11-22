@@ -286,6 +286,8 @@ def work_entry_view(request):
                             unique_parts = sorted(set(missing_parts))
                             msg = "موجودی قطعات زیر کافی نیست: " + "، ".join(unique_parts)
                             form.add_error(None, msg)
+                            inventory_failed = True
+                            messages.error(request, msg)
                     # For assembly: also ensure sufficient raw materials stock exists (skip for external)
                     if not form.errors and section == SectionChoices.ASSEMBLY and selected_product and not bool(is_external):
                         try:
@@ -308,6 +310,8 @@ def work_entry_view(request):
                             unique_mats = sorted(set(missing_materials))
                             msg = "موجودی مواد اولیه زیر کافی نیست: " + "، ".join(unique_mats)
                             form.add_error(None, msg)
+                            inventory_failed = True
+                            messages.error(request, msg)
 
                     if not form.errors:
                         if job_number:
